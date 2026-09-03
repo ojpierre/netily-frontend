@@ -185,7 +185,7 @@ export function PublicEngagementWidgets() {
               <button
                 type="button"
                 onClick={() => setShowPreferences(true)}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm font-semibold text-zinc-100 transition hover:bg-white/10"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm font-semibold text-zinc-100 transition hover:bg-white/10"
               >
                 <Settings2 className="h-4 w-4" />
                 Manage preferences
@@ -193,7 +193,7 @@ export function PublicEngagementWidgets() {
               <button
                 type="button"
                 onClick={acceptAll}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
               >
                 Accept
                 <ChevronRight className="h-4 w-4" />
@@ -214,7 +214,7 @@ export function PublicEngagementWidgets() {
               <button
                 type="button"
                 onClick={() => setShowPreferences(false)}
-                className="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-white"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-white"
                 aria-label="Close cookie preferences"
               >
                 <X className="h-4 w-4" />
@@ -241,14 +241,14 @@ export function PublicEngagementWidgets() {
               <button
                 type="button"
                 onClick={saveSelected}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-semibold transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                className="inline-flex min-h-12 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-semibold transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
               >
                 Save preferences
               </button>
               <button
                 type="button"
                 onClick={acceptAll}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
               >
                 <Check className="h-4 w-4" />
                 Accept all

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { AnimatePresence, motion } from "framer-motion"
@@ -93,6 +93,51 @@ function RotatingHeroText() {
   )
 }
 
+function LazyVideo({
+  src,
+  poster,
+  label,
+}: {
+  src: string
+  poster: string
+  label: string
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [activated, setActivated] = useState(false)
+
+  const play = () => {
+    setActivated(true)
+    window.setTimeout(() => videoRef.current?.play().catch(() => undefined), 0)
+  }
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={activated ? src : undefined}
+        poster={poster}
+        muted
+        loop
+        playsInline
+        preload="none"
+        controls={activated}
+        className="h-full w-full object-cover"
+        aria-label={label}
+      />
+      {!activated && (
+        <button
+          type="button"
+          onClick={play}
+          className="absolute bottom-4 right-4 z-10 inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-white/20 bg-black/80 px-4 text-sm font-semibold text-white shadow-xl backdrop-blur transition hover:bg-zinc-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300"
+        >
+          Watch video
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      )}
+    </>
+  )
+}
+
 export function AffiliateLandingClient() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -115,7 +160,7 @@ export function AffiliateLandingClient() {
             <Link href="/" className="-m-1.5 p-1.5 flex items-center gap-2">
               <span className="sr-only">Netily Affiliate Program</span>
               <Image
-                src="/White logo no background.png"
+                src="/internetily-white-logo-320.webp"
                 alt="Internetily"
                 width={160}
                 height={50}
@@ -129,7 +174,7 @@ export function AffiliateLandingClient() {
           <div className="flex lg:hidden">
             <button
               type="button"
-              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-zinc-400"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-md text-zinc-400"
               onClick={() => setMobileMenuOpen(true)}
             >
               <span className="sr-only">Open main menu</span>
@@ -137,17 +182,17 @@ export function AffiliateLandingClient() {
             </button>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
-            <a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollTo("how-it-works") }} className="text-sm font-semibold leading-6 text-zinc-300 hover:text-white transition">How it works</a>
-            <a href="#tiers" onClick={(e) => { e.preventDefault(); scrollTo("tiers") }} className="text-sm font-semibold leading-6 text-zinc-300 hover:text-white transition">Tiers</a>
-            <a href="#faqs" onClick={(e) => { e.preventDefault(); scrollTo("faqs") }} className="text-sm font-semibold leading-6 text-zinc-300 hover:text-white transition">FAQ</a>
+            <a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollTo("how-it-works") }} className="inline-flex min-h-12 items-center text-sm font-semibold leading-6 text-zinc-300 transition hover:text-white">How it works</a>
+            <a href="#tiers" onClick={(e) => { e.preventDefault(); scrollTo("tiers") }} className="inline-flex min-h-12 items-center text-sm font-semibold leading-6 text-zinc-300 transition hover:text-white">Tiers</a>
+            <a href="#faqs" onClick={(e) => { e.preventDefault(); scrollTo("faqs") }} className="inline-flex min-h-12 items-center text-sm font-semibold leading-6 text-zinc-300 transition hover:text-white">FAQ</a>
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-6 lg:items-center">
-            <Link href="/affiliate/login" className="text-sm font-semibold leading-6 text-zinc-300 hover:text-white transition">
+            <Link href="/affiliate/login" className="inline-flex min-h-12 items-center text-sm font-semibold leading-6 text-zinc-300 transition hover:text-white">
               Log in
             </Link>
             <Link
               href="/affiliate/register"
-              className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-zinc-200 transition"
+              className="inline-flex min-h-12 items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
             >
               Become an Affiliate
             </Link>
@@ -162,9 +207,9 @@ export function AffiliateLandingClient() {
               <div className="flex items-center justify-between">
                 <Link href="/" className="-m-1.5 p-1.5" onClick={() => setMobileMenuOpen(false)}>
                   <span className="sr-only">Netily</span>
-                  <Image src="/White logo no background.png" alt="Netily" width={120} height={40} className="h-8 w-auto" />
+                  <Image src="/internetily-white-logo-320.webp" alt="Netily" width={120} height={40} className="h-8 w-auto" />
                 </Link>
-                <button type="button" className="-m-2.5 rounded-md p-2.5 text-zinc-400" onClick={() => setMobileMenuOpen(false)}>
+                <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-md text-zinc-400" onClick={() => setMobileMenuOpen(false)}>
                   <span className="sr-only">Close menu</span>
                   <X className="h-6 w-6" />
                 </button>
@@ -172,13 +217,13 @@ export function AffiliateLandingClient() {
               <div className="mt-6 flow-root">
                 <div className="-my-6 divide-y divide-white/10">
                   <div className="space-y-2 py-6">
-                    <a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollTo("how-it-works") }} className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800">How it works</a>
-                    <a href="#tiers" onClick={(e) => { e.preventDefault(); scrollTo("tiers") }} className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800">Tiers</a>
-                    <a href="#faqs" onClick={(e) => { e.preventDefault(); scrollTo("faqs") }} className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-zinc-800">FAQ</a>
+                    <a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollTo("how-it-works") }} className="-mx-3 flex min-h-12 items-center rounded-lg px-3 text-base font-semibold leading-7 text-white hover:bg-zinc-800">How it works</a>
+                    <a href="#tiers" onClick={(e) => { e.preventDefault(); scrollTo("tiers") }} className="-mx-3 flex min-h-12 items-center rounded-lg px-3 text-base font-semibold leading-7 text-white hover:bg-zinc-800">Tiers</a>
+                    <a href="#faqs" onClick={(e) => { e.preventDefault(); scrollTo("faqs") }} className="-mx-3 flex min-h-12 items-center rounded-lg px-3 text-base font-semibold leading-7 text-white hover:bg-zinc-800">FAQ</a>
                   </div>
                   <div className="py-6 space-y-4">
-                    <Link href="/affiliate/login" onClick={() => setMobileMenuOpen(false)} className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white hover:bg-zinc-800">Log in</Link>
-                    <Link href="/affiliate/register" onClick={() => setMobileMenuOpen(false)} className="-mx-3 block rounded-lg bg-red-600 px-3 py-2.5 text-base font-semibold leading-7 text-white hover:bg-red-500">Become an Affiliate</Link>
+                    <Link href="/affiliate/login" onClick={() => setMobileMenuOpen(false)} className="-mx-3 flex min-h-12 items-center rounded-lg px-3 text-base font-semibold leading-7 text-white hover:bg-zinc-800">Log in</Link>
+                    <Link href="/affiliate/register" onClick={() => setMobileMenuOpen(false)} className="-mx-3 flex min-h-12 items-center rounded-lg bg-red-600 px-3 text-base font-semibold leading-7 text-white hover:bg-red-500">Become an Affiliate</Link>
                   </div>
                 </div>
               </div>
@@ -236,6 +281,7 @@ export function AffiliateLandingClient() {
                   src="/happy_affiliate_partner.png"
                   alt="Happy Affiliate Partner"
                   fill
+                  sizes="(max-width: 1024px) 0px, 50vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
@@ -271,14 +317,10 @@ export function AffiliateLandingClient() {
                 </p>
               </div>
               <div className="relative aspect-video overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-                <video
+                <LazyVideo
                   src="/internetily-affiliate-intro.mp4"
-                  poster="/internetily_logo_2k.jpeg"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
+                  poster="/internetily-affiliate-poster.webp"
+                  label="Internetily affiliate program intro video"
                 />
               </div>
             </div>
@@ -548,7 +590,7 @@ export function AffiliateLandingClient() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-2">
             <Image
-              src="/White logo no background.png"
+              src="/internetily-white-logo-320.webp"
               alt="Netily"
               width={120}
               height={40}

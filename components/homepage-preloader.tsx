@@ -50,7 +50,7 @@ export function HomepagePreloader() {
     <div className="fixed inset-0 z-[9999] flex min-h-dvh items-center justify-center bg-white text-slate-950">
       <div className="flex w-full max-w-[360px] flex-col items-center px-8 text-center">
         <Image
-          src="/internetily_logo_2k.jpeg"
+          src="/internetily-logo-320.webp"
           alt="Internetily"
           width={220}
           height={220}

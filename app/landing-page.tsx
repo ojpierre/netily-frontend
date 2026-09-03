@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   ArrowRight,
@@ -23,11 +24,24 @@ import {
   X,
 } from "lucide-react"
 
-import { BillingCalculator } from "@/components/BillingCalculator"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { blogPosts } from "@/lib/blog-data"
 import { submitLead } from "@/lib/api"
 import { useGeo } from "@/hooks/use-geo"
+
+const BillingCalculator = dynamic(
+  () => import("@/components/BillingCalculator").then((mod) => mod.BillingCalculator),
+  {
+    ssr: false,
+    loading: () => (
+      <section id="calculator" className="border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
+        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+          <div className="h-80 animate-pulse border border-zinc-800 bg-zinc-900/60" />
+        </div>
+      </section>
+    ),
+  },
+)
 
 const LEAD_SOURCE_OPTIONS = [
   "Google Search",
@@ -111,7 +125,7 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <span className="relative block">
       <Image
-        src="/White logo no background.png"
+        src="/internetily-white-logo-320.webp"
         alt="Internetily"
         width={compact ? 210 : 260}
         height={compact ? 72 : 88}
@@ -119,6 +133,58 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
         className={`${compact ? "h-14 w-auto sm:h-16" : "h-16 w-auto"} object-contain`}
       />
     </span>
+  )
+}
+
+function LazyVideo({
+  src,
+  poster,
+  label,
+  className,
+  buttonLabel = "Play preview",
+}: {
+  src: string
+  poster: string
+  label: string
+  className: string
+  buttonLabel?: string
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [activated, setActivated] = useState(false)
+
+  const play = () => {
+    setActivated(true)
+    window.setTimeout(() => {
+      videoRef.current?.play().catch(() => undefined)
+    }, 0)
+  }
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        className={className}
+        src={activated ? src : undefined}
+        poster={poster}
+        muted
+        loop
+        playsInline
+        preload="none"
+        controls={activated}
+        aria-label={label}
+      />
+      {!activated && (
+        <button
+          type="button"
+          onClick={play}
+          className="absolute bottom-4 right-4 z-10 inline-flex min-h-12 items-center justify-center gap-2 border border-white/20 bg-zinc-950/80 px-4 text-sm font-semibold text-white shadow-xl backdrop-blur transition hover:bg-zinc-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
+          aria-label={buttonLabel}
+        >
+          {buttonLabel}
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      )}
+    </>
   )
 }
 
@@ -461,7 +527,7 @@ function RouterAndIspSetupSection({ onIspSetupLead }: { onIspSetupLead: () => vo
                 </p>
                 <button
                   onClick={onIspSetupLead}
-                  className="mt-7 inline-flex items-center justify-center gap-2 bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-900"
+                  className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-900"
                 >
                   I want to set up an ISP
                   <ArrowRight className="h-4 w-4" />
@@ -489,6 +555,7 @@ function RouterAndIspSetupSection({ onIspSetupLead }: { onIspSetupLead: () => vo
 
 function ProductVideoSection({
   videoSrc,
+  posterSrc,
   eyebrow,
   headline,
   body,
@@ -497,6 +564,7 @@ function ProductVideoSection({
   onClick,
 }: {
   videoSrc: string
+  posterSrc: string
   eyebrow: string
   headline: string
   body: string
@@ -511,14 +579,11 @@ function ProductVideoSection({
         <div className={`grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
           <Reveal>
             <div className="relative overflow-hidden border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/25">
-              <video
+              <LazyVideo
                 className="aspect-video h-full w-full object-cover"
                 src={videoSrc}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
+                poster={posterSrc}
+                label={`${headline} preview video`}
               />
               <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-zinc-950/55 via-transparent to-transparent" />
               <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 border border-white/15 bg-zinc-950/70 px-3 py-1.5 text-xs font-medium text-white/75 backdrop-blur">
@@ -537,7 +602,7 @@ function ProductVideoSection({
               <p className="mt-5 text-base leading-7 text-zinc-400 md:text-lg">{body}</p>
               <button
                 onClick={onClick}
-                className="mt-8 inline-flex items-center justify-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+                className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
               >
                 {button}
                 <ArrowRight className="h-4 w-4" />
@@ -695,7 +760,7 @@ export function LandingPage() {
             <BrandMark compact />
           </Link>
 
-          <div className="hidden items-center gap-6 text-sm text-white/70 lg:flex">
+          <div className="hidden items-center gap-3 text-sm text-white/70 lg:flex">
             {navItems.map((item) => (
               <a
                 key={item.id}
@@ -704,15 +769,15 @@ export function LandingPage() {
                   event.preventDefault()
                   scrollTo(item.id)
                 }}
-                className="transition-colors hover:text-white"
+                className="inline-flex min-h-12 items-center px-2 transition-colors hover:text-white"
               >
                 {item.label}
               </a>
             ))}
-            <Link href="/blog" className="transition-colors hover:text-white">
+            <Link href="/blog" className="inline-flex min-h-12 items-center px-2 transition-colors hover:text-white">
               Blog
             </Link>
-            <Link href="/docs" className="transition-colors hover:text-white">
+            <Link href="/docs" className="inline-flex min-h-12 items-center px-2 transition-colors hover:text-white">
               Docs
             </Link>
           </div>
@@ -721,7 +786,7 @@ export function LandingPage() {
             <div className="relative">
               <button
                 onClick={() => setCountrySwitcherOpen(!countrySwitcherOpen)}
-                className="flex items-center gap-2 border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white/75 transition hover:bg-white/10"
+                className="flex min-h-12 items-center gap-2 border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white/75 transition hover:bg-white/10"
                 aria-expanded={countrySwitcherOpen}
               >
                 <span>{geo.flag}</span>
@@ -758,7 +823,7 @@ export function LandingPage() {
             <ThemeToggle />
             <a
               href="https://demo.netily.co.ke/admin/login"
-              className="border border-white/20 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                className="inline-flex min-h-12 items-center justify-center border border-white/20 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
             >
               View Demo
             </a>
@@ -768,7 +833,7 @@ export function LandingPage() {
                 event.preventDefault()
                 scrollTo("contact")
               }}
-              className="bg-white px-5 py-2.5 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200"
+              className="inline-flex min-h-12 items-center justify-center bg-white px-5 py-2.5 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200"
             >
               Start Trial
             </a>
@@ -776,7 +841,7 @@ export function LandingPage() {
 
           <div className="flex items-center gap-2 lg:hidden">
             <ThemeToggle />
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-white" aria-label="Toggle menu">
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="inline-flex h-12 w-12 items-center justify-center text-white" aria-label="Toggle menu">
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
@@ -784,7 +849,7 @@ export function LandingPage() {
 
         {mobileMenuOpen && (
           <div className="public-mobile-menu mx-auto mt-4 max-w-7xl border border-zinc-700 bg-zinc-950/95 p-5 backdrop-blur lg:hidden">
-            <div className="flex flex-col gap-4 text-sm text-zinc-300">
+            <div className="flex flex-col gap-2 text-sm text-zinc-300">
               {navItems.map((item) => (
                 <a
                   key={item.id}
@@ -793,13 +858,14 @@ export function LandingPage() {
                     event.preventDefault()
                     scrollTo(item.id)
                   }}
+                  className="inline-flex min-h-12 items-center"
                 >
                   {item.label}
                 </a>
               ))}
-              <Link href="/blog">Blog</Link>
-              <Link href="/docs">Docs</Link>
-              <a href="https://demo.netily.co.ke/admin/login">View demo workspace</a>
+              <Link href="/blog" className="inline-flex min-h-12 items-center">Blog</Link>
+              <Link href="/docs" className="inline-flex min-h-12 items-center">Docs</Link>
+              <a href="https://demo.netily.co.ke/admin/login" className="inline-flex min-h-12 items-center">View demo workspace</a>
               <a
                 href="#contact"
                 onClick={(event) => {
@@ -807,6 +873,7 @@ export function LandingPage() {
                   setMobileMenuOpen(false)
                   scrollTo("contact")
                 }}
+                className="inline-flex min-h-12 items-center"
               >
                 Contact sales
               </a>
@@ -820,7 +887,7 @@ export function LandingPage() {
                         setCountry(code)
                         setMobileMenuOpen(false)
                       }}
-                      className={`border px-3 py-2 text-left text-xs ${
+                      className={`min-h-12 border px-3 py-2 text-left text-xs ${
                         geo.countryCode === code ? "border-amber-500 bg-amber-500 text-black" : "border-zinc-700 text-zinc-300"
                       }`}
                     >
@@ -837,19 +904,16 @@ export function LandingPage() {
       <main id="main-content">
         <section className="public-hero relative min-h-screen overflow-hidden border-b border-zinc-800">
           <div className="absolute inset-0">
-            <video
+            <LazyVideo
               className="h-full w-full object-cover"
               src="/internetily_intro.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              poster="/internetily_logo_2k.jpeg"
-              aria-label="Internetily intro video"
+              poster="/internetily_intro_poster.webp"
+              label="Internetily intro video"
+              buttonLabel="Play intro"
             />
-            <div className="absolute inset-0 bg-zinc-950/30" />
-            <div className="absolute inset-0 bg-linear-to-r from-zinc-950/82 via-zinc-950/20 to-zinc-950/10" />
-            <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/20 to-zinc-950/20" />
+            <div className="pointer-events-none absolute inset-0 bg-zinc-950/30" />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-zinc-950/82 via-zinc-950/20 to-zinc-950/10" />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/20 to-zinc-950/20" />
           </div>
           <Grain />
 
@@ -939,6 +1003,7 @@ export function LandingPage() {
 
         <ProductVideoSection
           videoSrc="/Video 1.mp4"
+          posterSrc="/video-1-poster.webp"
           eyebrow="Cloud Control"
           headline="Centralized Control, Anywhere."
           body="Manage your entire hotspot network from a single, intuitive cloud dashboard. Deploy updates, monitor status, and control multiple locations without ever touching a router."
@@ -1005,7 +1070,7 @@ export function LandingPage() {
                 <Reveal key={feature.title} delay={index * 0.05} className={feature.span}>
                   <article className="h-full border border-zinc-800 bg-zinc-900/65 p-6 transition hover:border-zinc-600">
                     <div className="mb-8 flex items-center justify-between">
-                      <div className="flex h-11 w-11 items-center justify-center bg-amber-500 text-black">
+                      <div className="flex h-12 w-12 items-center justify-center bg-amber-500 text-black">
                         <feature.icon className="h-5 w-5" />
                       </div>
                       <span className="text-xs uppercase tracking-[0.25em] text-zinc-600">0{index + 1}</span>
@@ -1021,6 +1086,7 @@ export function LandingPage() {
 
         <ProductVideoSection
           videoSrc="/Video 2.mp4"
+          posterSrc="/video-2-poster.webp"
           eyebrow="Captive Portals"
           headline="Make the First Connection Count."
           body="Turn a simple Wi-Fi login into a brand touchpoint. Deliver seamless, lightning-fast, and fully customizable captive portals that engage users the moment they connect."
@@ -1129,7 +1195,7 @@ export function LandingPage() {
                     event.preventDefault()
                     scrollTo("calculator")
                   }}
-                  className="mt-8 inline-flex items-center gap-2 bg-white px-6 py-3 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200"
+                  className="mt-8 inline-flex min-h-12 items-center gap-2 bg-white px-6 py-3 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200"
                 >
                   Calculate your cost
                   <ArrowRight className="h-4 w-4" />
@@ -1161,7 +1227,7 @@ export function LandingPage() {
                     }))
                     scrollTo("contact")
                   }}
-                  className="mt-8 inline-flex w-full items-center justify-center gap-2 bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-zinc-900"
+                  className="mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-zinc-900"
                 >
                   Request quote
                   <Send className="h-4 w-4" />
@@ -1185,6 +1251,7 @@ export function LandingPage() {
 
         <ProductVideoSection
           videoSrc="/Video 3.mp4"
+          posterSrc="/video-3-poster.webp"
           eyebrow="Infrastructure"
           headline="Built for High Performance."
           body="Engineered with a modern, decoupled backend to ensure your network scales securely. Whether you are handling ten users or ten thousand, experience zero bottlenecks and rock-solid reliability."
@@ -1277,7 +1344,7 @@ export function LandingPage() {
               {blogPosts.slice(0, 3).map((post) => (
                 <article key={post.slug} className="group border border-zinc-800 bg-zinc-950">
                   <div className="relative h-44 overflow-hidden border-b border-zinc-800">
-                    <Image src={post.coverImage} alt={post.coverImageAlt} fill unoptimized sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-75 transition group-hover:scale-105" />
+                    <Image src={post.coverImage} alt={post.coverImageAlt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-75 transition group-hover:scale-105" />
                     <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
                   </div>
                   <div className="p-5">
@@ -1311,20 +1378,17 @@ export function LandingPage() {
                 <div className="mt-8">
                   <Link
                     href="/affiliate"
-                    className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-500 hover:scale-105"
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-500 hover:scale-105"
                   >
                     View 2026 Affiliate Program <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
               </div>
               <div className="relative aspect-video overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
-                <video
+                <LazyVideo
                   src="/internetily-affiliate-intro.mp4"
-                  poster="/internetily_logo_2k.jpeg"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+                  poster="/internetily-affiliate-poster.webp"
+                  label="Internetily affiliate program preview video"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -1373,7 +1437,7 @@ export function LandingPage() {
                     href="https://chat.whatsapp.com/GDBSxnHgcU0Ly7cc2qEjnC"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-6 inline-flex items-center justify-center bg-[#25D366] px-5 py-3 text-sm font-medium text-white"
+                    className="mt-6 inline-flex min-h-12 items-center justify-center bg-[#25D366] px-5 py-3 text-sm font-medium text-white"
                   >
                     Join WhatsApp community
                   </a>
@@ -1398,7 +1462,7 @@ export function LandingPage() {
                           setLeadForm({ ...leadForm, name: event.target.value })
                           if (leadFormErrors.name) setLeadFormErrors((prev) => ({ ...prev, name: undefined }))
                         }}
-                        className={`h-11 w-full border bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500 ${
+                        className={`h-12 w-full border bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500 ${
                           leadFormErrors.name ? "border-red-500" : "border-zinc-700"
                         }`}
                         placeholder="John Doe"
@@ -1414,7 +1478,7 @@ export function LandingPage() {
                           setLeadForm({ ...leadForm, email: event.target.value })
                           if (leadFormErrors.email) setLeadFormErrors((prev) => ({ ...prev, email: undefined }))
                         }}
-                        className={`h-11 w-full border bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500 ${
+                        className={`h-12 w-full border bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500 ${
                           leadFormErrors.email ? "border-red-500" : "border-zinc-700"
                         }`}
                         placeholder="john@example.com"
@@ -1427,7 +1491,7 @@ export function LandingPage() {
                         type="tel"
                         value={leadForm.phone}
                         onChange={(event) => setLeadForm({ ...leadForm, phone: event.target.value })}
-                        className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
+                        className="h-12 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
                         placeholder="+254 7XX XXX XXX"
                       />
                     </div>
@@ -1437,7 +1501,7 @@ export function LandingPage() {
                         type="text"
                         value={leadForm.company}
                         onChange={(event) => setLeadForm({ ...leadForm, company: event.target.value })}
-                        className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
+                        className="h-12 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
                         placeholder="Your ISP name"
                       />
                     </div>
@@ -1447,7 +1511,7 @@ export function LandingPage() {
                         value={leadForm.lead_source}
                         onChange={(event) => setLeadForm({ ...leadForm, lead_source: event.target.value })}
                         disabled={Boolean(affiliateReferralCode)}
-                        className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
+                        className="h-12 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
                       >
                         <option value="">Select a source</option>
                         {LEAD_SOURCE_OPTIONS.map((option) => (
@@ -1464,7 +1528,7 @@ export function LandingPage() {
                           type="text"
                           value={leadForm.referral_name}
                           onChange={(event) => setLeadForm({ ...leadForm, referral_name: event.target.value })}
-                          className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
+                          className="h-12 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
                           placeholder="Optional"
                         />
                       </div>
@@ -1476,7 +1540,7 @@ export function LandingPage() {
                       value={leadForm.message}
                       onChange={(event) => setLeadForm({ ...leadForm, message: event.target.value })}
                       rows={5}
-                      className="w-full resize-none border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:border-amber-500"
+                      className="min-h-32 w-full resize-none border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:border-amber-500"
                       placeholder="Tell us your county, estates or towns served, subscriber size, router setup, payment workflow, and what you want to automate..."
                     />
                   </div>
@@ -1576,14 +1640,14 @@ export function LandingPage() {
             <div>
               <div className="flex items-center gap-2">
                 <Image
-                  src="/White logo no background.png"
+                  src="/internetily-white-logo-320.webp"
                   alt="Internetily"
                   width={280}
                   height={96}
                   className="public-footer-logo-dark h-20 w-auto object-contain md:h-24"
                 />
                 <Image
-                  src="/internetily_logo_2k.jpeg"
+                  src="/internetily-logo-320.webp"
                   alt="Internetily"
                   width={280}
                   height={96}
@@ -1596,7 +1660,7 @@ export function LandingPage() {
             </div>
             <div>
               <h4 className="text-sm font-medium">Product</h4>
-              <ul className="mt-4 space-y-2 text-sm text-zinc-500">
+              <ul className="mt-4 space-y-1 text-sm text-zinc-500 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center">
                 <li><a href="#features" onClick={(event) => { event.preventDefault(); scrollTo("features") }}>Features</a></li>
                 <li><a href="#pricing" onClick={(event) => { event.preventDefault(); scrollTo("pricing") }}>Pricing</a></li>
                 <li><a href="#contact" onClick={(event) => { event.preventDefault(); scrollTo("contact") }}>Start trial</a></li>
@@ -1605,7 +1669,7 @@ export function LandingPage() {
             </div>
             <div>
               <h4 className="text-sm font-medium">Resources</h4>
-              <ul className="mt-4 space-y-2 text-sm text-zinc-500">
+              <ul className="mt-4 space-y-1 text-sm text-zinc-500 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center">
                 <li><Link href="/blog">ISP growth blog</Link></li>
                 <li><Link href="/solutions/isp-billing-software-kenya-counties">Kenya county billing</Link></li>
                 <li><Link href="/solutions/isp-billing-software-nairobi">Nairobi ISP billing</Link></li>
@@ -1621,7 +1685,7 @@ export function LandingPage() {
             </div>
             <div>
               <h4 className="text-sm font-medium">Company</h4>
-              <ul className="mt-4 space-y-2 text-sm text-zinc-500">
+              <ul className="mt-4 space-y-1 text-sm text-zinc-500 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center">
                 <li><Link href="/admin/login">Sign in</Link></li>
                 <li><Link href="/affiliate">Affiliate Program</Link></li>
                 <li><Link href="/privacy">Privacy policy</Link></li>
@@ -1632,7 +1696,7 @@ export function LandingPage() {
           </div>
           <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-8 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
             <p>&copy; {new Date().getFullYear()} Internetily. All rights reserved.</p>
-            <a href="https://mjengo-tech.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400">
+            <a href="https://mjengo-tech.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center hover:text-zinc-400">
               a product of Mjengo Corporate
             </a>
           </div>
