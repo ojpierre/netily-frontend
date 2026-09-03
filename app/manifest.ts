@@ -4,12 +4,20 @@ import { headers } from 'next/headers'
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const headersList = await headers()
   const host = headersList.get('host') || ''
+  const rootMarketingHosts = new Set([
+    'netily.co.ke',
+    'www.netily.co.ke',
+    'netily.io',
+    'www.netily.io',
+    'netily.com',
+    'www.netily.com',
+  ])
   
   // Extract tenant subdomain
   let tenantSubdomain: string | null = null;
   const hostParts = host.split(':')[0].toLowerCase();
   
-  if (hostParts !== 'localhost' && !hostParts.startsWith('www.')) {
+  if (hostParts !== 'localhost' && !rootMarketingHosts.has(hostParts)) {
      if (hostParts.endsWith('.localhost')) {
          tenantSubdomain = hostParts.replace('.localhost', '');
      } else if (hostParts.includes('.')) {
@@ -36,7 +44,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     name: appName,
     short_name: shortName,
     description: "Automate ISP billing, M-Pesa payments, MikroTik provisioning, and customer management. Built for Kenyan & East African ISPs.",
-    start_url: "/admin",
+    start_url: tenantSubdomain ? "/admin" : "/",
     display: "standalone",
     orientation: "any",
     theme_color: "#1e3a5f",

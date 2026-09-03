@@ -18,6 +18,18 @@ const ROOT_DOMAINS = new Set([
   'netily.co.ke', 'netily.io', 'netily.com', 'localhost',
 ])
 
+function isRootMarketingDomain(hostname: string): boolean {
+  const host = hostname.split(':')[0].toLowerCase()
+  return (
+    host === 'netily.co.ke' ||
+    host === 'www.netily.co.ke' ||
+    host === 'netily.io' ||
+    host === 'www.netily.io' ||
+    host === 'netily.com' ||
+    host === 'www.netily.com'
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  CUSTOM TENANT DOMAINS
 //  ISPs that bring their own domain (e.g. bentrextechnologies.com) instead of
@@ -161,6 +173,14 @@ export function proxy(request: NextRequest) {
   const supportToken = request.cookies.get('supportToken')?.value
 
   // ── 3. Superadmin routes protection ───────────────────────────────────────
+  if (isRootMarketingDomain(hostname) && pathname.startsWith('/admin')) {
+    if (pathname === '/admin/selfie' && (superadminToken || supportToken)) {
+      return NextResponse.next()
+    }
+
+    return NextResponse.redirect(new URL('/', request.url), { status: 302 })
+  }
+
   if (pathname.startsWith('/superadmin')) {
     if (pathname === '/superadmin/login') {
       if (superadminToken) {

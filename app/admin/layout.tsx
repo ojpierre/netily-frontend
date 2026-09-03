@@ -135,6 +135,14 @@ const SIDEBAR_BREADCRUMB_MIN_ITEMS = 5
 const DEMO_LEAD_PROMPT_KEY = "netily-demo-lead-prompt-shown"
 const DEMO_LEAD_DEFAULT_MESSAGE =
   "Hi Internetily, I explored the demo workspace and would like help setting this up for my ISP."
+const ROOT_MARKETING_HOSTS = new Set([
+  "netily.co.ke",
+  "www.netily.co.ke",
+  "netily.io",
+  "www.netily.io",
+  "netily.com",
+  "www.netily.com",
+])
 
 const searchText = (value: unknown) => String(value || "").toLowerCase()
 
@@ -627,6 +635,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const host = window.location.hostname.toLowerCase()
+    if (ROOT_MARKETING_HOSTS.has(host) && pathname?.startsWith("/admin") && pathname !== "/admin/selfie") {
+      window.location.replace("/")
+    }
+  }, [pathname])
 
   // ── PWA Install hook ──
   const { canInstall, promptInstall } = usePwaInstall()

@@ -4,10 +4,18 @@ import { NextRequest, NextResponse } from "next/server"
 export async function GET(req: NextRequest) {
   const host = req.headers.get("host") || ""
   const hostname = host.split(":")[0]
+  const rootMarketingHosts = new Set([
+    "netily.co.ke",
+    "www.netily.co.ke",
+    "netily.io",
+    "www.netily.io",
+    "netily.com",
+    "www.netily.com",
+  ])
 
   // Derive tenant subdomain (e.g. "jelda" from jelda.netily.co.ke)
   const parts = hostname.split(".")
-  const isTenantSubdomain = parts.length >= 3 && !["www", "api"].includes(parts[0])
+  const isTenantSubdomain = parts.length >= 3 && !rootMarketingHosts.has(hostname) && !["www", "api"].includes(parts[0])
   const rawName = isTenantSubdomain ? parts[0] : "Netily"
   const appName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
 
@@ -15,8 +23,8 @@ export async function GET(req: NextRequest) {
     name: `${appName} - ISP Dashboard`,
     short_name: appName,
     description: `${appName} admin dashboard powered by Netily`,
-    start_url: "/admin",
-    scope: "/admin",
+    start_url: isTenantSubdomain ? "/admin" : "/",
+    scope: isTenantSubdomain ? "/admin" : "/",
     display: "standalone",
     display_override: ["window-controls-overlay", "standalone"],
     background_color: "#0f172a",
