@@ -165,8 +165,8 @@ const ACTION_ICONS: Record<PageAction, React.ElementType> = {
   delete: Trash,
 }
 
-// Routes that manage this permission editor itself should remain owner/admin-only.
-const NON_DELEGABLE_PATHS = ["/admin/staff"]
+// Routes that manage staff access and audit evidence should remain owner/admin-only.
+const NON_DELEGABLE_PATHS = ["/admin/staff", "/admin/logs"]
 const ACTION_DEPENDENCY_COPY = "View is added automatically when you enable another action."
 
 // ==========================================

@@ -133,14 +133,24 @@ export interface TokenRefreshResponse {
 
 export interface AuditLog {
   id: number
-  user: User
+  user: number | User | null
+  user_email?: string
+  user_full_name?: string | null
+  user_role?: string | null
+  user_access_level?: string | null
+  actor_type?: 'admin' | 'staff' | 'system' | 'user'
   action: string
-  model: string
-  object_id: number
-  changes: Record<string, any>
-  ip_address: string
-  user_agent: string
-  created_at: string
+  action_display?: string
+  model?: string
+  model_name?: string
+  object_id: number | string | null
+  object_repr?: string | null
+  changes: Record<string, any> | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at?: string
+  timestamp?: string
+  tenant?: number | null
 }
 
 export interface Tenant {
