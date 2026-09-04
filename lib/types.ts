@@ -137,7 +137,6 @@ export interface AuditLog {
   user_email?: string
   user_full_name?: string | null
   user_role?: string | null
-  user_access_level?: string | null
   actor_type?: 'admin' | 'staff' | 'system' | 'user'
   action: string
   action_display?: string
