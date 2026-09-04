@@ -151,6 +151,7 @@ const formatDuration = (plan: Plan) => {
   // Fallback: compute from validity fields
   const vt = plan.validity_type || 'DAYS'
   if (vt === 'UNLIMITED') return 'Unlimited'
+  if (vt === 'CALENDAR_MONTH') return 'Same-Day Monthly'
   if (vt === 'MINUTES' && plan.validity_minutes) {
     if (plan.validity_minutes < 60) return `${plan.validity_minutes} min`
     const h = Math.floor(plan.validity_minutes / 60)
@@ -178,6 +179,7 @@ const getValidityIcon = (plan: Plan) => {
   if (vt === 'MINUTES') return Timer
   if (vt === 'HOURS') return Clock
   if (vt === 'UNLIMITED') return Zap
+  if (vt === 'CALENDAR_MONTH') return Calendar
   return Calendar
 }
 
@@ -499,10 +501,11 @@ export default function PlansPage() {
     data_limit: '',
     unlimited_data: true,
     // Validity - flexible time-based
-    validity_type: 'MONTHS' as 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'UNLIMITED',
+    validity_type: 'MONTHS' as 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'CALENDAR_MONTH' | 'UNLIMITED',
     duration_days: '30',
     validity_hours: '',
     validity_minutes: '',
+    validity_months: '1',
     // Session/Connection limits
     max_sessions: '1',
     session_timeout: '',
@@ -525,8 +528,6 @@ export default function PlansPage() {
     // MikroTik QoS
     priority: '8',
     burst_enabled: false,
-    // Validity months
-    validity_months: '1',
     // Status
     is_active: true,
     is_popular: false,
@@ -842,6 +843,7 @@ export default function PlansPage() {
       duration_days: '30',
       validity_hours: '',
       validity_minutes: '',
+      validity_months: '1',
       // Session/Connection limits
       max_sessions: '1',
       session_timeout: '',
@@ -864,8 +866,6 @@ export default function PlansPage() {
       // MikroTik QoS
       priority: '8',
       burst_enabled: false,
-      // Validity months
-      validity_months: '1',
       // Status
       is_active: true,
       is_popular: false,
@@ -1037,6 +1037,7 @@ export default function PlansPage() {
       duration_days: plan.duration_days?.toString() || plan.validity_days?.toString() || '30',
       validity_hours: plan.validity_hours?.toString() || '',
       validity_minutes: plan.validity_minutes?.toString() || '',
+      validity_months: plan.validity_months?.toString() || '1',
       // Session/Connection limits
       max_sessions: plan.max_sessions?.toString() || '1',
       session_timeout: plan.session_timeout?.toString() || '',
@@ -1059,8 +1060,6 @@ export default function PlansPage() {
       // MikroTik QoS
       priority: plan.priority?.toString() || '8',
       burst_enabled: plan.burst_enabled || false,
-      // Validity months
-      validity_months: plan.validity_months?.toString() || '1',
       // Status
       is_active: plan.is_active,
       is_popular: plan.is_popular || false,
@@ -1968,7 +1967,7 @@ export default function PlansPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Validity</Label>
-                {planForm.validity_type !== 'UNLIMITED' && (
+                {planForm.validity_type !== 'UNLIMITED' && planForm.validity_type !== 'CALENDAR_MONTH' && (
                   <Input
                     type="number"
                     min={1}
@@ -1991,6 +1990,9 @@ export default function PlansPage() {
                 {planForm.validity_type === 'UNLIMITED' && (
                   <Input disabled value="∞" className="text-center" />
                 )}
+                {planForm.validity_type === 'CALENDAR_MONTH' && (
+                  <Input disabled value="Same day, monthly" className="text-center" />
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Unit</Label>
@@ -2003,6 +2005,7 @@ export default function PlansPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MONTHS">Months</SelectItem>
+                    <SelectItem value="CALENDAR_MONTH">Same-Day Monthly</SelectItem>
                     <SelectItem value="DAYS">Days</SelectItem>
                     <SelectItem value="HOURS">Hours</SelectItem>
                     <SelectItem value="MINUTES">Minutes</SelectItem>
@@ -2011,6 +2014,19 @@ export default function PlansPage() {
                 </Select>
               </div>
             </div>
+
+            {/* CALENDAR_MONTH info block - shown when selected */}
+            {planForm.validity_type === 'CALENDAR_MONTH' && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-1">
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Same-Day Monthly
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Expires exactly 1 month from the payment date. Late renewals reset the anchor to the new payment day.
+                </p>
+              </div>
+            )}
 
             {/* Price */}
             <div className="space-y-2">
@@ -2255,6 +2271,7 @@ export default function PlansPage() {
                       <SelectItem value="HOURS">Hours</SelectItem>
                       <SelectItem value="DAYS">Days</SelectItem>
                       <SelectItem value="MONTHS">Months</SelectItem>
+                      <SelectItem value="CALENDAR_MONTH">Same-Day Monthly</SelectItem>
                       <SelectItem value="UNLIMITED">Unlimited</SelectItem>
                     </SelectContent>
                   </Select>
@@ -2301,6 +2318,14 @@ export default function PlansPage() {
                     <Input type="number" min={1} value={planForm.validity_months}
                       onChange={(e) => setPlanForm({ ...planForm, validity_months: e.target.value })}
                       placeholder="e.g., 1, 3, 6, 12" />
+                  </div>
+                )}
+                {planForm.validity_type === 'CALENDAR_MONTH' && (
+                  <div className="space-y-2">
+                    <Label>Renewal Date</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Renews on the same day each month as the customer's payment date. Late payments shift the anchor day forward.
+                    </p>
                   </div>
                 )}
               </div>

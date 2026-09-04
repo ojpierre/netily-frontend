@@ -70,7 +70,7 @@ export default function EditPlanPage() {
     data_limit: "",
     unlimitedData: true,
     // Validity
-    validity_type: "DAYS",
+    validity_type: "DAYS" as "DAYS" | "HOURS" | "MINUTES" | "MONTHS" | "CALENDAR_MONTH" | "UNLIMITED",
     duration_days: "30",
     validity_hours: "",
     validity_minutes: "",
@@ -155,7 +155,7 @@ export default function EditPlanPage() {
           speed_unit: plan.speed_unit || "MBPS",
           data_limit: plan.data_limit?.toString() || "",
           unlimitedData: plan.data_limit == null,
-          validity_type: plan.validity_type || "DAYS",
+          validity_type: (plan.validity_type as "DAYS" | "HOURS" | "MINUTES" | "MONTHS" | "CALENDAR_MONTH" | "UNLIMITED") || "DAYS",
           duration_days: (plan.duration_days ?? plan.validity_days ?? 30).toString(),
           validity_hours: plan.validity_hours?.toString() || "",
           validity_minutes: plan.validity_minutes?.toString() || "",
@@ -374,6 +374,7 @@ export default function EditPlanPage() {
                     <SelectItem value="HOURS">Hours</SelectItem>
                     <SelectItem value="DAYS">Days</SelectItem>
                     <SelectItem value="MONTHS">Months</SelectItem>
+                    <SelectItem value="CALENDAR_MONTH">Same-Day Monthly</SelectItem>
                     <SelectItem value="UNLIMITED">Unlimited</SelectItem>
                   </SelectContent>
                 </Select>
@@ -454,6 +455,16 @@ export default function EditPlanPage() {
                     {parseInt(formData.validity_months) > 0
                       ? `≈ ${parseInt(formData.validity_months) * 30} days`
                       : "Select duration"}
+                  </p>
+                </div>
+              )}
+
+              {/* ✅ CHANGE 3: CALENDAR_MONTH duration block */}
+              {formData.validity_type === "CALENDAR_MONTH" && (
+                <div className="space-y-2">
+                  <Label>Renewal Date</Label>
+                  <p className="text-xs text-slate-500">
+                    Renews on the same day each month as the customer's payment date. Late payments shift the anchor day forward.
                   </p>
                 </div>
               )}

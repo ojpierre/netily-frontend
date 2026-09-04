@@ -1814,7 +1814,7 @@ export interface Plan {
   speed_unit?: 'MBPS' | 'KBPS' | 'GBPS'
   data_limit?: number | null      // GB, null = unlimited
   // Validity - flexible time-based options
-  validity_type?: 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'UNLIMITED'
+  validity_type?: 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'CALENDAR_MONTH' | 'UNLIMITED'
   duration_days?: number
   validity_days?: number   // Alias for duration_days
   validity_hours?: number  // For hourly plans

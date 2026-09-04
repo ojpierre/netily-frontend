@@ -437,7 +437,7 @@ export default function CreatePlanPage() {
     data_limit: "",
     unlimitedData: true,
     // Validity
-    validity_type: "DAYS",
+    validity_type: "DAYS" as "DAYS" | "HOURS" | "MINUTES" | "MONTHS" | "CALENDAR_MONTH" | "UNLIMITED",
     duration_days: "30",
     validity_hours: "",
     validity_minutes: "",
@@ -573,7 +573,7 @@ export default function CreatePlanPage() {
       name: preset.config.name,
       plan_type: preset.config.plan_type,
       base_price: preset.config.base_price.toString(),
-      validity_type: preset.config.validity_type,
+      validity_type: preset.config.validity_type as "DAYS" | "HOURS" | "MINUTES" | "MONTHS" | "CALENDAR_MONTH" | "UNLIMITED",
       duration_days: preset.config.duration_days?.toString() || "30",
       validity_hours: preset.config.validity_hours?.toString() || "",
       validity_minutes: preset.config.validity_minutes?.toString() || "",
@@ -863,6 +863,7 @@ export default function CreatePlanPage() {
                     <SelectItem value="HOURS">Hours</SelectItem>
                     <SelectItem value="DAYS">Days</SelectItem>
                     <SelectItem value="MONTHS">Months</SelectItem>
+                    <SelectItem value="CALENDAR_MONTH">Same-Day Monthly</SelectItem>
                     <SelectItem value="UNLIMITED">Unlimited</SelectItem>
                   </SelectContent>
                 </Select>
@@ -948,6 +949,17 @@ export default function CreatePlanPage() {
                       ? `≈ ${parseInt(formData.validity_months) * 30} days`
                       : 'Select duration'
                     }
+                  </p>
+                </div>
+              )}
+
+              {/* ✅ CHANGE 3: CALENDAR_MONTH duration block */}
+              {formData.validity_type === 'CALENDAR_MONTH' && (
+                <div className="space-y-2">
+                  <Label>Renewal Date</Label>
+                  <p className="text-xs text-slate-500">
+                    No fixed duration — expires exactly 1 month from whenever the customer pays
+                    (e.g. pays 15th → expires 15th next month). Late renewals shift the date to the new payment day.
                   </p>
                 </div>
               )}
