@@ -277,7 +277,8 @@ async function initiatePurchase(data: {
       body: JSON.stringify(data),
       cache: "no-store",
     },
-    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+    // 🔥 FIX: No retries for mutating endpoints - prevent duplicate charges
+    { timeoutMs: 5000, retries: 0, retryDelayMs: 0 }
   )
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Payment initiation failed" }))
@@ -356,7 +357,8 @@ async function redeemVoucher(data: {
       body: JSON.stringify(data),
       cache: "no-store",
     },
-    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+    // 🔥 FIX: No retries for mutating endpoints - prevent false "already used" errors
+    { timeoutMs: 8000, retries: 0, retryDelayMs: 0 }
   )
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Voucher redemption failed" }))
@@ -389,7 +391,8 @@ async function claimFreeTrial(data: {
       body: JSON.stringify(data),
       cache: 'no-store',
     },
-    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+    // 🔥 FIX: No retries for mutating endpoints - prevent duplicate free trial claims
+    { timeoutMs: 8000, retries: 0, retryDelayMs: 0 }
   )
   const json = await response.json()
   if (!response.ok) throw new Error(json.error || 'Failed to claim free trial')
@@ -423,7 +426,8 @@ async function phoneReconnect(data: {
       body: JSON.stringify(data),
       cache: 'no-store',
     },
-    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+    // 🔥 FIX: No retries for mutating endpoints - prevent duplicate reconnects
+    { timeoutMs: 8000, retries: 0, retryDelayMs: 0 }
   )
   const json = await response.json()
   if (!response.ok) throw new Error(json.error || 'Could not connect')
@@ -477,7 +481,8 @@ async function grantAdAccess(data: {
       body: JSON.stringify(data),
       cache: 'no-store',
     },
-    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+    // 🔥 FIX: No retries for mutating endpoints
+    { timeoutMs: 8000, retries: 0, retryDelayMs: 0 }
   )
   const json = await res.json()
   if (!res.ok && res.status !== 409) throw new Error(json.error || 'Failed to grant access')
@@ -530,7 +535,8 @@ async function redeemHotspotLoyaltyPoints(data: {
       body: JSON.stringify(data),
       cache: 'no-store',
     },
-    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+    // 🔥 FIX: No retries for mutating endpoints
+    { timeoutMs: 8000, retries: 0, retryDelayMs: 0 }
   )
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || 'Redemption failed')
@@ -573,6 +579,30 @@ function submitRouterLogin(loginUrl: string, username: string, password: string)
   document.body.appendChild(form)
   form.submit()
   return true
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🔥 NEW: submitRouterLoginConfirmed - verifies and retries once
+// ═══════════════════════════════════════════════════════════════
+async function submitRouterLoginConfirmed(
+  routerId: string,
+  loginUrl: string,
+  username: string,
+  password: string,
+) {
+  if (!loginUrl) return
+  // First attempt
+  submitRouterLogin(loginUrl, username, password)
+  // Give MikroTik a moment, then confirm it actually authenticated.
+  // If not, resubmit once — handles the race where the first POST
+  // lands before the router clears the stale binding for this MAC.
+  setTimeout(async () => {
+    const mac = getMacAddress()
+    const confirmed = await verifyMikrotikAuth(routerId, mac)
+    if (!confirmed) {
+      submitRouterLogin(loginUrl, username, password)
+    }
+  }, 2500)
 }
 
 // ==========================================
@@ -911,7 +941,8 @@ export default function HotspotClientView({
           setCanonicalUsername(result.credentials.username)
           if (loginUrl) {
             setReturningToRouter(true)
-            submitRouterLogin(loginUrl, result.credentials.username, result.credentials.password)
+            // 🔥 FIX: Use confirmed version for auto-login
+            submitRouterLoginConfirmed(routerId, loginUrl, result.credentials.username, result.credentials.password)
           }
         }
         setAutoLoginChecked(true)
@@ -1027,11 +1058,10 @@ export default function HotspotClientView({
           setExpiresAt(result.expires_at || null)
           if (result.access_code) setCanonicalUsername(result.access_code)
           
-          // RADIUS creds are already committed server-side by the time this response lands,
-          // there is nothing left to wait for — submit immediately
+          // 🔥 FIX: Use confirmed version for payment success
           if (loginUrl && result.access_code && targetDevice !== "tv") {
             setReturningToRouter(true)
-            submitRouterLogin(loginUrl, result.access_code, result.access_code)
+            submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
           }
           return
         }
@@ -1053,7 +1083,7 @@ export default function HotspotClientView({
 
     timer = setTimeout(tick, 1200)
     return () => clearTimeout(timer)
-  }, [paymentStatus, sessionId, loginUrl, targetDevice])
+  }, [paymentStatus, sessionId, loginUrl, targetDevice, routerId])
 
   // ── Countdown for phone payment ──
   useEffect(() => {
@@ -1146,10 +1176,10 @@ export default function HotspotClientView({
       setSelectedPlan(plan)
       setPaymentStatus('success')
       
-      // RADIUS creds are already committed server-side, submit immediately
+      // 🔥 FIX: Use confirmed version for free trial
       if (loginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
-        submitRouterLogin(loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       if (err.message?.includes('already used') || err.message?.includes('already claimed')) {
@@ -1265,10 +1295,10 @@ export default function HotspotClientView({
       setExpiresAt(result.expires_at)
       setPaymentStatus("success")
 
-      // RADIUS creds are already committed server-side, submit immediately
+      // 🔥 FIX: Use confirmed version for voucher redemption
       if (loginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
-        submitRouterLogin(loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
       }
     } catch (err: unknown) {
       setVoucherError(err instanceof Error ? err.message : "Voucher redemption failed")
@@ -1316,23 +1346,11 @@ export default function HotspotClientView({
       setShowPhoneModal(false)
       setPaymentStatus('success')
 
-      // ── Claude's fix: verify + retry ──────────────────────────
+      // ── 🔥 FIX: Use confirmed version (already does verify+retry) ──
       if (loginUrl && result.credentials) {
         const { username, password } = result.credentials
         setReturningToRouter(true)
-        // First attempt
-        submitRouterLogin(loginUrl, username, password)
-
-        // Give MikroTik a moment, then confirm it actually authenticated.
-        // If not, resubmit once — handles the race where the first POST
-        // lands before the router clears the stale binding for this MAC.
-        setTimeout(async () => {
-          const mac = getMacAddress()
-          const confirmed = await verifyMikrotikAuth(routerId, mac)
-          if (!confirmed) {
-            submitRouterLogin(loginUrl, username, password)
-          }
-        }, 2500)
+        submitRouterLoginConfirmed(routerId, loginUrl, username, password)
       }
     } catch (err: any) {
       // Surface specific backend messages (slots full, expired, etc.)
@@ -1387,10 +1405,10 @@ export default function HotspotClientView({
       })
       setShowAdModal(false)
       setPaymentStatus('success')
-      // RADIUS creds are already committed server-side, submit immediately
+      // 🔥 FIX: Use confirmed version for ad grant
       if (loginUrl && result.access_code) {
         setReturningToRouter(true)
-        submitRouterLogin(loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       setAdError(err.message || 'Could not grant access. Please try again.')
@@ -1442,10 +1460,10 @@ export default function HotspotClientView({
           r => r.points_cost <= result.points_remaining
         ),
       } : null)
-      // RADIUS creds are already committed server-side, submit immediately
+      // 🔥 FIX: Use confirmed version for loyalty redeem
       if (loginUrl && result.access_code) {
         setReturningToRouter(true)
-        submitRouterLogin(loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       setRedeemError(err.message || 'Redemption failed. Try again.')
