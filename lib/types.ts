@@ -3665,6 +3665,8 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
     { key: '{access_code}', label: 'Access Code', example: 'BENT-06EU' },
     { key: '{speed}', label: 'Speed', example: '5 Mbps' },
     { key: '{duration}', label: 'Duration', example: '1 hour' },
+    { key: '{amount}', label: 'Amount Paid', example: '400' },
+    { key: '{amount_due}', label: 'Amount Paid (with KES)', example: 'KES 400' },
   ],
   hotspot_session_expired: [
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
