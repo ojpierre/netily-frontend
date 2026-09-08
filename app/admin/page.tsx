@@ -55,10 +55,8 @@ import {
 import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
 import { PaymentTicker } from "@/components/ui/payment-ticker"
 import type {
-  DashboardStats,
+  AuditLog,
   RouterDashboardStats,
-  PaymentDashboardStats,
-  SupportTicketStats,
 } from "@/lib/types"
 
 // ──────────────────────────────────────
@@ -67,10 +65,16 @@ import type {
 
 interface ActivityItem {
   id: number
-  user__email: string
+  user__email?: string
+  user_email?: string
+  user_full_name?: string | null
+  user_role?: string | null
+  actor_type?: string
   action: string
+  action_display?: string
   model_name: string
-  object_repr: string
+  object_repr?: string | null
+  object_id?: string | number | null
   timestamp: string
 }
 
@@ -114,6 +118,8 @@ function ChangeBadge({ value }: { value: number }) {
 
 const dashboardCardClass =
   "border border-border/70 bg-card/95 shadow-sm transition-all duration-200 hover:shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/90"
+
+const PLATFORM_SUPERADMIN_NAMES = new Set(["peter ouma", "mark mbolonzi"])
 
 // ─── Conversational Helpers ───
 
@@ -199,6 +205,10 @@ export default function AdminDashboard() {
   
   // ─── TICKER STATE ───
   const [tickerItems, setTickerItems] = useState<string[]>([])
+  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([])
+  const [recentActivitiesLoading, setRecentActivitiesLoading] = useState(true)
+  const [sessionStartedAt, setSessionStartedAt] = useState<Date | null>(null)
+  const [sessionSeconds, setSessionSeconds] = useState(0)
   
   // ─── ANIMATION RETRIGGER KEY ───
   const [greetKey, setGreetKey] = useState(0)
@@ -303,6 +313,38 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  const fetchRecentActivity = useCallback(async () => {
+    try {
+      setRecentActivitiesLoading(true)
+      const response = await adminApi.getAuditLogs({
+        page_size: "6",
+        hide_platform_superadmin: "true",
+      })
+      const rows = ((response.results || []) as AuditLog[])
+        .filter((row) => !isPlatformSuperadminActivity(row))
+        .map((row) => ({
+          id: row.id,
+          user__email: row.user_email || "",
+          user_email: row.user_email,
+          user_full_name: row.user_full_name,
+          user_role: row.user_role,
+          actor_type: row.actor_type,
+          action: row.action,
+          action_display: row.action_display,
+          model_name: row.model_name || row.model || "Activity",
+          object_repr: row.object_repr,
+          object_id: row.object_id,
+          timestamp: row.timestamp || row.created_at || new Date().toISOString(),
+        }))
+      setRecentActivities(rows)
+    } catch (err) {
+      console.warn("Recent activity fetch failed:", err)
+      setRecentActivities([])
+    } finally {
+      setRecentActivitiesLoading(false)
+    }
+  }, [])
+
   // ─── FAST PATH: fetch quick stats independently ───
   const fetchQuickStats = useCallback(async () => {
     try {
@@ -382,6 +424,7 @@ export default function AdminDashboard() {
     fetchQuickStats()
     fetchDashboardData()
     fetchTickerData()
+    fetchRecentActivity()
   }
 
   // ─── INITIAL FETCH ──────────────────────────────────────────
@@ -399,6 +442,7 @@ export default function AdminDashboard() {
     fetchDashboardData()
     // Fetch ticker data
     fetchTickerData()
+    fetchRecentActivity()
     // Play animation on mount
     setGreetKey((k) => k + 1)
     
@@ -407,9 +451,21 @@ export default function AdminDashboard() {
       fetchQuickStats()
       fetchDashboardData()
       fetchTickerData()
+      fetchRecentActivity()
     }, 60000)
     return () => clearInterval(interval)
-  }, [fetchQuickStats, fetchDashboardData, fetchTickerData])
+  }, [fetchQuickStats, fetchDashboardData, fetchTickerData, fetchRecentActivity])
+
+  useEffect(() => {
+    const startedAt = getStoredSessionStart(user?.last_login)
+    setSessionStartedAt(startedAt)
+    const updateElapsed = () => {
+      setSessionSeconds(Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000)))
+    }
+    updateElapsed()
+    const interval = setInterval(updateElapsed, 1000)
+    return () => clearInterval(interval)
+  }, [user?.id, user?.last_login])
 
   if (error && !quickStats) {
     return (
@@ -478,95 +534,136 @@ export default function AdminDashboard() {
         }}
       />
 
-      {/* ─── Apple-Style Greeting Hero Card (Theme-Aware) ─── */}
-      <div
-        key={greetKey}
-        className="relative overflow-hidden rounded-2xl p-10 md:p-14 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px] border border-border/60 bg-card"
-      >
-        {/* Subtle Apple-style radial glow */}
+      {/* ─── Greeting & Session Timer ─── */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,0.7fr)]">
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--foreground) 6%, transparent) 0%, transparent 60%)",
-          }}
-        />
-
-        <div className="relative">
-          <p className="apple-hello-sub text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground/70 mb-3">
-            {getShiftLabel()}
-          </p>
-
-          <h1
-            className="font-semibold text-foreground leading-none"
+          key={greetKey}
+          className="relative min-h-[260px] overflow-hidden rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm md:p-14"
+        >
+          {/* Subtle Apple-style radial glow */}
+          <div
+            className="absolute inset-0 pointer-events-none"
             style={{
-              fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
-              letterSpacing: "-0.03em",
+              background:
+                "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--foreground) 6%, transparent) 0%, transparent 60%)",
             }}
-          >
-            <span className="apple-hello-word" style={{ animationDelay: "0.05s" }}>
-              {getGreeting()},
-            </span>{" "}
-            <span
-              className="apple-hello-word text-foreground/90"
-              style={{ animationDelay: "0.2s" }}
+          />
+
+          <div className="relative flex min-h-[190px] flex-col items-center justify-center">
+            <p className="apple-hello-sub mb-3 text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground/70">
+              {getShiftLabel()}
+            </p>
+
+            <h1
+              className="font-semibold leading-none text-foreground"
+              style={{
+                fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
+                letterSpacing: "-0.03em",
+              }}
             >
-              {user?.first_name || user?.username || "there"}.
-            </span>
-          </h1>
+              <span className="apple-hello-word" style={{ animationDelay: "0.05s" }}>
+                {getGreeting()},
+              </span>{" "}
+              <span
+                className="apple-hello-word text-foreground/90"
+                style={{ animationDelay: "0.2s" }}
+              >
+                {user?.first_name || user?.username || "there"}.
+              </span>
+            </h1>
 
-          {(() => {
-            const attentionItems = getAttentionItems(
-              quickStats?.routers?.offline_routers ?? 0,
-              smsAttention.balance,
-              smsAttention.configured,
-              smsAttention.lowBalance,
-              quickStats?.tickets?.open ?? 0,
-              quickStats?.expired_customers ?? 0
-            )
-            const hasAttention = attentionItems.length > 0
+            {(() => {
+              const attentionItems = getAttentionItems(
+                quickStats?.routers?.offline_routers ?? 0,
+                smsAttention.balance,
+                smsAttention.configured,
+                smsAttention.lowBalance,
+                quickStats?.tickets?.open ?? 0,
+                quickStats?.expired_customers ?? 0
+              )
+              const hasAttention = attentionItems.length > 0
 
-            return (
-              <>
-                <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                  {hasAttention
-                    ? `${attentionItems.join(" · ")} — a few things need a minute.`
-                    : "Everything looks clean today."}
-                </p>
+              return (
+                <>
+                  <p className="apple-hello-sub mx-auto mt-4 max-w-md text-sm text-muted-foreground md:text-base">
+                    {hasAttention
+                      ? `${attentionItems.join(" · ")} — a few things need a minute.`
+                      : "Everything looks clean today."}
+                  </p>
 
-                {tickerItems.length > 0 && (
-                  <PaymentTicker
-                    items={tickerItems}
-                    holdMs={3400}
-                    transitionMs={600}
-                    className="apple-hello-sub mt-2 text-xs md:text-sm text-muted-foreground/70 max-w-sm mx-auto"
-                  />
-                )}
-              </>
-            )
-          })()}
+                  {tickerItems.length > 0 && (
+                    <PaymentTicker
+                      items={tickerItems}
+                      holdMs={3400}
+                      transitionMs={600}
+                      className="apple-hello-sub mx-auto mt-2 max-w-sm text-xs text-muted-foreground/70 md:text-sm"
+                    />
+                  )}
+                </>
+              )
+            })()}
 
-          <p className="apple-hello-sub mt-2 text-xs text-muted-foreground/60 tracking-wide">
-            {new Date().toLocaleDateString("en-KE", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </p>
+            <p className="apple-hello-sub mt-2 text-xs tracking-wide text-muted-foreground/60">
+              {new Date().toLocaleDateString("en-KE", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </p>
+          </div>
+
+          {/* Refresh button - positioned top-right */}
+          <div className="absolute top-5 right-5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
 
-        {/* Refresh button - positioned top-right */}
-        <div className="absolute top-5 right-5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+        <Card className={`${dashboardCardClass} overflow-hidden`}>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4 text-primary" />
+              Dashboard Time
+            </CardTitle>
+            <CardDescription>Time spent in this admin session</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div>
+              <p className="text-4xl font-bold tabular-nums text-foreground">
+                {formatElapsedTime(sessionSeconds)}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Since {sessionStartedAt ? formatClockTime(sessionStartedAt) : "login"}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Signed in as
+              </p>
+              <p className="mt-2 truncate text-sm font-medium text-foreground">
+                {user?.first_name || user?.last_name
+                  ? `${user?.first_name || ""} ${user?.last_name || ""}`.trim()
+                  : user?.email || "Admin"}
+              </p>
+              <p className="mt-1 text-xs capitalize text-muted-foreground">
+                {(user?.role || user?.access_level || "admin").replace(/_/g, " ")}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Live counter</span>
+              <span className="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">Active</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
@@ -1267,7 +1364,7 @@ export default function AdminDashboard() {
             <CardDescription>Latest system events from audit log</CardDescription>
           </CardHeader>
           <CardContent>
-            {quickStatsLoading ? (
+            {recentActivitiesLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -1279,29 +1376,29 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-            ) : (quickStats?.recent_activity ?? []).length === 0 ? (
+            ) : recentActivities.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No recent activity</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto">
-                {(quickStats?.recent_activity ?? []).map((activity) => (
+                {recentActivities.map((activity) => (
                   <div
                     key={activity.id}
                     className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/30"
                   >
                     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <span className="text-xs font-bold text-primary">
-                        {(activity.user__email || "?").charAt(0).toUpperCase()}
+                        {activityInitial(activity)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {activity.user__email || "System"}
+                        {activityActor(activity)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.action} — {activity.object_repr || activity.model_name}
+                        {activity.action_display || activity.action} - {activity.object_repr || activity.model_name}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {timeAgo(activity.timestamp)}
@@ -1326,4 +1423,61 @@ export default function AdminDashboard() {
       </div>
     </div>
   )
+}
+
+function formatElapsedTime(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, "0")}m`
+  if (minutes > 0) return `${minutes}m ${seconds.toString().padStart(2, "0")}s`
+  return `${seconds}s`
+}
+
+function formatClockTime(value: string | Date): string {
+  return new Date(value).toLocaleTimeString("en-KE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function getHostScopedStorageKey(base: string): string {
+  if (typeof window === "undefined") return base
+  return `${base}:${window.location.hostname}`
+}
+
+function getStoredSessionStart(userLastLogin?: string | null): Date {
+  if (typeof window === "undefined") return userLastLogin ? new Date(userLastLogin) : new Date()
+  const key = getHostScopedStorageKey("adminSessionStartedAt")
+  const stored =
+    sessionStorage.getItem(key) ||
+    localStorage.getItem(key) ||
+    sessionStorage.getItem("adminSessionStartedAt") ||
+    localStorage.getItem("adminSessionStartedAt")
+
+  const preferred = stored || userLastLogin
+  const parsed = preferred ? new Date(preferred) : new Date()
+  if (Number.isNaN(parsed.getTime())) return new Date()
+
+  if (!stored) {
+    const value = parsed.toISOString()
+    sessionStorage.setItem(key, value)
+    sessionStorage.setItem("adminSessionStartedAt", value)
+  }
+
+  return parsed
+}
+
+function activityActor(activity: ActivityItem): string {
+  return activity.user_full_name || activity.user_email || activity.user__email || "System"
+}
+
+function activityInitial(activity: ActivityItem): string {
+  return activityActor(activity).charAt(0).toUpperCase() || "S"
+}
+
+function isPlatformSuperadminActivity(activity: Pick<ActivityItem, "actor_type" | "user_full_name">): boolean {
+  if (activity.actor_type === "superadmin") return true
+  const name = (activity.user_full_name || "").trim().toLowerCase()
+  return PLATFORM_SUPERADMIN_NAMES.has(name)
 }

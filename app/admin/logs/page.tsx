@@ -52,6 +52,8 @@ const actionOptions = [
   { value: "import", label: "Import" },
 ]
 
+const PLATFORM_SUPERADMIN_NAMES = new Set(["peter ouma", "mark mbolonzi"])
+
 function formatDate(value?: string | null) {
   if (!value) return "-"
   return new Date(value).toLocaleString("en-KE", {
@@ -96,6 +98,12 @@ function countBy(rows: AuditRow[], predicate: (row: AuditRow) => boolean) {
   return rows.filter(predicate).length
 }
 
+function isPlatformSuperadminLog(log: AuditRow) {
+  if (log.actor_type === "superadmin") return true
+  const name = (log.user_full_name || "").trim().toLowerCase()
+  return PLATFORM_SUPERADMIN_NAMES.has(name)
+}
+
 function escapeCsv(value: unknown) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`
 }
@@ -127,7 +135,7 @@ export default function LogsPage() {
       if (sensitiveOnly) params.sensitive_only = "true"
 
       const response = await adminApi.getAuditLogs(params)
-      setRows(((response.results || []) as AuditRow[]).filter((row) => row.actor_type !== "superadmin"))
+      setRows(((response.results || []) as AuditRow[]).filter((row) => !isPlatformSuperadminLog(row)))
     } catch (error: any) {
       toast.error("Failed to load audit logs", {
         description: error?.message || "Please refresh and try again.",

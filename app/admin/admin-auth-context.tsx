@@ -39,6 +39,7 @@ interface AdminUser {
   access_level?: string
   department?: string | null
   department_name?: string | null
+  last_login?: string | null
 }
 
 interface AdminAuthContextType {
@@ -70,6 +71,7 @@ const MOCK_ADMIN: AdminUser = {
   access_level: "super_admin",
   department: null,
   department_name: null,
+  last_login: new Date().toISOString(),
 }
 
 const normalizeAdminUser = (user: any): AdminUser => ({
@@ -85,6 +87,7 @@ const normalizeAdminUser = (user: any): AdminUser => ({
   access_level: String(user?.access_level || "basic").toLowerCase(),
   department: user?.department ? String(user.department).toLowerCase() : null,
   department_name: user?.department_name || user?.department || null,
+  last_login: user?.last_login || null,
 })
 
 const isAllowedAdminUser = (user: any): boolean => {
@@ -314,13 +317,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         clearAuthCookies()
         throw new Error("Access denied. This account is not an admin user.")
       }
+      const sessionStartedAt = new Date().toISOString()
       storage.setItem(hostScopedKey("adminToken"), resolved.access)
       storage.setItem(hostScopedKey("adminRefreshToken"), resolved.refresh)
       storage.setItem(hostScopedKey("adminUser"), JSON.stringify(resolved.user))
+      storage.setItem(hostScopedKey("adminSessionStartedAt"), sessionStartedAt)
       // Backward compatibility for older readers that still use legacy keys.
       storage.setItem("adminToken", resolved.access)
       storage.setItem("adminRefreshToken", resolved.refresh)
       storage.setItem("adminUser", JSON.stringify(resolved.user))
+      storage.setItem("adminSessionStartedAt", sessionStartedAt)
       
       // Verify tokens were saved
       debugAdminAuth('login: Token saved?', !!storage.getItem("adminToken"))
@@ -358,12 +364,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     other.removeItem("adminToken")
     other.removeItem("adminRefreshToken")
     other.removeItem("adminUser")
+    const sessionStartedAt = new Date().toISOString()
     storage.setItem(hostScopedKey("adminToken"), response.access)
     storage.setItem(hostScopedKey("adminRefreshToken"), response.refresh)
     storage.setItem(hostScopedKey("adminUser"), JSON.stringify(response.user))
+    storage.setItem(hostScopedKey("adminSessionStartedAt"), sessionStartedAt)
     storage.setItem("adminToken", response.access)
     storage.setItem("adminRefreshToken", response.refresh)
     storage.setItem("adminUser", JSON.stringify(response.user))
+    storage.setItem("adminSessionStartedAt", sessionStartedAt)
     document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
     setUser(normalizeAdminUser(response.user))
     adminApi.getCurrentAdmin().then((profile) => {
@@ -416,15 +425,19 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(hostScopedKey("adminToken"))
     localStorage.removeItem(hostScopedKey("adminRefreshToken"))
     localStorage.removeItem(hostScopedKey("adminUser"))
+    localStorage.removeItem(hostScopedKey("adminSessionStartedAt"))
     sessionStorage.removeItem(hostScopedKey("adminToken"))
     sessionStorage.removeItem(hostScopedKey("adminRefreshToken"))
     sessionStorage.removeItem(hostScopedKey("adminUser"))
+    sessionStorage.removeItem(hostScopedKey("adminSessionStartedAt"))
     localStorage.removeItem("adminToken")
     localStorage.removeItem("adminRefreshToken")
     localStorage.removeItem("adminUser")
+    localStorage.removeItem("adminSessionStartedAt")
     sessionStorage.removeItem("adminToken")
     sessionStorage.removeItem("adminRefreshToken")
     sessionStorage.removeItem("adminUser")
+    sessionStorage.removeItem("adminSessionStartedAt")
     
     clearAuthCookies()
     
