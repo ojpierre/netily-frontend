@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import type { Metadata } from "next"
 import { ArrowRight, Check, Clock, CreditCard, Globe, MapPin, MessageSquare, Router, ShieldCheck, TrendingUp, Wifi } from "lucide-react"
 
@@ -88,6 +89,136 @@ const DEFAULT_ONBOARDING_STEPS = [
   "Day 3: test payment, access, support, and renewal flows",
   "Week 1: review live usage, fix edge cases, and train the team",
 ]
+
+const MARKET_VISUALS: Record<string, { image: string; alt: string; caption: string; accent: string }> = {
+  "isp-billing-software-kenya": {
+    image: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1800&q=82",
+    alt: "ISP operations team reviewing broadband billing and customer data",
+    caption: "Kenyan ISP teams can bring payments, routers, customers, and support into one operating rhythm.",
+    accent: "from-emerald-400/24 via-amber-300/12 to-sky-400/18",
+  },
+  "hotspot-billing-software-kenya": {
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1800&q=82",
+    alt: "People using WiFi in a public shared space",
+    caption: "Hotspot teams can manage vouchers, session access, payments, and customer support in one place.",
+    accent: "from-cyan-300/24 via-emerald-300/12 to-amber-300/18",
+  },
+  "mikrotik-billing-software": {
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=82",
+    alt: "Network operations workspace with connected devices",
+    caption: "MikroTik workflows feel clearer when billing, PPPoE, hotspot, and support data stay connected.",
+    accent: "from-blue-400/24 via-cyan-300/12 to-amber-300/18",
+  },
+  "mpesa-isp-billing": {
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=82",
+    alt: "Mobile payment workflow on a smartphone",
+    caption: "Payment-led billing helps teams reconcile collections and subscriber access with less manual checking.",
+    accent: "from-emerald-400/24 via-lime-300/12 to-amber-300/18",
+  },
+  "isp-billing-software-uganda": {
+    image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1800&q=82",
+    alt: "Regional business team planning broadband operations",
+    caption: "Ugandan ISP teams can plan mobile money, customers, routers, and support around one operating surface.",
+    accent: "from-yellow-300/24 via-red-400/12 to-sky-400/18",
+  },
+  "isp-billing-software-tanzania": {
+    image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=82",
+    alt: "Coastal city and regional broadband market scenery",
+    caption: "Tanzanian operators can align M-Pesa, Tigo Pesa, Airtel Money, hotspots, and subscriber follow-up.",
+    accent: "from-sky-300/24 via-teal-300/12 to-amber-300/18",
+  },
+  "isp-billing-software-south-africa": {
+    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1800&q=82",
+    alt: "Modern city business district for broadband operations",
+    caption: "South African ISPs can manage fiber, WISP, estate, and hotspot billing with clearer payment context.",
+    accent: "from-orange-300/24 via-emerald-300/12 to-blue-400/18",
+  },
+  "isp-billing-software-united-kingdom": {
+    image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1800&q=82",
+    alt: "United Kingdom city skyline for altnet broadband teams",
+    caption: "UK altnets and WISPs can keep renewals, invoices, support, and customer records easier to follow.",
+    accent: "from-blue-400/24 via-red-300/12 to-white/12",
+  },
+  "isp-billing-software-usa": {
+    image: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1800&q=82",
+    alt: "Residential broadband market in the United States",
+    caption: "US WISPs, MDUs, and local broadband teams can connect billing, support, customers, and renewals.",
+    accent: "from-blue-400/24 via-red-300/12 to-slate-100/12",
+  },
+  "isp-billing-software-australia": {
+    image: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=1800&q=82",
+    alt: "Australian city waterfront for regional broadband operations",
+    caption: "Australian broadband teams can keep billing, BECS planning, support, and subscriber access visible.",
+    accent: "from-cyan-300/24 via-amber-300/12 to-blue-400/18",
+  },
+  "isp-billing-software-new-zealand": {
+    image: "https://images.unsplash.com/photo-1507699622108-4be3abd695ad?auto=format&fit=crop&w=1800&q=82",
+    alt: "New Zealand landscape and regional broadband coverage area",
+    caption: "New Zealand operators can run lean customer, billing, support, and payment workflows across regional markets.",
+    accent: "from-emerald-300/24 via-sky-300/12 to-slate-100/12",
+  },
+  "isp-billing-software-rwanda": {
+    image: "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=1800&q=82",
+    alt: "Business team collaborating on regional broadband operations",
+    caption: "Rwanda ISP teams can manage subscribers, payments, routers, and support in one practical workflow.",
+    accent: "from-emerald-300/24 via-sky-300/12 to-yellow-300/18",
+  },
+  "isp-billing-software-burundi": {
+    image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1800&q=82",
+    alt: "Regional operations team coordinating customer service",
+    caption: "Burundi operators can make billing, subscriber records, support, and growth follow-up easier to coordinate.",
+    accent: "from-red-300/22 via-emerald-300/12 to-white/10",
+  },
+  "isp-billing-software-south-sudan": {
+    image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1800&q=82",
+    alt: "Team coordinating field operations and connectivity planning",
+    caption: "South Sudan broadband teams can keep customer growth, support, billing, and access control organized.",
+    accent: "from-amber-300/24 via-emerald-300/12 to-blue-400/18",
+  },
+  "isp-billing-software-nairobi": {
+    image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1800&q=82",
+    alt: "High-density city buildings and estate connectivity demand",
+    caption: "Nairobi ISP teams can serve estates, apartments, offices, hotels, and campuses from one daily dashboard.",
+    accent: "from-amber-300/24 via-sky-300/12 to-violet-400/18",
+  },
+  "isp-billing-software-mombasa": {
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=82",
+    alt: "Coastal hotel and hotspot market near the ocean",
+    caption: "Mombasa operators can manage resort WiFi, apartment internet, hotspots, vouchers, and support follow-up.",
+    accent: "from-cyan-300/28 via-blue-300/12 to-amber-300/18",
+  },
+  "isp-billing-software-kisumu": {
+    image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1800&q=82",
+    alt: "Regional town landscape for WISP and campus broadband teams",
+    caption: "Kisumu WISPs, hostels, campuses, and estate teams can keep renewals and support easier to manage.",
+    accent: "from-sky-300/24 via-emerald-300/12 to-amber-300/18",
+  },
+  "isp-billing-software-eldoret": {
+    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=82",
+    alt: "Agricultural and regional business connectivity market",
+    caption: "Eldoret operators can manage estate, retail, agricultural, WISP, and broadband customers with clearer workflows.",
+    accent: "from-lime-300/24 via-amber-300/12 to-sky-400/18",
+  },
+  "isp-billing-software-nakuru": {
+    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=82",
+    alt: "Modern business and residential service planning workspace",
+    caption: "Nakuru ISP teams can support malls, apartments, estates, hotspots, and broadband customers from one system.",
+    accent: "from-amber-300/24 via-orange-300/12 to-sky-400/18",
+  },
+  "isp-billing-software-kenya-counties": {
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1800&q=82",
+    alt: "Analytics dashboard for county ISP billing and network operations",
+    caption: "County-focused teams can connect local leads, M-Pesa billing, router work, support, and renewals.",
+    accent: "from-emerald-300/24 via-amber-300/12 to-blue-400/18",
+  },
+}
+
+const DEFAULT_MARKET_VISUAL = {
+  image: "/images/hero1.png",
+  alt: "Internetily dashboard for ISP billing and network operations",
+  caption: "Internetily gives ISP teams a clearer way to run billing, payments, routers, customers, and support.",
+  accent: "from-amber-300/24 via-sky-300/12 to-emerald-300/18",
+}
 
 const KENYA_COUNTY_CLUSTERS = [
   {
@@ -354,7 +485,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     paymentGateways: ["GoCardless Direct Debit", "Stripe", "PayPal", "Worldpay", "Open Banking and bank transfer workflows"],
     marketNotes: [
       "UK buyers usually care about predictable direct debit collection, clean invoices, and simple customer communication.",
-      "Altnets and WISPs need billing software that does not make network teams jump between spreadsheets, router notes, and support chats.",
+      "Altnets and WISPs need billing software that does not make network teams jump between spreadsheets, router records, and support chats.",
       "For managed Wi-Fi and accommodation networks, fast plan changes and clear support visibility matter as much as payment collection.",
     ],
     localUseCases: ["UK altnets", "Rural WISPs", "Student accommodation Wi-Fi", "Estate broadband", "Managed business Wi-Fi"],
@@ -442,7 +573,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     bullets: [
       "Track billing cycles, customers, routers, and support together",
       "Improve operations with role-based team controls",
-      "Capture and qualify leads from organic search and referrals",
+      "Capture and qualify enquiries from referrals, WhatsApp conversations, and public pages",
     ],
     seoTitle: "ISP Billing Software Rwanda | Netily",
     seoDescription: "Netily helps Rwanda ISPs manage billing, subscriber workflows, MikroTik operations, hotspot access, support tickets, staff roles, and growth leads.",
@@ -470,7 +601,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     bullets: [
       "Coordinate customers, plans, billing activity, and support follow-up",
       "Use operational dashboards to reduce manual blind spots",
-      "Build lead generation pages that convert search traffic into demos",
+      "Turn local market interest into clearer demo requests",
     ],
     seoTitle: "ISP Billing Software South Sudan | Netily",
     seoDescription: "Netily helps South Sudan ISPs manage billing, customers, MikroTik workflows, hotspot operations, support tickets, staff roles, and growth leads.",
@@ -484,7 +615,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     bullets: [
       "Enterprise ISP billing for Nairobi offices, estates, schools, and managed WiFi teams",
       "Co-working and hotel WiFi workflows with hotspot access, vouchers, and support visibility",
-      "Lead capture and follow-up for Nairobi buyers comparing ISP software and WiFi billing tools",
+      "Lead capture and follow-up for Nairobi operators comparing ISP software and WiFi billing tools",
     ],
     seoTitle: "ISP Billing Software Nairobi | Internetily",
     seoDescription: "Internetily helps Nairobi ISPs, hotels, apartments, estates, and campuses manage billing, M-Pesa, MikroTik, hotspots, and support.",
@@ -555,13 +686,13 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     hero: "Win, bill, support, and retain ISP customers from county towns to estates with one M-Pesa-first operating platform.",
     summary: "Internetily, formerly Netily, helps Kenyan ISPs turn local demand into organized growth. Use it to manage county expansion, estate WiFi, apartment subscribers, student hostels, hotel hotspots, PPPoE customers, MikroTik routers, payments, invoices, support tickets, staff roles, and lead follow-up without scattering work across spreadsheets and WhatsApp.",
     bullets: [
-      "Rank for county, town, estate, apartment, hostel, hotel, hotspot, WISP, and MikroTik billing searches",
+      "Speak clearly to county, town, estate, apartment, hostel, hotel, hotspot, WISP, and MikroTik billing needs",
       "Use M-Pesa-first subscription, PPPoE, hotspot, invoice, support, and customer workflows",
       "Convert more local enquiries by asking for county, estates served, subscriber count, router count, and payment setup",
     ],
     paymentGateways: ["M-Pesa STK Push", "Safaricom Paybill", "Buy Goods Till", "Airtel Money planning", "Cards and bank transfer workflows"],
     marketNotes: [
-      "County search traffic converts better when the page speaks to real coverage areas: towns, estates, apartments, hostels, hotels, schools, campuses, malls, and trading centres.",
+      "County prospects respond better when the page speaks to real coverage areas: towns, estates, apartments, hostels, hotels, schools, campuses, malls, and trading centres.",
       "For estate WiFi and WISP operators, the buyer usually wants faster payment confirmation, cleaner reconnection, fewer support calls, and one view of who has paid.",
       "Lead quality improves when the contact journey asks for operational details early: county, estates served, subscriber count, routers, payment workflow, and current billing pain.",
     ],
@@ -682,6 +813,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   const onboardingSteps = solution.onboardingSteps || DEFAULT_ONBOARDING_STEPS
   const closingUseCases = solution.closingUseCases || solution.localUseCases || ["PPPoE billing", "Hotspot access", "Subscriber renewals"]
   const demandSignals = solution.demandSignals || []
+  const visual = MARKET_VISUALS[slug] || DEFAULT_MARKET_VISUAL
   const areaName = solution.regionLabel || solution.title.replace("ISP Billing Software ", "") || "your market"
   const leadMessage = `Hi Internetily, I want a demo for ${areaName}. We serve ISPs, WISPs, estates, apartments, hotspots, or managed WiFi customers and want help with billing, payments, MikroTik workflows, support, and lead follow-up.`
   const contactHref = `/?lead_source=${encodeURIComponent("Google Search")}&message=${encodeURIComponent(leadMessage)}#contact`
@@ -743,7 +875,18 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
       )}
-      <section className="relative overflow-hidden border-b border-zinc-800 px-4 py-20 sm:px-6 lg:px-8">
+      <section className="relative min-h-[720px] overflow-hidden border-b border-zinc-800 px-4 py-20 sm:px-6 lg:px-8">
+        <Image
+          src={visual.image}
+          alt={visual.alt}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-55"
+        />
+        <div className="absolute inset-0 bg-zinc-950/70" />
+        <div className={`absolute inset-0 bg-gradient-to-br ${visual.accent}`} />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-zinc-950 to-transparent" />
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.025]"
           style={{
@@ -768,6 +911,9 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               <p className="mt-5 max-w-3xl text-lg leading-relaxed text-zinc-400">
                 {solution.hero}
               </p>
+              <p className="mt-4 max-w-2xl border-l border-amber-300/60 pl-4 text-sm leading-6 text-amber-100/90">
+                {visual.caption}
+              </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link
                   href={contactHref}
@@ -785,8 +931,22 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
                 </Link>
               </div>
             </div>
-            <div className="border border-zinc-800 bg-zinc-900 p-4 shadow-2xl">
-              <div className="border border-zinc-800 bg-zinc-950">
+            <div className="border border-white/15 bg-zinc-950/55 p-4 shadow-2xl backdrop-blur-xl">
+              <div className="overflow-hidden border border-white/10 bg-zinc-950/90">
+                <div className="relative h-48 border-b border-zinc-800">
+                  <Image
+                    src="/images/hero2.png"
+                    alt="Internetily dashboard preview for ISP operations"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 520px"
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <p className="text-xs uppercase tracking-[0.22em] text-amber-200">Operating layer</p>
+                    <p className="mt-1 text-xl font-semibold text-white">Billing, access, and support together</p>
+                  </div>
+                </div>
                 <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Live dashboard</p>
@@ -840,6 +1000,21 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
             <p className="mt-4 text-base leading-7 text-zinc-400">
               Internetily brings billing, customer records, router work, support follow-up, and local enquiries into one operating view, so owners and staff can understand what changed and what needs attention.
             </p>
+            <div className="mt-8 overflow-hidden border border-zinc-800 bg-zinc-900">
+              <div className="relative h-56">
+                <Image
+                  src={visual.image}
+                  alt={visual.alt}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 520px"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-zinc-950/10 to-transparent" />
+              </div>
+              <p className="border-t border-zinc-800 p-4 text-sm leading-6 text-zinc-300">
+                {visual.caption}
+              </p>
+            </div>
           </div>
           <div className="relative overflow-hidden border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(251,191,36,0.14),transparent_28rem),radial-gradient(circle_at_85%_75%,rgba(34,211,238,0.10),transparent_24rem)]" />
@@ -932,14 +1107,30 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
       {solution.estateClusters?.length ? (
         <section className="border-b border-zinc-800 px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Estate, apartment, and hotspot operators</p>
-              <h2 className="mt-4 text-3xl font-normal tracking-tight text-white md:text-5xl">
-                Capture buyers searching by estate, not only by county.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-zinc-400">
-                Many serious ISP leads search around the exact estate, apartment corridor, hostel cluster, hotel area, or hotspot location they serve. This content helps those buyers understand that Internetily fits local, hands-on broadband operations.
-              </p>
+            <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+              <div className="max-w-3xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Estate, apartment, and hotspot operators</p>
+                <h2 className="mt-4 text-3xl font-normal tracking-tight text-white md:text-5xl">
+                  Serve local coverage areas with clearer billing and follow-up.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-zinc-400">
+                  Many ISP teams grow estate by estate, apartment by apartment, and hotspot by hotspot. Internetily helps keep those local customers, payments, routers, support issues, and renewals easier to manage.
+                </p>
+              </div>
+              <div className="relative h-72 overflow-hidden border border-zinc-800 bg-zinc-900">
+                <Image
+                  src="/images/hero1.png"
+                  alt="Internetily interface for customer and billing operations"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 560px"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-zinc-950/10 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5">
+                  <p className="text-xs uppercase tracking-[0.22em] text-amber-200">Local operations</p>
+                  <p className="mt-2 text-xl font-semibold text-white">Customers, payments, and service state in context</p>
+                </div>
+              </div>
             </div>
             <div className="mt-10 grid gap-5 lg:grid-cols-3">
               {solution.estateClusters.map((cluster) => (
