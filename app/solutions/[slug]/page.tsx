@@ -286,8 +286,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Plan gateways around settlement needs, webhook availability, reversal handling, and how quickly paid customers should regain access.",
     ],
     localUseCases: ["Kampala apartment ISPs", "Wakiso WISPs", "Campus Wi-Fi", "Estate broadband", "Public hotspot operators"],
-    seoTitle: "ISP Billing Software Uganda | MTN MoMo, Airtel Money & MikroTik | Netily",
-    seoDescription: "Netily helps Ugandan ISPs manage billing, MTN MoMo and Airtel Money workflows, MikroTik, hotspot operations, staff roles, support, and growth leads.",
+    seoTitle: "ISP Billing Software Uganda | Internetily",
+    seoDescription: "Internetily helps Ugandan ISPs manage billing, MTN MoMo, Airtel Money, MikroTik, hotspots, support, and renewals.",
   },
   "isp-billing-software-tanzania": {
     title: "ISP Billing Software Tanzania",
@@ -310,8 +310,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Use gateway webhooks and transaction references to reduce manual reconciliation after busy evening and weekend payment periods.",
     ],
     localUseCases: ["Dar es Salaam fiber ISPs", "Arusha WISPs", "Zanzibar hospitality Wi-Fi", "Mwanza estates", "Campus and hostel hotspot billing"],
-    seoTitle: "ISP Billing Software Tanzania | M-Pesa, Tigo Pesa, Airtel Money & MikroTik | Netily",
-    seoDescription: "Netily is ISP billing software for Tanzania with M-Pesa, Tigo Pesa, Airtel Money planning, subscriber management, MikroTik, hotspot billing, support, and lead capture.",
+    seoTitle: "ISP Billing Software Tanzania | Internetily",
+    seoDescription: "Internetily helps Tanzanian ISPs manage billing, M-Pesa, Tigo Pesa, Airtel Money, MikroTik, hotspots, and renewals.",
   },
   "isp-billing-software-south-africa": {
     title: "ISP Billing Software South Africa",
@@ -334,8 +334,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "For larger ISPs, gateway reporting, settlement exports, refunds, and audit trails matter as much as the checkout screen.",
     ],
     localUseCases: ["Johannesburg WISPs", "Cape Town managed Wi-Fi", "Durban apartment internet", "Estate broadband", "Student accommodation networks"],
-    seoTitle: "ISP Billing Software South Africa | Payfast, Ozow, EFT & MikroTik | Netily",
-    seoDescription: "Netily helps South African ISPs manage billing, subscribers, MikroTik, hotspot access, support, staff roles, and payment workflows for Payfast, Ozow, EFT, cards, and QR.",
+    seoTitle: "ISP Billing Software South Africa | Internetily",
+    seoDescription: "Internetily helps South African ISPs manage billing, subscribers, MikroTik, hotspots, support, Payfast, Ozow, EFT, and cards.",
   },
   "isp-billing-software-united-kingdom": {
     title: "ISP Billing Software United Kingdom",
@@ -358,8 +358,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "For managed Wi-Fi and accommodation networks, fast plan changes and clear support visibility matter as much as payment collection.",
     ],
     localUseCases: ["UK altnets", "Rural WISPs", "Student accommodation Wi-Fi", "Estate broadband", "Managed business Wi-Fi"],
-    seoTitle: "ISP Billing Software UK | Direct Debit, Stripe, MikroTik & WISPs | Internetily",
-    seoDescription: "Internetily helps UK altnets, WISPs, fibre providers, estates, and managed Wi-Fi teams manage ISP billing, Direct Debit, Stripe, MikroTik workflows, support, and renewals.",
+    seoTitle: "ISP Billing Software UK | Internetily",
+    seoDescription: "Internetily helps UK altnets, WISPs, estates, and managed WiFi teams manage billing, Direct Debit, Stripe, support, and renewals.",
   },
   "isp-billing-software-usa": {
     title: "ISP Billing Software USA",
@@ -382,8 +382,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "MDUs, campgrounds, and hospitality operators benefit from hotspot and recurring subscriber workflows living together.",
     ],
     localUseCases: ["Rural WISPs", "Fiber providers", "MDU broadband", "RV park Wi-Fi", "Hotel and campground hotspots"],
-    seoTitle: "ISP Billing Software USA | WISP, Fiber, ACH, Stripe & MikroTik | Internetily",
-    seoDescription: "Internetily helps US WISPs, fiber ISPs, MDUs, campgrounds, and hotspot operators manage billing, ACH, Stripe, MikroTik workflows, support, subscribers, and renewals.",
+    seoTitle: "ISP Billing Software USA | Internetily",
+    seoDescription: "Internetily helps US WISPs, fiber ISPs, MDUs, and hotspot operators manage billing, ACH, Stripe, MikroTik, and renewals.",
   },
   "isp-billing-software-australia": {
     title: "ISP Billing Software Australia",
@@ -406,8 +406,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Managed Wi-Fi operators need hotspot, voucher, and support workflows that are simple for non-technical staff to run.",
     ],
     localUseCases: ["Regional WISPs", "Managed apartment Wi-Fi", "Holiday park hotspots", "Student housing networks", "Small fiber operators"],
-    seoTitle: "ISP Billing Software Australia | WISP, BECS, Stripe & MikroTik | Internetily",
-    seoDescription: "Internetily helps Australian WISPs, regional ISPs, managed Wi-Fi providers, and hotspot teams manage billing, BECS, Stripe, MikroTik workflows, support, and renewals.",
+    seoTitle: "ISP Billing Software Australia | Internetily",
+    seoDescription: "Internetily helps Australian WISPs, regional ISPs, and managed WiFi teams manage billing, BECS, Stripe, MikroTik, and renewals.",
   },
   "isp-billing-software-new-zealand": {
     title: "ISP Billing Software New Zealand",
@@ -430,8 +430,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "For accommodation, campus, and hotspot networks, support visibility and simple plan controls help reduce daily admin.",
     ],
     localUseCases: ["Regional WISPs", "Accommodation Wi-Fi", "Campus networks", "Rural broadband", "Hotspot operators"],
-    seoTitle: "ISP Billing Software New Zealand | WISP, Stripe, Windcave & MikroTik | Internetily",
-    seoDescription: "Internetily helps New Zealand WISPs, regional broadband teams, managed Wi-Fi providers, and hotspot operators manage billing, Stripe, Windcave, MikroTik, support, and renewals.",
+    seoTitle: "ISP Billing Software New Zealand | Internetily",
+    seoDescription: "Internetily helps New Zealand WISPs, regional broadband teams, and hotspot operators manage billing, Windcave, Stripe, and renewals.",
   },
   "isp-billing-software-rwanda": {
     title: "ISP Billing Software Rwanda",
@@ -486,8 +486,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Co-working and hotel WiFi workflows with hotspot access, vouchers, and support visibility",
       "Lead capture and follow-up for Nairobi buyers comparing ISP software and WiFi billing tools",
     ],
-    seoTitle: "ISP Billing Software Nairobi | Enterprise ISPs, Hotels & Co-working | Netily",
-    seoDescription: "Netily helps Nairobi enterprise ISPs, hotels, co-working spaces, apartments, estates, and campuses manage billing, M-Pesa payments, MikroTik, hotspot access, and support.",
+    seoTitle: "ISP Billing Software Nairobi | Internetily",
+    seoDescription: "Internetily helps Nairobi ISPs, hotels, apartments, estates, and campuses manage billing, M-Pesa, MikroTik, hotspots, and support.",
   },
   "isp-billing-software-mombasa": {
     title: "ISP Billing Software Mombasa",
@@ -500,8 +500,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Apartment and residential internet billing for coastal property operators",
       "M-Pesa-first collections and support workflows for Mombasa ISPs and hotspot teams",
     ],
-    seoTitle: "ISP Billing Software Mombasa | Hotels, Beach Resorts & Apartments | Netily",
-    seoDescription: "Netily helps Mombasa hotels, beach resorts, apartments, coastal WISPs, and hotspot operators manage ISP billing, M-Pesa payments, MikroTik, vouchers, and support.",
+    seoTitle: "ISP Billing Software Mombasa | Internetily",
+    seoDescription: "Internetily helps Mombasa hotels, resorts, apartments, WISPs, and hotspot teams manage billing, M-Pesa, MikroTik, and support.",
   },
   "isp-billing-software-kisumu": {
     title: "ISP Billing Software Kisumu",
@@ -514,7 +514,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Student hostel and campus WiFi billing with vouchers, self-service, and support visibility",
       "Router-linked subscriber workflows for PPPoE, hotspot, and recurring internet plans",
     ],
-    seoTitle: "ISP Billing Software Kisumu | WISPs, Student Hostels & Campus WiFi | Netily",
+    seoTitle: "ISP Billing Software Kisumu | Internetily",
     seoDescription: "Netily helps Kisumu WISPs, student hostels, campuses, estates, and hotspot operators manage billing, M-Pesa payments, MikroTik, vouchers, and support.",
   },
   "isp-billing-software-eldoret": {
@@ -528,8 +528,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Retail chain WiFi and customer access management with support and reminders",
       "MikroTik-aware operations for Eldoret WISPs and North Rift ISP teams",
     ],
-    seoTitle: "ISP Billing Software Eldoret | Agriculture, Retail Chains & WISPs | Netily",
-    seoDescription: "Netily helps Eldoret agricultural businesses, retail chains, WISPs, estates, and broadband operators manage ISP billing, M-Pesa, MikroTik, support, and staff roles.",
+    seoTitle: "ISP Billing Software Eldoret | Internetily",
+    seoDescription: "Internetily helps Eldoret WISPs, estates, retail chains, and broadband teams manage billing, M-Pesa, MikroTik, support, and roles.",
   },
   "isp-billing-software-nakuru": {
     title: "ISP Billing Software Nakuru",
@@ -542,7 +542,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Residential complex, apartment, and estate internet billing for recurring subscribers",
       "M-Pesa collections, PPPoE workflows, customer portals, and operational dashboards",
     ],
-    seoTitle: "ISP Billing Software Nakuru | Malls, Residential Complexes & Estates | Netily",
+    seoTitle: "ISP Billing Software Nakuru | Internetily",
     seoDescription: "Netily helps Nakuru malls, residential complexes, apartments, estates, hotspots, and ISPs manage billing, M-Pesa payments, MikroTik, support, and roles.",
   },
   "isp-billing-software-kenya-counties": {
@@ -597,8 +597,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     demandSignals: KENYA_COUNTY_DEMAND_SIGNALS,
     leadGenerationAngles: KENYA_COUNTY_LEAD_ANGLES,
     buyerQuestions: KENYA_COUNTY_FAQS,
-    seoTitle: "ISP Billing Software for All Kenya Counties, Towns & Estates | Internetily",
-    seoDescription: "Internetily helps Kenyan ISPs across all 47 counties manage M-Pesa billing, MikroTik PPPoE, hotspot access, estate WiFi, invoices, support, staff roles, and local lead generation.",
+    seoTitle: "ISP Billing Software Kenya Counties | Internetily",
+    seoDescription: "Internetily helps Kenyan ISPs across 47 counties manage M-Pesa billing, MikroTik PPPoE, hotspots, estate WiFi, support, and leads.",
   },
 }
 
