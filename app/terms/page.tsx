@@ -1,4 +1,14 @@
 import Link from "next/link"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Terms of Service | Internetily",
+  description:
+    "Review Internetily terms for ISP billing, payment workflows, tenant accounts, support, availability, and responsible platform use.",
+  alternates: {
+    canonical: "https://netily.co.ke/terms",
+  },
+}
 
 const sections = [
   {
@@ -31,6 +41,21 @@ const sections = [
     content:
       "For legal or account concerns, contact support through your Netily admin portal support channels.",
   },
+  {
+    title: "7. Authorized Users",
+    content:
+      "Tenant owners are responsible for inviting the right staff, assigning suitable permissions, reviewing audit logs, and removing access when a team member leaves.",
+  },
+  {
+    title: "8. Acceptable Use",
+    content:
+      "You may not use the platform to interfere with other tenants, bypass security controls, misuse payment channels, or process customer data without a lawful basis.",
+  },
+  {
+    title: "9. Changes to Terms",
+    content:
+      "We may update these terms as the service grows. Material operational changes should be communicated through appropriate product or support channels.",
+  },
 ]
 
 export default function TermsPage() {
@@ -46,7 +71,8 @@ export default function TermsPage() {
         <p className="text-sm text-slate-500">Last updated: {updated}</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Terms of Service</h1>
         <p className="mt-3 text-slate-600 dark:text-slate-400">
-          These terms govern your use of Netily services and payment tooling.
+          These terms govern your use of Internetily services, tenant dashboards,
+          billing tools, payment workflows, and related support channels.
         </p>
       </div>
 

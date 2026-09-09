@@ -1,4 +1,14 @@
 import Link from "next/link"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | Internetily",
+  description:
+    "Read how Internetily handles account, billing, payment, support, router, audit, and operational data for ISP teams.",
+  alternates: {
+    canonical: "https://netily.co.ke/privacy",
+  },
+}
 
 const sections = [
   {
@@ -31,6 +41,21 @@ const sections = [
     content:
       "You can request correction or deletion of inaccurate profile information, subject to legal retention obligations and dispute/audit requirements.",
   },
+  {
+    title: "7. Operational Logs",
+    content:
+      "Administrative actions may be logged with timestamps, actor details, affected records, and network information so tenant owners can review important account activity.",
+  },
+  {
+    title: "8. Retention",
+    content:
+      "We retain billing, payment, support, and audit records for as long as needed to operate the service, meet legal obligations, resolve disputes, and protect tenant accounts.",
+  },
+  {
+    title: "9. Contact and Requests",
+    content:
+      "Privacy questions can be raised through the support channels available on the public website or inside the tenant dashboard.",
+  },
 ]
 
 export default function PrivacyPage() {
@@ -46,7 +71,8 @@ export default function PrivacyPage() {
         <p className="text-sm text-slate-500">Last updated: {updated}</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Privacy Policy</h1>
         <p className="mt-3 text-slate-600 dark:text-slate-400">
-          This policy explains how Netily handles personal and operational data.
+          This policy explains how Internetily handles personal, billing, router,
+          support, audit, and operational data for ISP teams using the platform.
         </p>
       </div>
 

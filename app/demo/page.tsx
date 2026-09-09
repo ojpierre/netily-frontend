@@ -1,5 +1,4 @@
-"use client"
-
+import type { Metadata } from "next"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,6 +11,15 @@ import {
   Monitor,
   Smartphone,
 } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Internetily Demo | ISP Dashboard Preview",
+  description:
+    "Explore the Internetily ISP demo for billing, customers, routers, hotspot workflows, payments, support, and customer self-service.",
+  alternates: {
+    canonical: "https://netily.co.ke/demo",
+  },
+}
 
 export default function DemoPage() {
   return (
@@ -47,6 +55,11 @@ export default function DemoPage() {
               Explore the full ISP management platform in a protected read-only
               workspace. Choose a demo below to see the admin dashboard or the
               customer self-service portal.
+            </p>
+            <p className="mx-auto max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-500">
+              The demo shows how an ISP owner can review customers, plans, invoices,
+              payments, routers, hotspot access, and support activity without changing
+              live tenant data.
             </p>
           </div>
 
@@ -146,6 +159,20 @@ export default function DemoPage() {
             This is a live demo environment with sample data. You can view every page,
             but actions that change data are disabled.
           </p>
+          <div className="grid gap-4 text-sm text-slate-600 dark:text-slate-400 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <h2 className="font-semibold text-slate-900 dark:text-white">Billing workflows</h2>
+              <p className="mt-2 leading-6">Preview invoices, collections, subscription states, receipts, and renewal flows.</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <h2 className="font-semibold text-slate-900 dark:text-white">Network operations</h2>
+              <p className="mt-2 leading-6">Browse routers, plans, hotspot pages, and customer lifecycle screens.</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <h2 className="font-semibold text-slate-900 dark:text-white">Customer experience</h2>
+              <p className="mt-2 leading-6">See the customer portal for plan selection, usage, support, payments, and account details.</p>
+            </div>
+          </div>
         </div>
       </main>
     </div>

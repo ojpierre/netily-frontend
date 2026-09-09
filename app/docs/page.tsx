@@ -69,6 +69,37 @@ const CATEGORY_ORDER = [
   "Other"
 ]
 
+const INITIAL_DOC_PAGES: PageData[] = [
+  {
+    id: "quickstart",
+    title: "Quickstart",
+    category: "Getting Started",
+    content:
+      "Internetily helps ISP teams manage customers, plans, payments, routers, hotspot access, support, and staff activity from one dashboard. Start by confirming your company profile, payment channels, MikroTik router details, and customer plan catalogue.\n\n## First setup checklist\n- Add your ISP business details and support contacts.\n- Create PPPoE, static, hotspot, or voucher plans.\n- Connect router credentials for MikroTik workflows.\n- Configure M-Pesa, mobile money, card, or manual payment channels.\n- Invite staff with the right permissions before they handle customers.",
+  },
+  {
+    id: "billing-and-payments",
+    title: "Billing and Payments",
+    category: "Billing & Payments",
+    content:
+      "Billing connects invoices, receipts, subscription renewals, payment confirmations, and customer access state. A clean payment setup helps tenants reduce manual reconciliation and restore service faster after successful payment.\n\n## Common workflows\n- Review invoices and billing history.\n- Trigger payment prompts where supported.\n- Confirm pending manual payments carefully.\n- Track subscription status and upcoming renewal dates.\n- Reconcile payments before changing customer access manually.",
+  },
+  {
+    id: "routers-and-hotspots",
+    title: "Routers and Hotspots",
+    category: "Network & Devices",
+    content:
+      "Router and hotspot screens help teams connect customer lifecycle events to MikroTik, PPPoE, hotspot, RADIUS, queues, profiles, vouchers, and captive portal experiences.\n\n## What to review\n- Router connectivity and API credentials.\n- PPPoE profile mapping.\n- Hotspot package setup.\n- Captive portal branding and payment flow.\n- Offline routers or failed provisioning jobs.",
+  },
+  {
+    id: "staff-and-audit-logs",
+    title: "Staff and Audit Logs",
+    category: "User Management",
+    content:
+      "Tenant owners can invite staff, assign access, and review activity logs for important actions such as customer creation, plan activation, payment confirmation, deletes, updates, and sign-ins.\n\n## Access guidance\n- Give each staff member only the permissions needed for their role.\n- Review logs when cash, customers, or plans change.\n- Remove access immediately when a staff member leaves.\n- Use search and filters to investigate specific actions.",
+  },
+]
+
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-")
 }
@@ -372,7 +403,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
 }
 
 export default function DocsPage() {
-  const [pages, setPages] = useState<PageData[]>([])
+  const [pages, setPages] = useState<PageData[]>(INITIAL_DOC_PAGES)
   const [activeId, setActiveId] = useState("quickstart")
   const [query, setQuery] = useState("")
   const [menuOpen, setMenuOpen] = useState(false)
@@ -438,7 +469,7 @@ export default function DocsPage() {
   const handleAskAI = (provider: 'chatgpt' | 'claude' | 'gemini') => {
     if (!activePage) return
     
-    const prompt = `Analyze this section of the Internetily ISP Documentation and help me understand it, or draft a good copy based on it:\n\nTitle: ${activePage.title}\n\n${activePage.content}`
+    const prompt = `Explain this Internetily ISP documentation section clearly and practically:\n\nTitle: ${activePage.title}\n\n${activePage.content}`
     
     navigator.clipboard.writeText(prompt)
     
