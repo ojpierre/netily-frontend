@@ -120,13 +120,13 @@ function AffiliateShell({ children }: { children: React.ReactNode }) {
 
         {/* Help link */}
         <div className="absolute bottom-[100px] left-0 right-0 px-3">
-          <a
-            href="mailto:support@netily.co.ke"
+          <Link
+            href="/#contact"
             className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-400 transition hover:bg-red-50 hover:text-red-600"
           >
             <BookOpen className="h-4 w-4" />
             Help &amp; Support
-          </a>
+          </Link>
         </div>
 
         {/* User card */}

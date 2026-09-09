@@ -190,6 +190,28 @@ export default function AffiliateRegisterPage() {
             </span>
           </div>
 
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-950">
+              Become an Internetily affiliate
+            </h1>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-gray-600">
+              Refer ISPs, WISPs, hotspot operators, MikroTik consultants, estate
+              WiFi teams, and broadband providers that need cleaner billing,
+              payment follow-up, customer management, and network operations.
+            </p>
+            <div className="mt-5 grid gap-3 text-left text-xs leading-5 text-gray-600 sm:grid-cols-3">
+              <div className="rounded-xl border border-red-100 bg-white/80 p-3">
+                Track referred ISP leads from your affiliate dashboard.
+              </div>
+              <div className="rounded-xl border border-red-100 bg-white/80 p-3">
+                Share one referral link across WhatsApp, LinkedIn, proposals, and communities.
+              </div>
+              <div className="rounded-xl border border-red-100 bg-white/80 p-3">
+                Help operators discover billing, MikroTik, hotspot, and support workflows built for growth.
+              </div>
+            </div>
+          </div>
+
           {/* Stepper */}
           <nav aria-label="Registration progress" className="mb-8">
             <div className="relative mx-auto max-w-md">

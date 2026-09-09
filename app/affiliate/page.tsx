@@ -71,9 +71,9 @@ const affiliateProgramSchema = {
 }
 
 export const metadata: Metadata = {
-  title: "Best ISP Affiliate Program 2026 | Internetily & Netily Partner Network",
+  title: "Best ISP Affiliate Program 2026 | Internetily",
   description:
-    "Join the Internetily / Netily Affiliate Program for 2026. Refer ISPs, WISPs, hotspot operators, MikroTik teams, and fiber providers worldwide and track qualified leads from one partner dashboard.",
+    "Join the Internetily affiliate program. Refer ISPs, WISPs, hotspot operators, MikroTik teams, and fiber providers worldwide.",
   keywords: [
     "best affiliate program 2026",
     "best isp affiliate program 2026",
