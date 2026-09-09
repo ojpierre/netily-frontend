@@ -1918,11 +1918,24 @@ export default function UsersPage() {
     setShowExtendDialog(true)
   }
 
+  // ============================================================
+  // FIX 1c: confirmExtendSubscription - defensive fallback for serviceId
+  // ============================================================
   const confirmExtendSubscription = async () => {
-    if (!userToExtend || !userToExtend.serviceId) {
+    if (!userToExtend) return
+
+    let serviceId = userToExtend.serviceId
+    if (!serviceId) {
+      try {
+        const services = await adminApi.getCustomerServices(userToExtend.customerId)
+        serviceId = services?.[0]?.id ?? null
+      } catch { /* falls through to the error below */ }
+    }
+    if (!serviceId) {
       toast.error("No active service to extend")
       return
     }
+
     try {
       setExtending(true)
       
@@ -1943,7 +1956,7 @@ export default function UsersPage() {
         
         await adminApi.extendService(
           userToExtend.customerId,
-          userToExtend.serviceId,
+          serviceId,
           1,
           'DAYS',
           extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined,
@@ -1955,7 +1968,7 @@ export default function UsersPage() {
       } else {
         await adminApi.extendService(
           userToExtend.customerId,
-          userToExtend.serviceId,
+          serviceId,
           extendForm.duration_amount,
           extendForm.duration_unit,
           extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined
@@ -2090,7 +2103,11 @@ export default function UsersPage() {
     }
   }
 
-  const handleEditUser = (user: User) => {
+  // ============================================================
+  // FIX 2a: handleEditUser - fetch authoritative password
+  // ============================================================
+  const handleEditUser = async (user: User) => {
+    setSelectedUser(user)
     setEditForm({
       first_name: user.name.split(' ')[0] || '',
       last_name: user.name.split(' ').slice(1).join(' ') || '',
@@ -2100,8 +2117,20 @@ export default function UsersPage() {
       radius_password: user.radiusCredentials?.password || '',
       location: user.location || '',
     })
-    setSelectedUser(user)
     setShowEditUserDialog(true)
+
+    // FIX 2a: The list payload can be stale — fetch the credential record directly
+    // so the password field is never wrongly blank.
+    if (user.radiusCredentials?.id) {
+      try {
+        const fresh = await adminApi.getRADIUSCredential(String(user.radiusCredentials.id))
+        setEditForm(prev => ({
+          ...prev,
+          radius_username: fresh.username || prev.radius_username,
+          radius_password: fresh.password || prev.radius_password,
+        }))
+      } catch { /* keep the prefilled values */ }
+    }
   }
 
   const handleUpdateUser = async () => {
