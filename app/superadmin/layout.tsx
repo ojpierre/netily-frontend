@@ -52,7 +52,8 @@ const navItems = [
   { name: "Payments", href: "/superadmin/payments", icon: CreditCard },
   { name: "Sub. Payments", href: "/superadmin/subscription-payments", icon: CreditCard },
   { name: "Invoices", href: "/superadmin/subscription-invoices", icon: ScrollText },
-  { name: "SMS", href: "/superadmin/sms", icon: MessageSquareText }, // <-- NEW SMS ROUTE
+  { name: "Sub. Reminders", href: "/superadmin/subscription-reminders", icon: Bell }, // <-- NEW
+  { name: "SMS", href: "/superadmin/sms", icon: MessageSquareText },
   { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
   { name: "Referrals", href: "/superadmin/referrals", icon: Gift },
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },

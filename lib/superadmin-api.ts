@@ -907,6 +907,31 @@ export interface SMSOverview {
   all_topups: SMSTopupRecord[]
 }
 
+// ── Subscription Reminder Types ──────────────────────
+
+export interface SubscriptionReminderTemplateVar {
+  key: string
+  label: string
+  example: string
+}
+
+export interface SubscriptionReminderTemplate {
+  content: string
+  updated_at: string
+  variables: SubscriptionReminderTemplateVar[]
+}
+
+export interface SubscriptionReminderLogEntry {
+  id: number
+  company_name: string
+  milestone: "3_day" | "1_day"
+  phone_number: string
+  status: "sent" | "failed"
+  error: string
+  period_end: string
+  sent_at: string
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -1632,6 +1657,32 @@ class SuperadminApiService {
       method: "POST",
       body: JSON.stringify(data),
     })
+  }
+
+  // ── Subscription Reminders ──
+
+  async getSubscriptionReminderTemplate(): Promise<SubscriptionReminderTemplate> {
+    return this.request("/superadmin/subscription-reminders/template/")
+  }
+
+  async updateSubscriptionReminderTemplate(content: string): Promise<SubscriptionReminderTemplate> {
+    return this.request("/superadmin/subscription-reminders/template/", {
+      method: "PATCH",
+      body: JSON.stringify({ content }),
+    })
+  }
+
+  async getSubscriptionReminderBalance(): Promise<SMSOverview["provider_balance"]> {
+    return this.request("/superadmin/subscription-reminders/balance/")
+  }
+
+  async getSubscriptionReminderLogs(params?: Record<string, string>): Promise<PaginatedResponse<SubscriptionReminderLogEntry>> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/subscription-reminders/logs/${qs}`)
+  }
+
+  async sendSubscriptionRemindersNow(): Promise<{ detail: string; task_id: string }> {
+    return this.request("/superadmin/subscription-reminders/send-now/", { method: "POST" })
   }
 }
 
