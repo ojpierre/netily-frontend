@@ -74,11 +74,11 @@ const fontVariables = [
 
 export const metadata: Metadata = {
   title: {
-    default: "Internetily, formerly Netily - ISP Management Platform | Billing, M-Pesa & MikroTik Automation for Kenya",
+    default: "ISP Billing Software Kenya | Internetily",
     template: "%s | Internetily",
   },
   description:
-    "Internetily, formerly Netily, is Kenya's ISP management platform. Automate billing, M-Pesa STK Push payments, MikroTik router provisioning, hotspot management, and customer self-service. Built for Kenyan & East African ISPs.",
+    "Internetily helps ISPs manage billing, M-Pesa payments, MikroTik provisioning, hotspot access, customers, support, and renewals.",
   keywords: [
     // — Core product —
     "ISP management software Kenya 2026",
@@ -368,9 +368,9 @@ export const metadata: Metadata = {
     locale: "en_KE",
     url: "https://netily.co.ke",
     siteName: "Internetily, formerly Netily",
-    title: "Internetily, formerly Netily - ISP Management Platform | Billing & MikroTik Automation",
+    title: "ISP Billing Software Kenya | Internetily",
     description:
-      "Internetily, formerly Netily, automates ISP billing, M-Pesa payments, MikroTik provisioning, and hotspot management for Kenyan & East African ISPs.",
+      "Internetily automates ISP billing, M-Pesa payments, MikroTik provisioning, hotspot access, and customer operations.",
     images: [
       {
         url: "/og-image.svg",
@@ -382,7 +382,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Internetily, formerly Netily - ISP Management Platform",
+    title: "ISP Billing Software Kenya | Internetily",
     description:
       "Automate ISP billing, M-Pesa payments, and MikroTik provisioning. Internetily continues the Netily platform for Kenyan ISPs.",
     images: ["/og-image.svg"],

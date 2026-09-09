@@ -983,7 +983,7 @@ export function LandingPage() {
               <p className="mt-7 text-balance text-lg leading-8 text-zinc-300 md:text-xl">
                 When payments, router access, invoices, support, and subscriber records live apart,
                 every growth step creates more manual work. Internetily compresses that work into one
-                connected system without removing the content search engines already understand.
+                connected system that owners, support teams, and technicians can trust day to day.
               </p>
               <div className="mt-10 grid w-full gap-4 text-left md:grid-cols-3">
                 {[
@@ -1411,8 +1411,8 @@ export function LandingPage() {
                 </p>
                 <div className="mt-8 grid gap-3">
                   {[
-                    ["Sales", "sales@netily.co.ke"],
-                    ["Support", "support@netily.co.ke"],
+                    ["Sales", "Use the form for sales enquiries"],
+                    ["Support", "Use your dashboard support channel"],
                     ["WhatsApp", "0100034307"],
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-center gap-4 border border-zinc-800 bg-zinc-900 p-4">
@@ -1564,7 +1564,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className="sr-only" aria-label="SEO content for ISP billing software">
+        <section className="sr-only" aria-label="Internetily ISP billing software overview">
           <h2>Internetily and Netily ISP billing software for Kenya, Africa, and global WISPs</h2>
           <p>
             Internetily, formerly Netily, is ISP billing software for Kenya, Uganda, Tanzania, South Africa, Rwanda, Burundi, South Sudan,
@@ -1574,16 +1574,13 @@ export function LandingPage() {
             and internet service provider management.
           </p>
           <p>
-            Netily has not been discontinued as a search identity or product reference. Internetily is the sharper
-            current brand for the same trusted Netily ISP automation core. People searching for Netily, Netily ISP
-            platform, Netily billing software, Netily Kenya, Netily MikroTik integration, or Netily hotspot billing
-            should understand that Internetily carries the same product lineage, support focus, and East African ISP
-            operating knowledge.
+            Netily remains part of the product history. Internetily is the current brand for the same trusted
+            ISP automation core, with continued focus on practical billing, MikroTik, hotspot, support, and
+            customer operations for growing internet providers.
           </p>
           <p>
-            Internetily and Netily are intentionally connected brand signals for search engines and answer engines.
-            Internetily is the forward-facing product name; Netily remains a recognized legacy brand name for the
-            platform, documentation, customer memory, blog content, and ISP billing software search intent.
+            Operators who know the platform as Netily can still recognize the billing workflows, regional payment
+            focus, onboarding style, and ISP operations knowledge now presented under the Internetily name.
           </p>
           <p>
             Internetily supports fiber ISP billing software, wireless ISP billing software, WISP billing,
@@ -1594,9 +1591,8 @@ export function LandingPage() {
           </p>
           <p>
             Some buyers compare ISP management tools, open source ISP billing software, free ISP billing
-            software, MikroTik billing systems, and regional alternatives. Internetily keeps this comparison
-            content informational for search discovery while presenting the public landing page around
-            Internetily and Netily capabilities, implementation quality, pricing transparency, and customer outcomes.
+            software, MikroTik billing systems, and regional alternatives. Internetily helps them compare
+            payment handling, implementation quality, pricing transparency, support workflows, and customer outcomes.
           </p>
           <p>
             Internetily preserves the Netily product strengths: M-Pesa STK Push, Airtel Money, Telkom Kash,
@@ -1613,10 +1609,9 @@ export function LandingPage() {
             PPPoE password reset, and mobile-first subscriber access.
           </p>
           <p>
-            Comparison and alternatives content remains informational for search intent around regional ISP billing tools,
-            open source ISP management,
-            GitHub ISP billing software, free ISP billing software, MikroTik ISP billing software, RADIUS ISP
-            management systems, and East African ISP management software.
+            The comparison and alternatives pages explain practical trade-offs around regional ISP billing tools,
+            open source ISP management, GitHub ISP billing software, free ISP billing software, MikroTik ISP
+            billing software, RADIUS ISP management systems, and East African ISP management software.
           </p>
           <p>
             The Internetily and Netily affiliate program is built for ISP consultants, MikroTik engineers, WISP
@@ -1659,7 +1654,7 @@ export function LandingPage() {
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-medium">Product</h4>
+              <h3 className="text-sm font-medium">Product</h3>
               <ul className="mt-4 space-y-1 text-sm text-zinc-500 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center">
                 <li><a href="#features" onClick={(event) => { event.preventDefault(); scrollTo("features") }}>Features</a></li>
                 <li><a href="#pricing" onClick={(event) => { event.preventDefault(); scrollTo("pricing") }}>Pricing</a></li>
@@ -1668,7 +1663,7 @@ export function LandingPage() {
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-medium">Resources</h4>
+              <h3 className="text-sm font-medium">Resources</h3>
               <ul className="mt-4 space-y-1 text-sm text-zinc-500 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center">
                 <li><Link href="/blog">ISP growth blog</Link></li>
                 <li><Link href="/solutions/isp-billing-software-kenya-counties">Kenya county billing</Link></li>
@@ -1684,7 +1679,7 @@ export function LandingPage() {
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-medium">Company</h4>
+              <h3 className="text-sm font-medium">Company</h3>
               <ul className="mt-4 space-y-1 text-sm text-zinc-500 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center">
                 <li><Link href="/affiliate">Affiliate Program</Link></li>
                 <li><Link href="/privacy">Privacy policy</Link></li>

@@ -5,9 +5,9 @@ import { HomepagePreloader } from "@/components/homepage-preloader"
 
 // Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
-  title: "Internetily | ISP Billing Software for Kenya, Africa & Global WISPs",
+  title: "ISP Billing Software for Africa | Internetily",
   description:
-    "Internetily, formerly Netily, is ISP billing software for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs using MikroTik, PPPoE, hotspot, and regional payments.",
+    "Internetily helps ISPs manage billing, MikroTik PPPoE, hotspot access, M-Pesa, mobile money, card payments, support, and renewals.",
   keywords: [
     // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
     "isp billing software",
@@ -247,9 +247,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Internetily | ISP Billing Software for Kenya, Africa & Global WISPs",
+    title: "ISP Billing Software for Africa | Internetily",
     description:
-      "Internetily, formerly Netily, automates ISP billing, MikroTik PPPoE, RADIUS, hotspot access, M-Pesa, mobile money, card, ACH, Direct Debit, and regional payment workflows.",
+      "Internetily helps ISPs manage billing, MikroTik PPPoE, hotspot access, payments, support, and renewals.",
     url: "https://netily.co.ke",
     images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily, formerly Netily - ISP Billing Software Kenya" }],
   },
@@ -673,10 +673,9 @@ const localBusinessSchema = {
     "Netily ISP Billing Software",
     "Internetily formerly Netily",
   ],
-  description: "Internetily, formerly Netily, is a cloud-based ISP billing and management platform for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs. It supports M-Pesa STK Push, regional payment workflows, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
+  description: "Internetily helps ISPs manage billing, payments, MikroTik PPPoE, RADIUS, hotspot access, customer support, and renewals across Kenya, Africa, and global WISP markets.",
   url: "https://netily.co.ke",
-  telephone: "+254-700-000-000",
-  email: "hello@netily.co.ke",
+  telephone: "+254-100-034-307",
   foundingDate: "2024",
   foundingLocation: {
     "@type": "Place",
@@ -777,9 +776,8 @@ const localBusinessSchema = {
   contactPoint: [
     {
       "@type": "ContactPoint",
-      telephone: "+254-700-000-000",
+      telephone: "+254-100-034-307",
       contactType: "customer support",
-      email: "support@netily.co.ke",
       areaServed: "KE",
       availableLanguage: ["English", "Swahili"],
       hoursAvailable: {
@@ -791,16 +789,14 @@ const localBusinessSchema = {
     },
     {
       "@type": "ContactPoint",
-      telephone: "+254-700-000-000",
+      telephone: "+254-100-034-307",
       contactType: "sales",
-      email: "sales@netily.co.ke",
       areaServed: ["KE", "TZ", "UG", "RW"],
       availableLanguage: ["English", "Swahili"],
     },
     {
       "@type": "ContactPoint",
       contactType: "technical support",
-      email: "support@netily.co.ke",
       areaServed: ["KE", "TZ", "UG", "RW"],
       availableLanguage: ["English", "Swahili"],
     },
