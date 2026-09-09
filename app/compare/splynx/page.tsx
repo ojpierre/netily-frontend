@@ -6,9 +6,9 @@ import { ArrowRight, CheckCircle2, Cloud, Zap, Shield, Globe } from "lucide-reac
 import { MjengoFooter } from "@/components/mjengo-footer"
 
 export const metadata: Metadata = {
-  title: "Netily vs Splynx | The Modern Cloud Alternative for ISPs in Africa",
+  title: "Netily vs Splynx | ISP Billing Alternative",
   description:
-    "Compare Netily and Splynx for your ISP. See why African WISPs are choosing Netily's cloud-native architecture and built-in M-Pesa & Paystack integrations.",
+    "Compare Netily and Splynx for ISP billing, MikroTik workflows, payments, cloud operations, support, and African WISP needs.",
   keywords: ["splynx alternative", "netily vs splynx", "isp billing software", "mikrotik billing cloud"],
 }
 

@@ -6,9 +6,9 @@ import { ArrowRight, CheckCircle2 } from "lucide-react"
 import { MjengoFooter } from "@/components/mjengo-footer"
 
 export const metadata: Metadata = {
-  title: "Best ISP Billing Software in Nigeria | Automate MikroTik with Paystack",
+  title: "ISP Billing Software Nigeria | Internetily",
   description:
-    "Looking for the best ISP billing software in Nigeria? Learn how to automate your MikroTik routers, manage subscribers, and collect payments natively with Paystack and Flutterwave.",
+    "Learn how Nigerian ISPs can manage subscribers, automate MikroTik workflows, and collect payments with Paystack and Flutterwave.",
   keywords: [
     "isp billing software nigeria",
     "best isp billing software nigeria",

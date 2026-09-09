@@ -6,7 +6,7 @@ import { blogPosts } from "@/lib/blog-data"
 import BlogLeadModal from "@/components/blog-lead-modal"
 
 export const metadata: Metadata = {
-  title: "ISP Billing & Management Blog | Internetily, formerly Netily",
+  title: "ISP Billing Blog | Internetily",
   description:
     "Expert guides on ISP billing software, MikroTik automation, M-Pesa integration, and ISP management for Kenya and East Africa.",
   keywords: [

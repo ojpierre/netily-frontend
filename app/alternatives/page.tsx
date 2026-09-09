@@ -3,7 +3,7 @@ import Link from "next/link"
 import { ArrowRight, CheckCircle2, Search } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "ISP Billing Software Alternatives Kenya | Internetily",
+  title: "ISP Billing Alternatives Kenya | Internetily",
   description:
     "Informational comparison hub for Kenyan ISPs evaluating ISP billing software, M-Pesa workflows, MikroTik automation, PPPoE, hotspot billing, and team controls.",
   keywords: [

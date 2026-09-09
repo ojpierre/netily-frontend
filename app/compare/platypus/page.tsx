@@ -6,9 +6,9 @@ import { ArrowRight, Cloud, Zap, Shield, Globe } from "lucide-react"
 import { MjengoFooter } from "@/components/mjengo-footer"
 
 export const metadata: Metadata = {
-  title: "Netily vs Platypus | The Next-Gen Alternative for ISP Billing",
+  title: "Netily vs Platypus | ISP Billing Alternative",
   description:
-    "Migrating from Platypus ISP Billing? Discover why modern Internet Service Providers are switching to Netily's fully-managed cloud infrastructure.",
+    "Compare Platypus and Netily for ISP billing, customer management, payments, MikroTik workflows, cloud operations, and support.",
   keywords: ["platypus isp billing", "platypus alternative", "isp billing software", "netily vs platypus"],
 }
 

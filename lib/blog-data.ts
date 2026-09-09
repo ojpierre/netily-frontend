@@ -61,9 +61,9 @@ export const blogPosts: BlogPost[] = [
       avatarBg: "bg-blue-600",
     },
     tags: ["ISP Billing", "Kenya", "MikroTik", "M-Pesa", "Comparison"],
-    metaTitle: "Best ISP Billing Software in Kenya 2026: Complete Comparison | Netily",
+    metaTitle: "Best ISP Billing Software Kenya 2026 | Netily",
     metaDescription:
-      "The complete buyer's guide to ISP billing software in Kenya. Compare Netily, Splynx, WHMCS, ZAL and manual billing. Find the best ISP management system for your Kenyan or East African ISP.",
+      "Compare Netily, Splynx, WHMCS, ZAL, and manual billing to choose the right ISP billing software for Kenya.",
     keywords: [
       "isp billing software kenya",
       "best isp billing software in kenya",
@@ -254,9 +254,9 @@ export const blogPosts: BlogPost[] = [
       avatarBg: "bg-emerald-600",
     },
     tags: ["MikroTik", "M-Pesa", "PPPoE", "Automation", "Tutorial"],
-    metaTitle: "MikroTik ISP Billing with M-Pesa Automation: Step-by-Step Guide | Netily",
+    metaTitle: "MikroTik ISP Billing with M-Pesa | Netily",
     metaDescription:
-      "Learn how to fully automate MikroTik ISP billing with M-Pesa STK Push. Step-by-step guide for Kenyan ISPs running PPPoE and Hotspot on MikroTik RouterOS. Eliminate manual reconciliation.",
+      "Learn how Kenyan ISPs can automate MikroTik PPPoE, hotspot access, M-Pesa STK Push, and payment reconciliation.",
     keywords: [
       "mikrotik isp management software",
       "isp billing software mikrotik",
@@ -444,9 +444,9 @@ export const blogPosts: BlogPost[] = [
       avatarBg: "bg-orange-600",
     },
     tags: ["Free Software", "Open Source", "Cost Analysis", "Comparison", "ZAL"],
-    metaTitle: "Free ISP Billing Software 2026: The Honest Review for Kenyan ISPs | Netily",
+    metaTitle: "Free ISP Billing Software 2026 | Netily",
     metaDescription:
-      "Is free ISP billing software actually free? We review every free and open source ISP billing option in 2026 — ZAL, FreeRADIUS, homegrown scripts — and calculate the real total cost for Kenyan ISPs.",
+      "Review free and open source ISP billing options, including ZAL, FreeRADIUS, scripts, and real costs for Kenyan ISPs.",
     keywords: [
       "free isp billing software",
       "isp billing software free",
@@ -635,9 +635,9 @@ export const blogPosts: BlogPost[] = [
       avatarBg: "bg-violet-600",
     },
     tags: ["ISP Growth", "Kenya", "Business Strategy", "Subscriber Acquisition", "Churn"],
-    metaTitle: "How to Grow Your ISP Business in Kenya 2026: 7 Proven Strategies | Netily",
+    metaTitle: "Grow Your ISP Business in Kenya | Netily",
     metaDescription:
-      "Struggling to grow your ISP beyond 200 subscribers? These 7 data-backed strategies help Kenyan ISPs acquire new subscribers, reduce churn, and increase revenue per user in 2026.",
+      "Seven practical ways Kenyan ISPs can win subscribers, reduce churn, improve support, and grow recurring revenue.",
     keywords: [
       "how to grow isp business kenya",
       "isp business kenya",
@@ -813,9 +813,9 @@ export const blogPosts: BlogPost[] = [
       avatarBg: "bg-sky-600",
     },
     tags: ["Customer Service", "Kenya", "ISP Operations", "Churn Reduction", "Support"],
-    metaTitle: "ISP Customer Service Kenya 2026: Best Practices for Subscriber Retention | Netily",
+    metaTitle: "ISP Customer Service Kenya | Netily",
     metaDescription:
-      "Customer service is the most under-invested area in Kenyan ISP operations. This guide shows you exactly how to structure support, use ticketing, and automate notifications to retain more subscribers.",
+      "Build a better ISP support operation with ticketing, WhatsApp workflows, reminders, and clearer subscriber follow-up.",
     keywords: [
       "isp customer service kenya",
       "isp subscriber retention kenya",
