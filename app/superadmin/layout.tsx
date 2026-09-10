@@ -28,6 +28,7 @@ import {
   Headphones,
   MessageSquareText, // <-- Added for SMS page
   Gift, // Affiliate Referrals
+  Server, // <-- Added for Server Stats page
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -61,6 +62,7 @@ const navItems = [
   { name: "Audit Log", href: "/superadmin/audit-log", icon: ScrollText },
   { name: "User Ledger", href: "/superadmin/user-ledger", icon: BookOpen },
   { name: "Support Execs", href: "/superadmin/support", icon: Headphones },
+  { name: "Server Stats", href: "/superadmin/server-stats", icon: Server }, // <-- NEW
   // ── Platform Management Section ──
   { name: "Changelogs", href: "/superadmin/changelogs", icon: Megaphone }, // Platform Updates
   { name: "Roadmap", href: "/superadmin/roadmap", icon: Lightbulb }, // Feature Roadmap

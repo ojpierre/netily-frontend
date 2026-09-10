@@ -932,6 +932,40 @@ export interface SubscriptionReminderLogEntry {
   sent_at: string
 }
 
+// ── Server Stats Types ─────────────────────────────
+
+export interface ContainerStat {
+  name: string
+  cpu_percent: number
+  mem_used_mb: number
+  mem_limit_mb: number
+  mem_percent: number
+  net_in_mb: number
+  net_out_mb: number
+  block_in_mb: number
+  block_out_mb: number
+  pids: number
+  status: "healthy" | "warning" | "critical"
+}
+
+export interface HostStats {
+  disk_total_gb: number
+  disk_used_gb: number
+  disk_free_gb: number
+  disk_percent: number
+  disk_status: "healthy" | "warning" | "critical"
+  cpu_count: number
+  load_avg_1m: number
+  load_avg_5m: number
+  load_avg_15m: number
+}
+
+export interface ServerStatsResponse {
+  containers: ContainerStat[]
+  host: HostStats
+  timestamp: string
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -1073,6 +1107,12 @@ class SuperadminApiService {
 
   async getDashboard(): Promise<DashboardKPI> {
     return this.request("/superadmin/dashboard/")
+  }
+
+  // ── Server Stats ──
+
+  async getServerStats(): Promise<ServerStatsResponse> {
+    return this.request("/superadmin/server-stats/")
   }
 
   // ── Tenants ──
