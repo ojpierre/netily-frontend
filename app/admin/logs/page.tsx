@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertCircle,
   CheckCircle2,
@@ -53,6 +53,7 @@ const actionOptions = [
 ]
 
 const PLATFORM_SUPERADMIN_NAMES = new Set(["peter ouma", "mark mbolonzi"])
+const LOG_PAGE_SIZE = 100
 
 function formatDate(value?: string | null) {
   if (!value) return "-"
@@ -113,18 +114,27 @@ export default function LogsPage() {
   const [actorFilter, setActorFilter] = useState<ActorFilter>("all")
   const [rows, setRows] = useState<AuditRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const [search, setSearch] = useState("")
   const [action, setAction] = useState("all")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [sensitiveOnly, setSensitiveOnly] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (pageToLoad = 1, append = false) => {
     if (!perms.isAdmin) return
-    setLoading(true)
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
     try {
       const params: Record<string, string> = {
-        page_size: "200",
+        page: String(pageToLoad),
+        page_size: String(LOG_PAGE_SIZE),
         hide_platform_superadmin: "true",
       }
       if (actorFilter !== "all") params.actor_type = actorFilter
@@ -135,20 +145,45 @@ export default function LogsPage() {
       if (sensitiveOnly) params.sensitive_only = "true"
 
       const response = await adminApi.getAuditLogs(params)
-      setRows(((response.results || []) as AuditRow[]).filter((row) => !isPlatformSuperadminLog(row)))
+      const incoming = ((response.results || []) as AuditRow[]).filter((row) => !isPlatformSuperadminLog(row))
+      setRows((current) => append ? [...current, ...incoming] : incoming)
+      setPage(pageToLoad)
+      setHasMore(pageToLoad * LOG_PAGE_SIZE < (response.count || 0) && incoming.length > 0)
     } catch (error: any) {
       toast.error("Failed to load audit logs", {
         description: error?.message || "Please refresh and try again.",
       })
-      setRows([])
+      if (!append) setRows([])
+      setHasMore(false)
     } finally {
-      setLoading(false)
+      if (append) {
+        setLoadingMore(false)
+      } else {
+        setLoading(false)
+      }
     }
   }, [action, actorFilter, endDate, perms.isAdmin, search, sensitiveOnly, startDate])
 
   useEffect(() => {
-    fetchLogs()
+    fetchLogs(1, false)
   }, [fetchLogs])
+
+  useEffect(() => {
+    const node = loadMoreRef.current
+    if (!node || !hasMore || loading || loadingMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !loadingMore) {
+          fetchLogs(page + 1, true)
+        }
+      },
+      { rootMargin: "320px" },
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [fetchLogs, hasMore, loading, loadingMore, page])
 
   const stats = useMemo(() => ({
     total: rows.length,
@@ -210,7 +245,7 @@ export default function LogsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={fetchLogs} disabled={loading}>
+          <Button variant="outline" onClick={() => fetchLogs(1, false)} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
             Refresh
           </Button>
@@ -348,6 +383,20 @@ export default function LogsPage() {
                   ))}
                 </tbody>
               </table>
+              <div ref={loadMoreRef} className="flex min-h-14 items-center justify-center py-4">
+                {loadingMore ? (
+                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more logs
+                  </div>
+                ) : hasMore ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => fetchLogs(page + 1, true)}>
+                    Load more
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">All matching logs loaded</p>
+                )}
+              </div>
             </div>
           )}
         </CardContent>

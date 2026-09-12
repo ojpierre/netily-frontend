@@ -13,6 +13,20 @@ import {
   type SubscriptionReminderLogEntry,
 } from "@/lib/superadmin-api"
 
+function reminderMilestoneLabel(milestone: string) {
+  if (milestone === "expired") return "Expired notice"
+  if (milestone === "5") return "5 days before"
+  if (milestone === "3" || milestone === "3_day") return "3 days before"
+  if (milestone === "1" || milestone === "1_day") return "1 day before"
+  return `${milestone} reminder`
+}
+
+function reminderDestination(log: SubscriptionReminderLogEntry) {
+  if (log.channel === "email") return log.recipient_email || "no email"
+  if (log.channel === "in_app") return log.recipient_name || "in-app"
+  return log.recipient_phone || log.phone_number || "no phone"
+}
+
 export default function SubscriptionRemindersPage() {
   const [template, setTemplate] = useState<SubscriptionReminderTemplate | null>(null)
   const [content, setContent] = useState("")
@@ -61,6 +75,7 @@ export default function SubscriptionRemindersPage() {
     try {
       const res = await superadminApi.sendSubscriptionRemindersNow()
       toast.success(res.detail)
+      load()
     } catch (err: any) {
       toast.error(err.message || "Failed to trigger reminder sweep")
     } finally {
@@ -85,7 +100,7 @@ export default function SubscriptionRemindersPage() {
             Subscription Payment Reminders
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Sent via the inbuilt Bytewave SMS to each tenant&apos;s admin phone, 3 days and 1 day before their subscription is due.
+            Sends tenant subscription invoice reminders 5 days, 3 days, 1 day, and once expired using the shared Netily Bytewave balance.
           </p>
         </div>
         <Button onClick={sendNow} disabled={sending} variant="outline" className="border-slate-700 text-slate-300">
@@ -146,7 +161,9 @@ export default function SubscriptionRemindersPage() {
                 <div>
                   <p className="text-white font-medium">{log.company_name}</p>
                   <p className="text-slate-500 text-xs">
-                    {log.milestone === "3_day" ? "3 days before" : "1 day before"} · {log.phone_number || "no phone"}
+                    {reminderMilestoneLabel(log.milestone)}
+                    {log.invoice_number ? ` · ${log.invoice_number}` : ""}
+                    {` · ${log.channel || "sms"} · ${reminderDestination(log)}`}
                   </p>
                 </div>
                 <Badge className={log.status === "sent" ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}>

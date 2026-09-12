@@ -922,14 +922,22 @@ export interface SubscriptionReminderTemplate {
 }
 
 export interface SubscriptionReminderLogEntry {
-  id: number
+  id: string
   company_name: string
-  milestone: "3_day" | "1_day"
+  tenant_name?: string
+  tenant_subdomain?: string
+  invoice_number?: string
+  milestone: "5" | "3" | "1" | "expired" | string
+  channel?: "email" | "sms" | "in_app" | string
+  recipient_name?: string
+  recipient_phone?: string
+  recipient_email?: string
   phone_number: string
-  status: "sent" | "failed"
+  status: "pending" | "sent" | "failed" | "skipped" | string
   error: string
   period_end: string
   sent_at: string
+  created_at?: string
 }
 
 // ── Server Stats Types ─────────────────────────────
