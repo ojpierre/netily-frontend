@@ -9,9 +9,12 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
   superadminApi,
+  type SubscriptionInvoice,
   type SubscriptionReminderTemplate,
   type SubscriptionReminderLogEntry,
 } from "@/lib/superadmin-api"
+
+type ReminderChannel = "email" | "sms" | "in_app"
 
 function reminderMilestoneLabel(milestone: string) {
   if (milestone === "expired") return "Expired notice"
@@ -32,9 +35,13 @@ export default function SubscriptionRemindersPage() {
   const [content, setContent] = useState("")
   const [balance, setBalance] = useState<{ success: boolean; balance: number; error?: string } | null>(null)
   const [logs, setLogs] = useState<SubscriptionReminderLogEntry[]>([])
+  const [candidates, setCandidates] = useState<SubscriptionInvoice[]>([])
+  const [selectedCycleId, setSelectedCycleId] = useState("")
+  const [manualChannels, setManualChannels] = useState<ReminderChannel[]>(["sms"])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
+  const [manualSending, setManualSending] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -44,10 +51,13 @@ export default function SubscriptionRemindersPage() {
         superadminApi.getSubscriptionReminderBalance(),
         superadminApi.getSubscriptionReminderLogs({ page_size: "20" }),
       ])
+      const invoiceRes = await superadminApi.getSubscriptionInvoices({ status: "outstanding", page_size: "12" })
       setTemplate(tpl)
       setContent(tpl.content)
       setBalance(bal)
       setLogs(logRes.results)
+      setCandidates(invoiceRes.results || [])
+      setSelectedCycleId((current) => current || invoiceRes.results?.[0]?.id || "")
     } catch (err: any) {
       toast.error(err.message || "Failed to load reminder settings")
     } finally {
@@ -80,6 +90,36 @@ export default function SubscriptionRemindersPage() {
       toast.error(err.message || "Failed to trigger reminder sweep")
     } finally {
       setSending(false)
+    }
+  }
+
+  const toggleManualChannel = (channel: ReminderChannel) => {
+    setManualChannels((current) => {
+      const exists = current.includes(channel)
+      const next = exists ? current.filter((item) => item !== channel) : [...current, channel]
+      return next.length ? next : ["sms"]
+    })
+  }
+
+  const sendManual = async () => {
+    if (!selectedCycleId) {
+      toast.error("Select an outstanding invoice first")
+      return
+    }
+    setManualSending(true)
+    try {
+      const result = await superadminApi.sendSubscriptionReminderManual({
+        cycle_id: selectedCycleId,
+        channels: manualChannels,
+      })
+      toast.success("Manual reminder sent", {
+        description: result.detail,
+      })
+      load()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send manual reminder")
+    } finally {
+      setManualSending(false)
     }
   }
 
@@ -121,6 +161,56 @@ export default function SubscriptionRemindersPage() {
             <p className="text-2xl font-bold text-white">{balance.balance.toLocaleString()} units</p>
           ) : (
             <p className="text-sm text-red-400">{balance?.error || "Could not load balance"}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white text-base">Manual Reminder</CardTitle>
+          <CardDescription>
+            Send a reminder immediately for an outstanding subscription invoice when the automatic sweep needs a nudge.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {candidates.length === 0 ? (
+            <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+              No outstanding subscription invoices are available for manual reminders.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+                <select
+                  value={selectedCycleId}
+                  onChange={(event) => setSelectedCycleId(event.target.value)}
+                  className="h-11 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-violet-500"
+                >
+                  {candidates.map((invoice) => (
+                    <option key={invoice.id} value={invoice.id}>
+                      {invoice.tenant_name} - {invoice.invoice?.invoice_number || "Invoice pending"} - KES {invoice.invoice?.balance || invoice.effective_total || invoice.calculated_total}
+                    </option>
+                  ))}
+                </select>
+                <Button onClick={sendManual} disabled={manualSending || !selectedCycleId}>
+                  {manualSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                  Send Reminder
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["sms", "email", "in_app"] as ReminderChannel[]).map((channel) => (
+                  <Button
+                    key={channel}
+                    type="button"
+                    size="sm"
+                    variant={manualChannels.includes(channel) ? "default" : "outline"}
+                    onClick={() => toggleManualChannel(channel)}
+                    className={manualChannels.includes(channel) ? "" : "border-slate-700 text-slate-300"}
+                  >
+                    {channel === "in_app" ? "In-app" : channel.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

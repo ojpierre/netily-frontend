@@ -237,6 +237,7 @@ export interface SubscriptionInvoiceReminderSettings {
   enabled: boolean
   days_before: number[]
   channels: Array<"email" | "sms" | "in_app">
+  send_expired_notice?: boolean
 }
 
 export interface SubscriptionInvoice {
@@ -1731,6 +1732,25 @@ class SuperadminApiService {
 
   async sendSubscriptionRemindersNow(): Promise<{ detail: string; task_id: string }> {
     return this.request("/superadmin/subscription-reminders/send-now/", { method: "POST" })
+  }
+
+  async sendSubscriptionReminderManual(data: {
+    cycle_id: string
+    channels: Array<"email" | "sms" | "in_app">
+  }): Promise<{
+    detail: string
+    invoice_number: string
+    tenant_name: string
+    milestone: string
+    email: number
+    sms: number
+    in_app: number
+    failed: number
+  }> {
+    return this.request("/superadmin/subscription-reminders/send-manual/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 }
 
