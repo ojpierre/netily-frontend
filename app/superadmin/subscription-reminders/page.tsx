@@ -122,8 +122,14 @@ export default function SubscriptionRemindersPage() {
 
       const failures = [tplRes, balRes, logRes, tenantRes].filter((result) => result.status === "rejected")
       if (failures.length) {
+        const failedSections = [
+          tplRes.status === "rejected" ? "template" : "",
+          balRes.status === "rejected" ? "balance" : "",
+          logRes.status === "rejected" ? "history" : "",
+          tenantRes.status === "rejected" ? "tenants" : "",
+        ].filter(Boolean).join(", ")
         toast.warning("Some reminder data could not load", {
-          description: "The page is still usable. Refresh after deployment/migrations if a section looks empty.",
+          description: failedSections ? `Affected section(s): ${failedSections}. Other controls remain usable.` : "Other controls remain usable.",
         })
       }
     } catch (err: any) {
@@ -139,7 +145,10 @@ export default function SubscriptionRemindersPage() {
     setSaving(true)
     try {
       const updated = await superadminApi.updateSubscriptionReminderTemplate(content)
-      setTemplate(updated)
+      setTemplate((current) => ({
+        ...updated,
+        variables: updated.variables || current?.variables || [],
+      }))
       toast.success("Template updated")
     } catch (err: any) {
       toast.error(err.message || "Failed to save template")
@@ -324,7 +333,7 @@ export default function SubscriptionRemindersPage() {
           <CardTitle className="text-white text-base">SMS Template</CardTitle>
           <CardDescription>
             Pick a starting point, then adjust the copy for the next reminder run. Available variables:{" "}
-            {template?.variables.map((v) => (
+            {(template?.variables || []).map((v) => (
               <Badge key={v.key} variant="outline" className="mr-1 mb-1">{v.key}</Badge>
             ))}
           </CardDescription>

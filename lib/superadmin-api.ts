@@ -585,6 +585,41 @@ export interface PaginatedResponse<T> {
   results: T[]
 }
 
+export interface SuperadminSupportChatMessage {
+  id: string
+  conversation_id: string
+  sender_type: "tenant" | "superadmin" | "system" | string
+  sender_user_id?: number | null
+  sender_name: string
+  sender_email: string
+  body: string
+  read_at?: string | null
+  created_at: string | null
+}
+
+export interface SuperadminSupportChatConversation {
+  id: string
+  tenant_id: string
+  tenant_schema: string
+  tenant_name: string
+  tenant_subdomain: string
+  category: string
+  subject: string
+  status: "new" | "open" | "waiting_on_tenant" | "resolved" | string
+  priority: "normal" | "high" | "urgent" | string
+  created_by_name: string
+  created_by_email: string
+  created_by_phone: string
+  assigned_to_user_id?: number | null
+  assigned_to_name?: string
+  last_message_preview: string
+  last_message_at: string | null
+  created_at: string | null
+  updated_at: string | null
+  resolved_at?: string | null
+  messages?: SuperadminSupportChatMessage[]
+}
+
 // Plans
 export interface NetilyPlan {
   id: string
@@ -1763,6 +1798,41 @@ class SuperadminApiService {
   }> {
     return this.request("/superadmin/subscription-reminders/send-manual/", {
       method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ── Live Support Chat ──
+
+  async getSupportChatConversations(params?: Record<string, string>): Promise<PaginatedResponse<SuperadminSupportChatConversation>> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/support-chat/conversations/${qs}`)
+  }
+
+  async getSupportChatConversation(id: string): Promise<SuperadminSupportChatConversation> {
+    return this.request(`/superadmin/support-chat/conversations/${id}/`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-store" },
+    })
+  }
+
+  async replySupportChatConversation(id: string, message: string): Promise<{
+    conversation: SuperadminSupportChatConversation
+    message: SuperadminSupportChatMessage
+  }> {
+    return this.request(`/superadmin/support-chat/conversations/${id}/`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    })
+  }
+
+  async updateSupportChatConversation(id: string, data: {
+    status?: "new" | "open" | "waiting_on_tenant" | "resolved"
+    priority?: "normal" | "high" | "urgent"
+    assigned_to_me?: boolean
+  }): Promise<SuperadminSupportChatConversation> {
+    return this.request(`/superadmin/support-chat/conversations/${id}/`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     })
   }

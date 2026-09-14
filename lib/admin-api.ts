@@ -113,6 +113,9 @@ import type {
   SMSUnitTopup,
   SMSGatewayConfig,        
   SMSGatewayConfigWrite,
+  SupportChatConversation,
+  SupportChatMessage,
+  TenantSupportChatCurrent,
   // Staff types
   CreateStaffUserRequest,
   CreateStaffUserResponse,
@@ -3905,6 +3908,46 @@ async activateService(
       }
     );
     return response;
+  }
+
+  // ------------------------------------------
+  // NETILY LIVE SUPPORT CHAT - /core/support-chat/
+  // ------------------------------------------
+
+  async getCurrentSupportChat(): Promise<TenantSupportChatCurrent> {
+    return this.request<TenantSupportChatCurrent>('/core/support-chat/current/', {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-store' },
+    })
+  }
+
+  async startSupportChat(data: {
+    message: string
+    category?: string
+    subject?: string
+    priority?: 'normal' | 'high' | 'urgent'
+  }): Promise<TenantSupportChatCurrent> {
+    return this.request<TenantSupportChatCurrent>('/core/support-chat/current/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getSupportChatMessages(conversationId: string): Promise<TenantSupportChatCurrent> {
+    return this.request<TenantSupportChatCurrent>(`/core/support-chat/conversations/${conversationId}/messages/`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-store' },
+    })
+  }
+
+  async sendSupportChatMessage(conversationId: string, message: string): Promise<{
+    conversation: SupportChatConversation
+    message: SupportChatMessage
+  }> {
+    return this.request(`/core/support-chat/conversations/${conversationId}/messages/`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    })
   }
 
   // ------------------------------------------

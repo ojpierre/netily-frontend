@@ -55,6 +55,7 @@ const navItems = [
   { name: "Invoices", href: "/superadmin/subscription-invoices", icon: ScrollText },
   { name: "Sub. Reminders", href: "/superadmin/subscription-reminders", icon: Bell }, // <-- NEW
   { name: "SMS", href: "/superadmin/sms", icon: MessageSquareText },
+  { name: "Live Chat", href: "/superadmin/support-chat", icon: Headphones },
   { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
   { name: "Referrals", href: "/superadmin/referrals", icon: Gift },
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },

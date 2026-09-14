@@ -1,155 +1,109 @@
 "use client"
 
-import { useState } from "react"
-import { Bot, Send, Sparkles, X } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Headset, Loader2, MessageCircle, Send, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { AssistantMessage } from "@/components/assistant-message"
+import { adminApi } from "@/lib/admin-api"
+import type { SupportChatConversation, SupportChatMessage } from "@/lib/types"
 
-type ChatMessage = {
-  role: "user" | "assistant"
-  text: string
-  sources?: { title: string; source: string; score: number }[]
-  requestId?: string
-  provider?: string
-  model?: string
-  diagnostics?: {
-    reason?: string
-    error?: string
-    keyEnv?: string
-    modelsTried?: string[]
-    expectedEnv?: string[]
-  }
-}
+const CATEGORIES = ["Billing", "SMS", "M-Pesa", "Routers", "Hotspot", "PPPoE", "Account Access", "Other"]
 
-type SupportChatResponse = {
-  answer: string
-  sources?: { title: string; source: string; score: number }[]
-  blocked?: boolean
-  requestId?: string
-  provider?: string
-  model?: string
-  diagnostics?: ChatMessage["diagnostics"]
-}
-
-const STARTER: ChatMessage = {
-  role: "assistant",
-  text: "Hi! 👋 I'm the Netily assistant. Ask me anything about getting started, managing your ISP, routers, billing, hotspot, SMS, or any feature in the platform.",
-}
-
-const SUGGESTED_PROMPTS = [
-  "How do I connect my first router?",
-  "How does billing work for my customers?",
-  "How do I set up hotspot vouchers?",
-]
-
-function getDocsChatEndpoint() {
-  if (typeof window === "undefined") return "/internal-api/docs-chat"
-
-  const { hostname, protocol } = window.location
-  const isNetilyTenant =
-    hostname.endsWith(".netily.co.ke") &&
-    hostname !== "www.netily.co.ke" &&
-    hostname !== "api.netily.co.ke"
-
-  if (protocol === "https:" && isNetilyTenant) {
-    return "https://netily.co.ke/internal-api/docs-chat"
-  }
-
-  return "/internal-api/docs-chat"
-}
-
-async function readSupportChatResponse(response: Response): Promise<SupportChatResponse> {
-  const text = await response.text()
-  if (!text) return { answer: "" }
-
+function formatTime(value?: string | null) {
+  if (!value) return ""
   try {
-    return JSON.parse(text) as SupportChatResponse
+    return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   } catch {
-    return {
-      answer: "The assistant endpoint returned an unexpected response. Please try again in a moment.",
-      diagnostics: {
-        reason: "invalid_assistant_response",
-        error: text.slice(0, 240),
-      },
-    }
+    return ""
   }
+}
+
+function statusCopy(conversation: SupportChatConversation | null) {
+  if (!conversation) return "Start a conversation with Netily Support"
+  if (conversation.status === "waiting_on_tenant") return "Netily replied"
+  if (conversation.status === "resolved") return "Conversation resolved"
+  if (conversation.status === "new") return "New request received"
+  return "Conversation open"
 }
 
 export function NetilySupportChat() {
   const [open, setOpen] = useState(false)
+  const [category, setCategory] = useState("Billing")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([STARTER])
+  const [booting, setBooting] = useState(false)
+  const [error, setError] = useState("")
+  const [conversation, setConversation] = useState<SupportChatConversation | null>(null)
+  const [messages, setMessages] = useState<SupportChatMessage[]>([])
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  const unreadFromSupport = useMemo(() => {
+    if (!messages.length) return false
+    return messages[messages.length - 1]?.sender_type === "superadmin"
+  }, [messages])
+
+  const loadCurrent = async () => {
+    setBooting(true)
+    setError("")
+    try {
+      const data = await adminApi.getCurrentSupportChat()
+      setConversation(data.conversation)
+      setMessages(data.messages || [])
+    } catch {
+      setError("We could not load live support right now. You can try again in a moment.")
+    } finally {
+      setBooting(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!open) return
+    loadCurrent()
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !conversation?.id) return
+    const interval = window.setInterval(async () => {
+      try {
+        const data = await adminApi.getSupportChatMessages(conversation.id)
+        setConversation(data.conversation)
+        setMessages(data.messages || [])
+      } catch {
+        // Polling should stay quiet; the next manual send/load can surface errors.
+      }
+    }, 10000)
+    return () => window.clearInterval(interval)
+  }, [open, conversation?.id])
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+  }, [messages.length, open])
 
   async function sendMessage(value = message) {
     const trimmed = value.trim()
     if (!trimmed || loading) return
 
-    setMessage("")
-    setMessages((current) => [...current, { role: "user", text: trimmed }])
     setLoading(true)
+    setError("")
+    setMessage("")
 
     try {
-      const endpoint = getDocsChatEndpoint()
-      const res = await fetch(endpoint, {
-        method: "POST",
-        mode: endpoint.startsWith("http") ? "cors" : "same-origin",
-        credentials: "omit",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
-      })
-      const data = await readSupportChatResponse(res)
-      if (!res.ok) {
-        console.error("[netily-support-chat] request failed", {
-          endpoint,
-          status: res.status,
-          requestId: data.requestId,
-          answer: data.answer,
-          diagnostics: data.diagnostics,
+      if (!conversation) {
+        const data = await adminApi.startSupportChat({
+          category,
+          subject: category,
+          message: trimmed,
+          priority: category === "M-Pesa" || category === "Account Access" ? "high" : "normal",
         })
-        throw new Error(data.answer || "Support chat failed")
-      }
-      if (data.provider === "local") {
-        console.warn(
-          `[netily-support-chat] local fallback reason=${data.diagnostics?.reason || "unknown"} error=${data.diagnostics?.error || "none"}`,
-        )
-        console.warn("[netily-support-chat] using local fallback", {
-          requestId: data.requestId,
-          sources: data.sources,
-          diagnostics: data.diagnostics,
-        })
+        setConversation(data.conversation)
+        setMessages(data.messages || [])
       } else {
-        console.info("[netily-support-chat] answer received", {
-          requestId: data.requestId,
-          provider: data.provider,
-          model: data.model,
-          sources: data.sources,
-        })
+        const data = await adminApi.sendSupportChatMessage(conversation.id, trimmed)
+        setConversation(data.conversation)
+        setMessages((current) => [...current, data.message])
       }
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          text: data.answer || "I may need a little more detail to guide you properly. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
-          sources: data.sources || [],
-          requestId: data.requestId,
-          provider: data.provider,
-          model: data.model,
-          diagnostics: data.diagnostics,
-        },
-      ])
-    } catch (error) {
-      console.error("[netily-support-chat] network error", {
-        endpoint: getDocsChatEndpoint(),
-        error,
-      })
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          text: "I'm having trouble connecting right now. Please try again in a moment. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
-        },
-      ])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Message could not be sent. Please try again.")
+      setMessage(trimmed)
     } finally {
       setLoading(false)
     }
@@ -158,58 +112,91 @@ export function NetilySupportChat() {
   return (
     <div className="fixed bottom-5 right-5 z-50">
       {open && (
-        <div className="mb-3 flex h-[520px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-slate-950">
-          <div className="flex items-center justify-between border-b border-slate-100 bg-linear-to-r from-slate-950 to-blue-950 px-4 py-3 text-white dark:border-slate-800">
+        <div className="mb-3 flex h-[560px] w-[min(390px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl shadow-slate-900/20">
+          <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
             <div className="flex items-center gap-2">
-              <div className="rounded-xl bg-white/10 p-2">
-                <Sparkles className="h-4 w-4" />
+              <div className="rounded-xl bg-white/15 p-2">
+                <Headset className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-bold">Netily Assistant</p>
-                <p className="text-xs text-blue-100">Ask me anything about the platform</p>
+                <p className="text-sm font-bold">Chat with Netily Support</p>
+                <p className="text-xs text-primary-foreground/80">{statusCopy(conversation)}</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="rounded-lg p-1 text-blue-100 hover:bg-white/10 hover:text-white">
+            <button onClick={() => setOpen(false)} className="rounded-lg p-1 text-primary-foreground/80 hover:bg-white/10 hover:text-white">
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
-            {messages.map((item, index) => (
-              <div key={`${item.role}-${index}`} className={item.role === "user" ? "text-right" : "text-left"}>
-                <div
-                  className={`inline-block max-w-[88%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
-                    item.role === "user"
-                      ? "bg-primary text-white"
-                      : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100"
-                  }`}
-                >
-                  {item.role === "assistant" ? <AssistantMessage text={item.text} /> : item.text}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:bg-slate-900">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-                Thinking...
-              </div>
-            )}
-            {messages.length === 1 && !loading ? (
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_PROMPTS.map((prompt) => (
+          <div className="border-b border-border bg-muted/40 px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              Tell us what you need help with. We will keep the conversation here so you can continue where you left off.
+            </p>
+            {!conversation && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {CATEGORIES.map((item) => (
                   <button
-                    key={prompt}
-                    onClick={() => sendMessage(prompt)}
-                    className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-left text-xs font-semibold text-primary transition hover:border-primary/20 hover:bg-primary/15 dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-primary/40"
+                    key={item}
+                    type="button"
+                    onClick={() => setCategory(item)}
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      category === item
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    {prompt}
+                    {item}
                   </button>
                 ))}
               </div>
-            ) : null}
+            )}
           </div>
 
-          <div className="border-t border-slate-100 p-3 dark:border-slate-800">
+          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+            {booting && (
+              <div className="flex items-center gap-2 rounded-2xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading conversation...
+              </div>
+            )}
+
+            {!booting && messages.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                Start with a short message. A Netily superadmin will reply here.
+              </div>
+            )}
+
+            {messages.map((item) => {
+              const mine = item.sender_type === "tenant"
+              return (
+                <div key={item.id} className={mine ? "text-right" : "text-left"}>
+                  <div
+                    className={`inline-block max-w-[88%] rounded-2xl px-3 py-2 text-sm ${
+                      mine
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {!mine && <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{item.sender_name || "Netily Support"}</p>}
+                    <p className="whitespace-pre-line">{item.body}</p>
+                    <p className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{formatTime(item.created_at)}</p>
+                  </div>
+                </div>
+              )
+            })}
+
+            {loading && (
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </div>
+            )}
+            <div ref={scrollRef} />
+          </div>
+
+          {error && <div className="border-t border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">{error}</div>}
+
+          <div className="border-t border-border p-3">
             <div className="flex gap-2">
               <input
                 value={message}
@@ -217,15 +204,15 @@ export function NetilySupportChat() {
                 onKeyDown={(event) => {
                   if (event.key === "Enter") sendMessage()
                 }}
-                placeholder="Ask about billing, routers, hotspot..."
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-ring focus:ring-2 dark:border-slate-800 dark:bg-slate-900"
+                placeholder={conversation ? "Reply to Netily Support..." : `Ask about ${category.toLowerCase()}...`}
+                className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"
               />
               <Button onClick={() => sendMessage()} disabled={loading || !message.trim()} size="icon" className="rounded-xl">
-                <Send className="h-4 w-4" />
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="mt-2 text-[10px] text-slate-400">
-              Powered by Netily Docs · Answers are based on our help content.
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              {conversation ? "Replies refresh automatically every few seconds." : "For urgent payment issues, choose M-Pesa or Account Access."}
             </p>
           </div>
         </div>
@@ -233,10 +220,11 @@ export function NetilySupportChat() {
 
       <button
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/30 transition hover:bg-primary"
+        className="relative flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:bg-primary/90"
       >
-        <Bot className="h-5 w-5" />
+        <MessageCircle className="h-5 w-5" />
         Support
+        {unreadFromSupport && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-background" />}
       </button>
     </div>
   )

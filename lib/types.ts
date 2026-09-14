@@ -3044,6 +3044,46 @@ export interface SMSUnitTopup {
   created_at: string
 }
 
+export interface SupportChatConversation {
+  id: string
+  tenant_id: string
+  tenant_schema: string
+  tenant_name: string
+  tenant_subdomain: string
+  category: string
+  subject: string
+  status: 'new' | 'open' | 'waiting_on_tenant' | 'resolved' | string
+  priority: 'normal' | 'high' | 'urgent' | string
+  created_by_name: string
+  created_by_email: string
+  created_by_phone: string
+  assigned_to_user_id?: number | null
+  assigned_to_name?: string
+  last_message_preview: string
+  last_message_at: string | null
+  created_at: string | null
+  updated_at: string | null
+  resolved_at?: string | null
+  messages?: SupportChatMessage[]
+}
+
+export interface SupportChatMessage {
+  id: string
+  conversation_id: string
+  sender_type: 'tenant' | 'superadmin' | 'system' | string
+  sender_user_id?: number | null
+  sender_name: string
+  sender_email: string
+  body: string
+  read_at?: string | null
+  created_at: string | null
+}
+
+export interface TenantSupportChatCurrent {
+  conversation: SupportChatConversation | null
+  messages: SupportChatMessage[]
+}
+
 export interface SMSGatewayConfigWrite {
   provider: SMSProvider
   is_active?: boolean
