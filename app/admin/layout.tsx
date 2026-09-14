@@ -52,6 +52,7 @@ import {
   ShieldAlert,
   ArrowUpRight,
   Loader2,
+  Clock3,
   Download,   // ← ADDED
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
@@ -104,7 +105,7 @@ import {
   setRoleAccessPolicies,
   type AccessRule,
 } from "@/lib/rbac"
-import type { BillingCycleBreakdown, CompanySubscription, Customer, Invoice, Lead, Payment, Router, SupportTicket, UsageStats } from "@/lib/types"
+import type { BillingCycleBreakdown, CompanySubscription, Customer, Invoice, Lead, Payment, Router, SMSWallet, SupportTicket, UsageStats } from "@/lib/types"
 
 type NavigationItem = {
   name: string
@@ -307,6 +308,26 @@ function getRenewalEligibility(
     eligible: daysToDue !== null && daysToDue >= 0 && daysToDue <= RENEW_NOW_WINDOW_DAYS,
     daysToDue,
   }
+}
+
+function formatSmsUnits(value?: number | string | null) {
+  const units = Math.max(0, Math.floor(Number(value || 0)))
+  return units.toLocaleString()
+}
+
+function formatRenewalCountdown(value?: string | null, now = new Date()) {
+  if (!value) return "Not set"
+  const target = new Date(value)
+  if (Number.isNaN(target.getTime())) return "Not set"
+
+  const diff = target.getTime() - now.getTime()
+  if (diff <= 0) return "Due now"
+
+  const totalMinutes = Math.floor(diff / 60000)
+  const days = Math.floor(totalMinutes / 1440)
+  const hours = Math.floor((totalMinutes % 1440) / 60)
+  const minutes = totalMinutes % 60
+  return `${days}D ${hours}H ${minutes}M`
 }
 
 function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
@@ -632,6 +653,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [recordResults, setRecordResults] = useState<AdminSearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [openSidebarSections, setOpenSidebarSections] = useState<Record<string, boolean>>({})
+  const [topbarSmsWallet, setTopbarSmsWallet] = useState<SMSWallet | null>(null)
+  const [topbarSubscription, setTopbarSubscription] = useState<CompanySubscription | null>(null)
+  const [topbarUsage, setTopbarUsage] = useState<UsageStats | null>(null)
+  const [topbarNow, setTopbarNow] = useState(() => new Date())
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -816,6 +841,60 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const interval = setInterval(fetchCount, 60_000)
     return () => clearInterval(interval)
   }, [mounted, user, accessPolicyVersion])
+
+  useEffect(() => {
+    if (!mounted || !user || isPublicPage) return
+
+    const smsRule = getAccessRuleForPath("/admin/sms")
+    const canSeeSms = !smsRule || canAccess(user, smsRule)
+    let cancelled = false
+
+    const loadTopbarStatus = async () => {
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        const [subscriptionRes, usageRes, walletRes, smsSettingsRes] = await Promise.allSettled([
+          adminApi.getCurrentSubscription(),
+          adminApi.getUsageStats(),
+          canSeeSms ? adminApi.getSMSWallet() : Promise.resolve(null),
+          canSeeSms ? adminApi.getSMSNotificationSettings() : Promise.resolve(null),
+        ])
+
+        if (cancelled) return
+
+        setTopbarSubscription(subscriptionRes.status === "fulfilled" ? subscriptionRes.value : null)
+        setTopbarUsage(usageRes.status === "fulfilled" ? usageRes.value : null)
+
+        if (walletRes.status === "fulfilled" && smsSettingsRes.status === "fulfilled") {
+          const wallet = walletRes.value
+          const settings = smsSettingsRes.value
+          const hasNetilySms =
+            Boolean(settings?.use_inbuilt_system) ||
+            Number(wallet?.sms_units || 0) > 0 ||
+            Boolean(wallet?.topup_history?.length)
+          setTopbarSmsWallet(hasNetilySms ? wallet : null)
+        } else {
+          setTopbarSmsWallet(null)
+        }
+      } catch {
+        if (!cancelled) {
+          setTopbarSmsWallet(null)
+        }
+      }
+    }
+
+    loadTopbarStatus()
+    const interval = window.setInterval(loadTopbarStatus, 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [mounted, user, isPublicPage, accessPolicyVersion])
+
+  useEffect(() => {
+    if (!mounted || isPublicPage) return
+    const interval = window.setInterval(() => setTopbarNow(new Date()), 30_000)
+    return () => window.clearInterval(interval)
+  }, [mounted, isPublicPage])
 
   useEffect(() => {
     if (!mounted || !user || isPublicPage) return
@@ -1048,6 +1127,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const activeNavItem = activeSection?.items.find((item) => isNavItemActive(item.href))
   const breadcrumbSections = filteredSections.filter((section) => section.items.length >= SIDEBAR_BREADCRUMB_MIN_ITEMS)
   const routeAccessRule = getAccessRuleForPath(pathname)
+  const topbarRenewalDate = getRenewalDueDate(topbarSubscription, topbarUsage)
+  const topbarRenewalCountdown = formatRenewalCountdown(topbarRenewalDate, topbarNow)
+  const topbarSmsUnits = formatSmsUnits(topbarSmsWallet?.sms_units)
   const trimmedSearchQuery = searchQuery.trim()
   const allPageResults: AdminSearchResult[] = [
     ...filteredSections.flatMap((section) =>
@@ -1359,8 +1441,34 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Right side controls */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {topbarSmsWallet && (
+              <div className="hidden items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2 py-1 shadow-sm sm:flex">
+                <MessageSquareText className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold text-foreground">
+                  SMS: <span className="tabular-nums">{topbarSmsUnits}</span> SMS
+                </span>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="ml-1 h-7 rounded-full px-2 text-xs font-semibold text-primary hover:bg-primary/10 hover:text-primary"
+                >
+                  <Link href="/admin/sms">Top Up</Link>
+                </Button>
+              </div>
+            )}
+
+            {topbarRenewalDate && (
+              <div className="hidden items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm dark:text-amber-200 lg:flex">
+                <Clock3 className="h-4 w-4" />
+                <span className="whitespace-nowrap">
+                  RENEWAL IN: <span className="tabular-nums">{topbarRenewalCountdown}</span>
+                </span>
+              </div>
+            )}
+
             {/* Trial Countdown */}
-            <div className="hidden md:block">
+            <div className="hidden 2xl:block">
               <TrialCountdown />
             </div>
 
