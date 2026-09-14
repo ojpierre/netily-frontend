@@ -87,6 +87,7 @@ export default function SubscriptionRemindersPage() {
   const [sending, setSending] = useState(false)
   const [manualSending, setManualSending] = useState(false)
   const providerDisplay = providerBalanceDisplay(balance)
+  const platformWallet = balance?.platform_wallet
 
   const load = async () => {
     setLoading(true)
@@ -217,7 +218,7 @@ export default function SubscriptionRemindersPage() {
             Subscription Payment Reminders
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Sends tenant subscription invoice reminders 5 days, 3 days, 1 day, and once expired using the shared Netily Bytewave balance.
+            Sends tenant subscription invoice reminders 5 days, 3 days, 1 day, and once expired using Netily's platform SMS wallet.
           </p>
         </div>
         <Button onClick={sendNow} disabled={sending} variant="outline" className="h-11 border-slate-700 text-slate-300">
@@ -226,7 +227,7 @@ export default function SubscriptionRemindersPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -249,14 +250,29 @@ export default function SubscriptionRemindersPage() {
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-amber-400" />
+              Netily Platform Wallet
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-white">{formatUnits(platformWallet?.sms_units)} units</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {platformWallet?.enforce_balance ? "Balance enforced" : "Tracking mode"} - {formatUnits(platformWallet?.debited_units)} units used
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
               <Users className="w-4 h-4 text-sky-400" />
-              Inbuilt SMS Pool
+              Tenant SMS Wallets
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-white">{formatUnits(balance?.total_inbuilt_units)} units</p>
             <p className="mt-1 text-xs text-slate-500">
-              {balance?.inbuilt_tenant_count || 0} tenant{balance?.inbuilt_tenant_count === 1 ? "" : "s"} using Netily SMS
+              Visibility only - {balance?.inbuilt_tenant_count || 0} tenant{balance?.inbuilt_tenant_count === 1 ? "" : "s"} using Netily SMS
             </p>
           </CardContent>
         </Card>

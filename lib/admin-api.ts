@@ -3915,10 +3915,7 @@ async activateService(
   // ------------------------------------------
 
   async getCurrentSupportChat(): Promise<TenantSupportChatCurrent> {
-    return this.request<TenantSupportChatCurrent>('/core/support-chat/current/', {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-store' },
-    })
+    return this.request<TenantSupportChatCurrent>('/core/support-chat/current/')
   }
 
   async startSupportChat(data: {
@@ -3934,10 +3931,7 @@ async activateService(
   }
 
   async getSupportChatMessages(conversationId: string): Promise<TenantSupportChatCurrent> {
-    return this.request<TenantSupportChatCurrent>(`/core/support-chat/conversations/${conversationId}/messages/`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-store' },
-    })
+    return this.request<TenantSupportChatCurrent>(`/core/support-chat/conversations/${conversationId}/messages/`)
   }
 
   async sendSupportChatMessage(conversationId: string, message: string): Promise<{
@@ -4035,12 +4029,7 @@ async activateService(
     subscription_activated?: boolean
     invoice_balance_remaining?: string | null
   }> {
-    return this.request(`/subscriptions/payments/${paymentId}/status/`, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-store',
-      },
-    })
+    return this.request(`/subscriptions/payments/${paymentId}/status/`)
   }
 
   /** Invalidate cached subscription so the next fetch hits the server */

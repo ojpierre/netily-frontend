@@ -10,12 +10,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url)
+  const isSameOrigin = url.origin === self.location.origin
+
+  if (event.request.method !== "GET" || !isSameOrigin) {
+    return
+  }
+
   if (
     url.pathname === "/netilysystempayment" ||
-    url.pathname.startsWith("/api/netily-system-payment") ||
-    url.hostname === "api.netily.co.ke"
+    url.pathname.startsWith("/api/netily-system-payment")
   ) {
-    event.respondWith(fetch(event.request))
     return
   }
 

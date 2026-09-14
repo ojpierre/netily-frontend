@@ -951,7 +951,22 @@ export interface SubscriptionReminderBalanceSummary {
   provider?: string
   raw?: unknown
   platform_balance?: SMSOverview["provider_balance"] & { provider?: string }
+  platform_wallet?: {
+    sms_units: string
+    sell_price_per_unit: string
+    enforce_balance: boolean
+    is_active: boolean
+    updated_at?: string
+    debited_units?: string
+    refunded_units?: string
+  }
+  spendable_balance_source?: string
   total_inbuilt_units?: string
+  tenant_inbuilt_units?: {
+    total_units: string
+    tenant_count: number
+    note?: string
+  }
   inbuilt_tenant_count?: number
   failed_tenant_count?: number
 }
@@ -1810,10 +1825,7 @@ class SuperadminApiService {
   }
 
   async getSupportChatConversation(id: string): Promise<SuperadminSupportChatConversation> {
-    return this.request(`/superadmin/support-chat/conversations/${id}/`, {
-      cache: "no-store",
-      headers: { "Cache-Control": "no-store" },
-    })
+    return this.request(`/superadmin/support-chat/conversations/${id}/`)
   }
 
   async replySupportChatConversation(id: string, message: string): Promise<{
