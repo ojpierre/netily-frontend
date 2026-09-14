@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, MessageSquareText, Save, Send, Wallet } from "lucide-react"
+import { BellRing, CalendarClock, Loader2, MessageSquareText, Save, Send, Users, Wallet } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,11 +10,30 @@ import { toast } from "sonner"
 import {
   superadminApi,
   type Tenant,
+  type SubscriptionReminderBalanceSummary,
   type SubscriptionReminderTemplate,
   type SubscriptionReminderLogEntry,
 } from "@/lib/superadmin-api"
 
 type ReminderChannel = "email" | "sms" | "in_app"
+
+const TEMPLATE_PRESETS = [
+  {
+    name: "Upcoming renewal",
+    content:
+      "Hi {admin_name}, your Netily subscription for {company_name} ({plan_name}) is due in {days_left} day(s) on {expiry_date}. Please open Admin > Subscription and renew to keep your account active.",
+  },
+  {
+    name: "Due today",
+    content:
+      "Hi {admin_name}, your Netily subscription for {company_name} is due today. Please open Admin > Subscription and renew to avoid account interruption.",
+  },
+  {
+    name: "Expired",
+    content:
+      "Hi {admin_name}, your Netily subscription for {company_name} has expired. Please open Admin > Subscription and renew to restore full access.",
+  },
+]
 
 function reminderMilestoneLabel(milestone: string) {
   if (milestone === "expired") return "Expired notice"
@@ -30,10 +49,35 @@ function reminderDestination(log: SubscriptionReminderLogEntry) {
   return log.recipient_phone || log.phone_number || "no phone"
 }
 
+function formatUnits(value?: string | number | null) {
+  const numeric = Number(value || 0)
+  return Number.isFinite(numeric) ? numeric.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "0"
+}
+
+function providerBalanceDisplay(balance: SubscriptionReminderBalanceSummary | null) {
+  if (!balance?.success) return null
+  const raw = balance.raw as { remaining_balance?: string; expired_on?: string } | undefined
+  if (raw?.remaining_balance) {
+    const numeric = Number(raw.remaining_balance.replace(/[^0-9.]/g, ""))
+    return {
+      value: Number.isFinite(numeric)
+        ? `Ksh ${numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : raw.remaining_balance,
+      meta: raw.expired_on ? `Expires: ${raw.expired_on}` : balance.provider || "bytewave_master",
+    }
+  }
+
+  const currency = (balance.currency || "SMS_UNITS").toUpperCase()
+  const value = currency === "KES"
+    ? `Ksh ${formatUnits(balance.balance)}`
+    : `${formatUnits(balance.balance)} units`
+  return { value, meta: balance.provider || "bytewave_master" }
+}
+
 export default function SubscriptionRemindersPage() {
   const [template, setTemplate] = useState<SubscriptionReminderTemplate | null>(null)
   const [content, setContent] = useState("")
-  const [balance, setBalance] = useState<{ success: boolean; balance: number; error?: string } | null>(null)
+  const [balance, setBalance] = useState<SubscriptionReminderBalanceSummary | null>(null)
   const [logs, setLogs] = useState<SubscriptionReminderLogEntry[]>([])
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [selectedTenantId, setSelectedTenantId] = useState("")
@@ -42,6 +86,7 @@ export default function SubscriptionRemindersPage() {
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
   const [manualSending, setManualSending] = useState(false)
+  const providerDisplay = providerBalanceDisplay(balance)
 
   const load = async () => {
     setLoading(true)
@@ -156,7 +201,7 @@ export default function SubscriptionRemindersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <MessageSquareText className="w-6 h-6 text-violet-400" />
@@ -166,33 +211,69 @@ export default function SubscriptionRemindersPage() {
             Sends tenant subscription invoice reminders 5 days, 3 days, 1 day, and once expired using the shared Netily Bytewave balance.
           </p>
         </div>
-        <Button onClick={sendNow} disabled={sending} variant="outline" className="border-slate-700 text-slate-300">
+        <Button onClick={sendNow} disabled={sending} variant="outline" className="h-11 border-slate-700 text-slate-300">
           {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
           Run Sweep Now
         </Button>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-emerald-400" />
-            Bytewave Balance
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {balance?.success ? (
-            <p className="text-2xl font-bold text-white">{balance.balance.toLocaleString()} units</p>
-          ) : (
-            <p className="text-sm text-red-400">{balance?.error || "Could not load balance"}</p>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-emerald-400" />
+              Bytewave Master
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {balance?.success ? (
+              <>
+                <p className="text-3xl font-bold text-white">{providerDisplay?.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{providerDisplay?.meta}</p>
+              </>
+            ) : (
+              <p className="text-sm text-red-400">{balance?.error || "Could not load balance"}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Users className="w-4 h-4 text-sky-400" />
+              Inbuilt SMS Pool
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-white">{formatUnits(balance?.total_inbuilt_units)} units</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {balance?.inbuilt_tenant_count || 0} tenant{balance?.inbuilt_tenant_count === 1 ? "" : "s"} using Netily SMS
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-violet-400" />
+              Automatic Sweep
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-white">5 / 3 / 1</p>
+            <p className="mt-1 text-xs text-slate-500">Daily sweep, plus one expired notice when enabled</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
-          <CardTitle className="text-white text-base">Manual Reminder</CardTitle>
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <BellRing className="w-4 h-4 text-violet-400" />
+            Manual Reminder
+          </CardTitle>
           <CardDescription>
-            Send a reminder immediately to any tenant when the automatic sweep needs a nudge.
+            Choose a tenant, select the channels, and send a simple renewal reminder immediately.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -242,13 +323,26 @@ export default function SubscriptionRemindersPage() {
         <CardHeader>
           <CardTitle className="text-white text-base">SMS Template</CardTitle>
           <CardDescription>
-            Available variables:{" "}
+            Pick a starting point, then adjust the copy for the next reminder run. Available variables:{" "}
             {template?.variables.map((v) => (
               <Badge key={v.key} variant="outline" className="mr-1 mb-1">{v.key}</Badge>
             ))}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-3">
+            {TEMPLATE_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => setContent(preset.content)}
+                className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-left transition hover:border-violet-500/70 hover:bg-slate-900"
+              >
+                <span className="block text-sm font-medium text-slate-100">{preset.name}</span>
+                <span className="mt-1 line-clamp-2 block text-xs text-slate-500">{preset.content}</span>
+              </button>
+            ))}
+          </div>
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -265,18 +359,25 @@ export default function SubscriptionRemindersPage() {
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <CardTitle className="text-white text-base">Recent Reminders</CardTitle>
+          <CardDescription>
+            Manual sends appear here immediately. Automatic sends appear after the scheduled sweep finds a matching billing milestone.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {logs.length === 0 && <p className="text-slate-500 text-sm">No reminders sent yet.</p>}
+            {logs.length === 0 && (
+              <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+                No reminders have been recorded yet. Send one manually or run the sweep after the backend deploys and the delivery rows will appear here.
+              </div>
+            )}
             {logs.map((log) => (
-              <div key={log.id} className="flex items-center justify-between border-b border-slate-800 py-2 text-sm">
-                <div>
+              <div key={log.id} className="flex flex-col gap-3 border-b border-slate-800 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-white font-medium">{log.company_name}</p>
                   <p className="text-slate-500 text-xs">
                     {reminderMilestoneLabel(log.milestone)}
-                    {log.invoice_number ? ` · ${log.invoice_number}` : ""}
-                    {` · ${log.channel || "sms"} · ${reminderDestination(log)}`}
+                    {log.invoice_number ? ` - ${log.invoice_number}` : ""}
+                    {` - ${log.channel || "sms"} - ${reminderDestination(log)}`}
                   </p>
                 </div>
                 <Badge className={log.status === "sent" ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}>
@@ -290,3 +391,4 @@ export default function SubscriptionRemindersPage() {
     </div>
   )
 }
+

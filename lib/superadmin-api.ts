@@ -908,6 +908,19 @@ export interface SMSOverview {
   all_topups: SMSTopupRecord[]
 }
 
+export interface SubscriptionReminderBalanceSummary {
+  success: boolean
+  balance: number
+  currency?: string
+  error?: string
+  provider?: string
+  raw?: unknown
+  platform_balance?: SMSOverview["provider_balance"] & { provider?: string }
+  total_inbuilt_units?: string
+  inbuilt_tenant_count?: number
+  failed_tenant_count?: number
+}
+
 // ── Subscription Reminder Types ──────────────────────
 
 export interface SubscriptionReminderTemplateVar {
@@ -1721,7 +1734,7 @@ class SuperadminApiService {
     })
   }
 
-  async getSubscriptionReminderBalance(): Promise<SMSOverview["provider_balance"]> {
+  async getSubscriptionReminderBalance(): Promise<SubscriptionReminderBalanceSummary> {
     return this.request("/superadmin/subscription-reminders/balance/")
   }
 
