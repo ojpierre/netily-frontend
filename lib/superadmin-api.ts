@@ -1735,7 +1735,8 @@ class SuperadminApiService {
   }
 
   async sendSubscriptionReminderManual(data: {
-    cycle_id: string
+    cycle_id?: string
+    tenant_id?: string
     channels: Array<"email" | "sms" | "in_app">
   }): Promise<{
     detail: string

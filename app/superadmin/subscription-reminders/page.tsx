@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
   superadminApi,
-  type SubscriptionInvoice,
+  type Tenant,
   type SubscriptionReminderTemplate,
   type SubscriptionReminderLogEntry,
 } from "@/lib/superadmin-api"
@@ -35,8 +35,8 @@ export default function SubscriptionRemindersPage() {
   const [content, setContent] = useState("")
   const [balance, setBalance] = useState<{ success: boolean; balance: number; error?: string } | null>(null)
   const [logs, setLogs] = useState<SubscriptionReminderLogEntry[]>([])
-  const [candidates, setCandidates] = useState<SubscriptionInvoice[]>([])
-  const [selectedCycleId, setSelectedCycleId] = useState("")
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [selectedTenantId, setSelectedTenantId] = useState("")
   const [manualChannels, setManualChannels] = useState<ReminderChannel[]>(["sms"])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -46,18 +46,41 @@ export default function SubscriptionRemindersPage() {
   const load = async () => {
     setLoading(true)
     try {
-      const [tpl, bal, logRes] = await Promise.all([
+      const [tplRes, balRes, logRes, tenantRes] = await Promise.allSettled([
         superadminApi.getSubscriptionReminderTemplate(),
         superadminApi.getSubscriptionReminderBalance(),
         superadminApi.getSubscriptionReminderLogs({ page_size: "20" }),
+        superadminApi.getTenants({ page_size: "500" }),
       ])
-      const invoiceRes = await superadminApi.getSubscriptionInvoices({ status: "outstanding", page_size: "12" })
-      setTemplate(tpl)
-      setContent(tpl.content)
-      setBalance(bal)
-      setLogs(logRes.results)
-      setCandidates(invoiceRes.results || [])
-      setSelectedCycleId((current) => current || invoiceRes.results?.[0]?.id || "")
+
+      if (tplRes.status === "fulfilled") {
+        setTemplate(tplRes.value)
+        setContent(tplRes.value.content)
+      }
+      if (balRes.status === "fulfilled") {
+        setBalance(balRes.value)
+      } else {
+        setBalance({ success: false, balance: 0, error: balRes.reason?.message || "Could not load balance" })
+      }
+      if (logRes.status === "fulfilled") {
+        setLogs(logRes.value.results)
+      } else {
+        setLogs([])
+      }
+      if (tenantRes.status === "fulfilled") {
+        const rows = Array.isArray(tenantRes.value) ? tenantRes.value : []
+        setTenants(rows)
+        setSelectedTenantId((current) => current || rows[0]?.id || "")
+      } else {
+        setTenants([])
+      }
+
+      const failures = [tplRes, balRes, logRes, tenantRes].filter((result) => result.status === "rejected")
+      if (failures.length) {
+        toast.warning("Some reminder data could not load", {
+          description: "The page is still usable. Refresh after deployment/migrations if a section looks empty.",
+        })
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to load reminder settings")
     } finally {
@@ -102,14 +125,14 @@ export default function SubscriptionRemindersPage() {
   }
 
   const sendManual = async () => {
-    if (!selectedCycleId) {
-      toast.error("Select an outstanding invoice first")
+    if (!selectedTenantId) {
+      toast.error("Select a tenant first")
       return
     }
     setManualSending(true)
     try {
       const result = await superadminApi.sendSubscriptionReminderManual({
-        cycle_id: selectedCycleId,
+        tenant_id: selectedTenantId,
         channels: manualChannels,
       })
       toast.success("Manual reminder sent", {
@@ -169,29 +192,29 @@ export default function SubscriptionRemindersPage() {
         <CardHeader>
           <CardTitle className="text-white text-base">Manual Reminder</CardTitle>
           <CardDescription>
-            Send a reminder immediately for an outstanding subscription invoice when the automatic sweep needs a nudge.
+            Send a reminder immediately to any tenant when the automatic sweep needs a nudge.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {candidates.length === 0 ? (
+          {tenants.length === 0 ? (
             <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-              No outstanding subscription invoices are available for manual reminders.
+              No tenants are available for manual reminders.
             </div>
           ) : (
             <>
               <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
                 <select
-                  value={selectedCycleId}
-                  onChange={(event) => setSelectedCycleId(event.target.value)}
+                  value={selectedTenantId}
+                  onChange={(event) => setSelectedTenantId(event.target.value)}
                   className="h-11 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-violet-500"
                 >
-                  {candidates.map((invoice) => (
-                    <option key={invoice.id} value={invoice.id}>
-                      {invoice.tenant_name} - {invoice.invoice?.invoice_number || "Invoice pending"} - KES {invoice.invoice?.balance || invoice.effective_total || invoice.calculated_total}
+                  {tenants.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.company_name || tenant.subdomain} - {tenant.subscription_plan || "Subscription"} - {tenant.subscription_status_display || tenant.status}
                     </option>
                   ))}
                 </select>
-                <Button onClick={sendManual} disabled={manualSending || !selectedCycleId}>
+                <Button onClick={sendManual} disabled={manualSending || !selectedTenantId}>
                   {manualSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                   Send Reminder
                 </Button>
