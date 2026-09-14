@@ -651,6 +651,15 @@ function getLoginUrl(): string {
 }
 
 // ==========================================
+// BUG 2 FIX: Effective login URL fallback helper
+// ==========================================
+function getEffectiveLoginUrl(loginUrl: string, portalConfig: PortalConfig | null): string {
+  if (loginUrl) return loginUrl
+  const gw = portalConfig?.gateway_ip?.trim()
+  return gw ? `http://${gw}/login` : ""
+}
+
+// ==========================================
 // PHONE INPUT COMPONENT (DRY helper) - EXPORTED
 // ==========================================
 
@@ -800,6 +809,11 @@ export default function HotspotClientView({
   // ── Logo error state (FIX #1) ─────────────────────────────────────────────
   const [logoError, setLogoError] = useState(false)
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUG 2 FIX: New state holding auto-login credentials until loginUrl ready
+  // ══════════════════════════════════════════════════════════════════════════
+  const [autoLoginCreds, setAutoLoginCreds] = useState<{ username: string; password: string } | null>(null)
+
   // 🔥 FIX 2: preconnect on mount — place as the FIRST effect in the component
   useEffect(() => {
     const origin = window.location.origin
@@ -928,6 +942,8 @@ export default function HotspotClientView({
   }, [portalConfig, loginUrl])
 
   // ── Auto-login check (no TV detection) ──
+  // BUG 2 FIX: Only fetch + store credentials here; submission is handled
+  // by a separate effect below so arrival order of (creds, loginUrl) doesn't matter.
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get("error")) return
@@ -939,11 +955,7 @@ export default function HotspotClientView({
       .then((result) => {
         if (result.has_session && result.credentials) {
           setCanonicalUsername(result.credentials.username)
-          if (loginUrl) {
-            setReturningToRouter(true)
-            // 🔥 FIX: Use confirmed version for auto-login
-            submitRouterLoginConfirmed(routerId, loginUrl, result.credentials.username, result.credentials.password)
-          }
+          setAutoLoginCreds(result.credentials)   // don't submit here — see effect below
         }
         setAutoLoginChecked(true)
       })
@@ -951,7 +963,17 @@ export default function HotspotClientView({
         setAutoLoginChecked(true)
         setLoading(false)
       })
-  }, [routerId, loginUrl, autoLoginChecked])
+  }, [routerId, autoLoginChecked])
+
+  // BUG 2 FIX: NEW effect — fires the moment BOTH credentials AND loginUrl
+  // are ready, regardless of which arrived first.
+  useEffect(() => {
+    if (!autoLoginCreds) return
+    const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+    if (!effectiveLoginUrl) return
+    setReturningToRouter(true)
+    submitRouterLoginConfirmed(routerId, effectiveLoginUrl, autoLoginCreds.username, autoLoginCreds.password)
+  }, [autoLoginCreds, loginUrl, portalConfig, routerId])
 
   // ==========================================
   // CHANGED: REPLACED entire plan-fetch useEffect with lighter version
@@ -1059,9 +1081,11 @@ export default function HotspotClientView({
           if (result.access_code) setCanonicalUsername(result.access_code)
           
           // 🔥 FIX: Use confirmed version for payment success
-          if (loginUrl && result.access_code && targetDevice !== "tv") {
+          // BUG 2 FIX: Use getEffectiveLoginUrl fallback
+          const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+          if (effectiveLoginUrl && result.access_code && targetDevice !== "tv") {
             setReturningToRouter(true)
-            submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
+            submitRouterLoginConfirmed(routerId, effectiveLoginUrl, result.access_code, result.access_code)
           }
           return
         }
@@ -1083,7 +1107,7 @@ export default function HotspotClientView({
 
     timer = setTimeout(tick, 1200)
     return () => clearTimeout(timer)
-  }, [paymentStatus, sessionId, loginUrl, targetDevice, routerId])
+  }, [paymentStatus, sessionId, loginUrl, portalConfig, targetDevice, routerId])
 
   // ── Countdown for phone payment ──
   useEffect(() => {
@@ -1177,9 +1201,11 @@ export default function HotspotClientView({
       setPaymentStatus('success')
       
       // 🔥 FIX: Use confirmed version for free trial
-      if (loginUrl && result.access_code && targetDevice !== "tv") {
+      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
+      const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+      if (effectiveLoginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
-        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, effectiveLoginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       if (err.message?.includes('already used') || err.message?.includes('already claimed')) {
@@ -1296,9 +1322,11 @@ export default function HotspotClientView({
       setPaymentStatus("success")
 
       // 🔥 FIX: Use confirmed version for voucher redemption
-      if (loginUrl && result.access_code && targetDevice !== "tv") {
+      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
+      const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+      if (effectiveLoginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
-        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, effectiveLoginUrl, result.access_code, result.access_code)
       }
     } catch (err: unknown) {
       setVoucherError(err instanceof Error ? err.message : "Voucher redemption failed")
@@ -1347,10 +1375,12 @@ export default function HotspotClientView({
       setPaymentStatus('success')
 
       // ── 🔥 FIX: Use confirmed version (already does verify+retry) ──
-      if (loginUrl && result.credentials) {
+      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
+      const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+      if (effectiveLoginUrl && result.credentials) {
         const { username, password } = result.credentials
         setReturningToRouter(true)
-        submitRouterLoginConfirmed(routerId, loginUrl, username, password)
+        submitRouterLoginConfirmed(routerId, effectiveLoginUrl, username, password)
       }
     } catch (err: any) {
       // Surface specific backend messages (slots full, expired, etc.)
@@ -1406,9 +1436,11 @@ export default function HotspotClientView({
       setShowAdModal(false)
       setPaymentStatus('success')
       // 🔥 FIX: Use confirmed version for ad grant
-      if (loginUrl && result.access_code) {
+      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
+      const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+      if (effectiveLoginUrl && result.access_code) {
         setReturningToRouter(true)
-        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, effectiveLoginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       setAdError(err.message || 'Could not grant access. Please try again.')
@@ -1461,9 +1493,11 @@ export default function HotspotClientView({
         ),
       } : null)
       // 🔥 FIX: Use confirmed version for loyalty redeem
-      if (loginUrl && result.access_code) {
+      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
+      const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+      if (effectiveLoginUrl && result.access_code) {
         setReturningToRouter(true)
-        submitRouterLoginConfirmed(routerId, loginUrl, result.access_code, result.access_code)
+        submitRouterLoginConfirmed(routerId, effectiveLoginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       setRedeemError(err.message || 'Redemption failed. Try again.')
