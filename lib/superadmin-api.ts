@@ -267,6 +267,10 @@ export interface SubscriptionInvoice {
   minimum_adjustment: string
   calculated_total: string
   effective_total?: string
+  pending_discount_amount?: string
+  pending_discount_reason?: string
+  pending_manual_adjustment_amount?: string
+  pending_manual_adjustment_description?: string
   invoice: {
     id: number
     invoice_number: string

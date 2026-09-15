@@ -181,10 +181,10 @@ export default function SuperadminSubscriptionInvoicesPage() {
     try {
       const detail = await superadminApi.getSubscriptionInvoice(row.id)
       setSelected(detail)
-      setDiscountAmount(detail.invoice?.discount_amount || "0")
-      setAdjustmentAmount(detail.invoice?.manual_adjustment_amount || "0")
-      setAdjustmentDescription(detail.invoice?.manual_adjustment_description || "")
-      setDiscountReason("")
+      setDiscountAmount(detail.invoice?.discount_amount || detail.pending_discount_amount || "0")
+      setAdjustmentAmount(detail.invoice?.manual_adjustment_amount || detail.pending_manual_adjustment_amount || "0")
+      setAdjustmentDescription(detail.invoice?.manual_adjustment_description || detail.pending_manual_adjustment_description || "")
+      setDiscountReason(detail.pending_discount_reason || "")
     } catch (error: any) {
       toast.error(error?.message || "Failed to open invoice")
     }
@@ -519,11 +519,11 @@ export default function SuperadminSubscriptionInvoicesPage() {
                       </td>
                       <td className="px-4 py-4 align-top">
                         <p className="font-semibold text-white">{money(invoice?.total_amount || row.effective_total || row.calculated_total)}</p>
-                        {Number(invoice?.discount_amount || 0) > 0 && (
-                          <p className="text-xs text-emerald-300">Discount: {money(invoice?.discount_amount)}</p>
+                        {Number(invoice?.discount_amount || row.pending_discount_amount || 0) > 0 && (
+                          <p className="text-xs text-emerald-300">Discount: {money(invoice?.discount_amount || row.pending_discount_amount)}</p>
                         )}
-                        {Number(invoice?.manual_adjustment_amount || 0) > 0 && (
-                          <p className="text-xs text-amber-300">Custom charge: {money(invoice?.manual_adjustment_amount)}</p>
+                        {Number(invoice?.manual_adjustment_amount || row.pending_manual_adjustment_amount || 0) > 0 && (
+                          <p className="text-xs text-amber-300">Custom charge: {money(invoice?.manual_adjustment_amount || row.pending_manual_adjustment_amount)}</p>
                         )}
                       </td>
                       <td className="px-4 py-4 align-top">
@@ -570,7 +570,7 @@ export default function SuperadminSubscriptionInvoicesPage() {
           <DialogHeader>
             <DialogTitle>Adjust Subscription Invoice</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Add agreed custom charges or subtract approved discounts. This recalculates the invoice total.
+              Add agreed custom charges or approved discounts. If no tenant invoice exists yet, the adjustment is saved for the scheduled invoice generation.
             </DialogDescription>
           </DialogHeader>
           {selected && (
@@ -578,7 +578,7 @@ export default function SuperadminSubscriptionInvoicesPage() {
               <div className="rounded-lg border border-slate-800 bg-slate-900 p-4 text-sm">
                 <p className="font-medium text-white">{selected.tenant_name}</p>
                 <p className="text-slate-400">Current total: {money(selected.invoice?.total_amount || selected.calculated_total)}</p>
-                <p className="text-slate-400">Invoice: {selected.invoice?.invoice_number || "Will be generated when saved"}</p>
+                <p className="text-slate-400">Invoice: {selected.invoice?.invoice_number || "Not generated yet - adjustment will stay pending"}</p>
               </div>
               <div className="space-y-2">
                 <Label>Custom Charge Amount</Label>
