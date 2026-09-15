@@ -36,6 +36,7 @@ const TEMPLATE_PRESETS = [
 ]
 
 function reminderMilestoneLabel(milestone: string) {
+  if (milestone.startsWith("manual-")) return "Manual reminder"
   if (milestone === "expired") return "Expired notice"
   if (milestone === "5") return "5 days before"
   if (milestone === "3" || milestone === "3_day") return "3 days before"
