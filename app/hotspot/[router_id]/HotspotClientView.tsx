@@ -549,10 +549,13 @@ async function redeemHotspotLoyaltyPoints(data: {
  * page does — GET query-string redirects to link-login-only are
  * unreliable and can silently fail to authenticate (frontend shows
  * "connected" while the router never actually logs the user in).
- * 
- * 🔥 FIX: Provide a real dst URL (window.location.origin + pathname)
- * so MikroTik can process the login POST correctly. Also log if loginUrl
- * is missing to aid debugging.
+ *
+ * dst is intentionally left empty: RouterOS then redirects the client
+ * to whatever URL it originally requested (e.g. Android/iOS's own
+ * connectivity-check URL) instead of bouncing the browser back into
+ * this captive portal app. That's what lets the OS correctly detect
+ * "internet is up" and dismiss the sign-in notification, instead of
+ * reloading straight back into the plan-selection screen.
  */
 function submitRouterLogin(loginUrl: string, username: string, password: string) {
   if (!loginUrl) {
@@ -572,9 +575,12 @@ function submitRouterLogin(loginUrl: string, username: string, password: string)
   }
   addField("username", username)
   addField("password", password)
-  // 🔥 FIX: Provide a real destination URL (the current page) so the router
-  // can redirect properly and process the login.
-  addField("dst", window.location.origin + window.location.pathname)
+  // IMPORTANT: leave dst empty so RouterOS redirects to the client's
+  // originally-requested URL (Android's connectivity-check target) instead
+  // of bouncing the browser back into this captive portal app. This is
+  // what correctly dismisses the "Sign in to network" notification on
+  // phones that otherwise reload straight back into the plan list.
+  addField("dst", "")
   addField("popup", "true")
   document.body.appendChild(form)
   form.submit()
