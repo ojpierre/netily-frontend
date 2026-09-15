@@ -3951,6 +3951,7 @@ async activateService(
   // Simple dedup cache: prevents 3+ components from hitting the API simultaneously
   private _subscriptionCache: { data: CompanySubscription | null; ts: number } | null = null
   private _subscriptionInflight: Promise<CompanySubscription | null> | null = null
+  private _subscriptionGeneration = 0
   private static readonly SUB_CACHE_TTL = 30_000 // 30 seconds
 
   async getNetilyPlans(): Promise<NetilyPlan[]> {
@@ -3966,18 +3967,19 @@ async activateService(
     if (this._subscriptionInflight) {
       return this._subscriptionInflight
     }
+    const generation = this._subscriptionGeneration
     this._subscriptionInflight = (async () => {
       try {
-        const data = await this.request<CompanySubscription>('/subscriptions/current/')
-        this._subscriptionCache = { data, ts: Date.now() }
+        const data = await this.request<CompanySubscription>('/subscriptions/current/', { cache: 'no-store' })
+        if (generation === this._subscriptionGeneration) this._subscriptionCache = { data, ts: Date.now() }
         return data
       } catch {
         // Do not cache transient failures as "no subscription"; guards should
         // treat an unknown network state differently from an actual expired plan.
-        this._subscriptionCache = null
+        if (generation === this._subscriptionGeneration) this._subscriptionCache = null
         return null
       } finally {
-        this._subscriptionInflight = null
+        if (generation === this._subscriptionGeneration) this._subscriptionInflight = null
       }
     })()
     return this._subscriptionInflight
@@ -3985,7 +3987,7 @@ async activateService(
 
   async getUsageStats(): Promise<UsageStats | null> {
     try {
-      return await this.request<UsageStats>('/subscriptions/usage/')
+      return await this.request<UsageStats>('/subscriptions/usage/', { cache: 'no-store' })
     } catch {
       return null
     }
@@ -4027,13 +4029,22 @@ async activateService(
     invoice_reference?: string | null
     invoice_number?: string | null
     subscription_activated?: boolean
+    payment_received?: boolean
+    unlock_ready?: boolean
+    subscription_status?: string
+    current_period_start?: string | null
+    current_period_end?: string | null
+    invoice_status?: string | null
     invoice_balance_remaining?: string | null
   }> {
-    return this.request(`/subscriptions/payments/${paymentId}/status/`)
+    return this.request(`/subscriptions/payments/${paymentId}/status/`, {
+      cache: 'no-store', signal: AbortSignal.timeout(12_000),
+    })
   }
 
   /** Invalidate cached subscription so the next fetch hits the server */
   invalidateSubscriptionCache() {
+    this._subscriptionGeneration += 1
     this._subscriptionCache = null
     this._subscriptionInflight = null
   }

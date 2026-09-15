@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useSubscriptionPaymentRecovery } from "@/hooks/use-subscription-payment-recovery"
 import { motion } from "framer-motion"
 import { MjengoFooter } from "@/components/mjengo-footer"
 import {
@@ -410,11 +411,15 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
         if (cancelled) return
         if (result.status === "completed") {
           adminApi.invalidateSubscriptionCache()
+          if (result.subscription_activated !== true) {
+            setPaymentState("timeout")
+            setStatusText(result.message || "Payment received. Check status again shortly.")
+            return
+          }
           setPendingPaymentId(null)
           setPaymentState("success")
           setStatusText("Payment confirmed. Refreshing your billing access...")
           toast.success(result.message || "Payment confirmed. Your subscription billing has been updated.")
-          await loadBillingSummary()
           window.setTimeout(() => window.location.reload(), 1200)
           return
         }
@@ -478,6 +483,13 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
     }
   }
 
+  useSubscriptionPaymentRecovery(pendingPaymentId, paymentState === "timeout", () => {
+    setPendingPaymentId(null)
+    setPaymentState("success")
+    setStatusText("Payment confirmed. Opening your dashboard.")
+    window.setTimeout(() => window.location.reload(), 1200)
+  })
+
   const checkPendingPayment = async () => {
     if (!pendingPaymentId) return
     setPaymentState("checking")
@@ -487,11 +499,15 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
       const result = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
       if (result.status === "completed") {
         adminApi.invalidateSubscriptionCache()
+        if (result.subscription_activated !== true) {
+          setPaymentState("timeout")
+          setStatusText(result.message || "Payment received. Check status again shortly.")
+          return
+        }
         setPendingPaymentId(null)
         setPaymentState("success")
         setStatusText("Payment confirmed. Refreshing your billing access...")
         toast.success(result.message || "Payment confirmed. Your subscription billing has been updated.")
-        await loadBillingSummary()
         window.setTimeout(() => window.location.reload(), 1200)
         return
       }

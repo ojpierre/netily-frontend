@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { useSubscriptionPaymentRecovery } from "@/hooks/use-subscription-payment-recovery"
 import {
   Zap, Check, Users, Wifi, Shield, Clock, Download, Receipt, AlertTriangle, Loader2, Eye, Phone
 } from "lucide-react"
@@ -176,15 +177,15 @@ function BillingContent() {
 
         if (res.status === 'completed') {
           adminApi.invalidateSubscriptionCache()
+          if (res.subscription_activated !== true) {
+            setPaymentStage("timeout")
+            setPaymentStatus(res.message || "Payment received. Check status again shortly.")
+            return
+          }
           setPendingPaymentId(null)
           setPaymentStage("success")
           setPaymentStatus("Payment confirmed. Refreshing your subscription access...")
-          if (res.subscription_activated === false) {
-            toast.info(res.message || "Payment received. Please settle the remaining invoice balance to reactivate.", { duration: 8000 })
-          } else {
-            toast.success("Payment confirmed! Your plan is now active.", { duration: 6000 })
-          }
-          await loadBillingData()
+          toast.success("Payment confirmed! Your plan is now active.", { duration: 6000 })
           window.setTimeout(() => window.location.reload(), 1200)
           return
         }
@@ -213,6 +214,13 @@ function BillingContent() {
     return () => { cancelled = true }
   }, [pendingPaymentId])
 
+  useSubscriptionPaymentRecovery(pendingPaymentId, paymentStage === "timeout", () => {
+    setPendingPaymentId(null)
+    setPaymentStage("success")
+    setPaymentStatus("Payment confirmed. Opening your dashboard.")
+    window.setTimeout(() => window.location.reload(), 1200)
+  })
+
   const checkPendingPaymentNow = async () => {
     if (!pendingPaymentId) return
     setPaymentStage("checking")
@@ -221,11 +229,15 @@ function BillingContent() {
       const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
       if (res.status === "completed") {
         adminApi.invalidateSubscriptionCache()
+        if (res.subscription_activated !== true) {
+          setPaymentStage("timeout")
+          setPaymentStatus(res.message || "Payment received. Check status again shortly.")
+          return
+        }
         setPendingPaymentId(null)
         setPaymentStage("success")
         setPaymentStatus("Payment confirmed. Refreshing your subscription access...")
         toast.success(res.message || "Payment confirmed. Your subscription is active.")
-        await loadBillingData()
         window.setTimeout(() => window.location.reload(), 1200)
         return
       }

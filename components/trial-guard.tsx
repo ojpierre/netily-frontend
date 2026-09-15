@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
+import { useSubscriptionPaymentRecovery } from "@/hooks/use-subscription-payment-recovery"
 import {
   Check,
   ArrowRight,
@@ -150,20 +151,20 @@ function PaymentDialog({
   }, [])
 
   const completeSuccessfulPayment = useCallback(async (res: SubscriptionPaymentStatusResponse) => {
-    await refreshBillingCycleAfterPayment(res)
-    if (res.subscription_activated === false) {
-      setPaymentStatus("failed")
-      setPaymentError(res.message || "Payment received, but a balance remains.")
+    adminApi.invalidateSubscriptionCache()
+    if (res.subscription_activated !== true) {
+      setPaymentStatus("timeout")
+      setPaymentError(res.message || "Payment received. We are finishing your renewal. Check status shortly.")
       setPaymentFeedback(null)
-      setStep("failed")
+      setStep("timeout")
       return
     }
-    localStorage.setItem("mpesaPayPhone", phoneNumber)
+    try { localStorage.setItem("mpesaPayPhone", phoneNumber) } catch { /* Storage may be disabled. */ }
     setPaymentStatus("success")
     setPaymentFeedback("Payment confirmed. Opening your dashboard.")
     setStep("success")
     setTimeout(() => window.location.reload(), 2500)
-  }, [phoneNumber, refreshBillingCycleAfterPayment])
+  }, [phoneNumber])
 
   const failPayment = useCallback((message?: string | null) => {
     setPaymentStatus("failed")
@@ -171,6 +172,8 @@ function PaymentDialog({
     setPaymentFeedback(null)
     setStep("failed")
   }, [])
+
+  useSubscriptionPaymentRecovery(pendingPaymentId, paymentStatus === "timeout", completeSuccessfulPayment)
 
   const timeoutPayment = useCallback((message?: string | null) => {
     setPaymentStatus("timeout")
@@ -184,8 +187,11 @@ function PaymentDialog({
     if (paymentStatus !== "waiting" || !pendingPaymentId) return
 
     let settled = false
+    let checking = false
 
     const pollPayment = async () => {
+      if (settled || checking) return
+      checking = true
       try {
         const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
         if (settled) return
@@ -204,6 +210,8 @@ function PaymentDialog({
         if (!settled) {
           setPaymentFeedback("Still checking payment status...")
         }
+      } finally {
+        checking = false
       }
     }
 
@@ -211,6 +219,7 @@ function PaymentDialog({
     const pollInterval = setInterval(pollPayment, POLL_INTERVAL_MS)
     const timeout = setTimeout(async () => {
       if (settled) return
+      clearInterval(pollInterval)
       setPaymentFeedback("Doing one final payment check...")
       try {
         const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
@@ -471,6 +480,8 @@ function PaymentDialog({
           failPayment(res.message)
           return
         }
+        timeoutPayment("Payment is still processing. Check status again shortly.")
+        return
       }
 
       await refreshBillingCycleAfterPayment()
@@ -497,8 +508,7 @@ function PaymentDialog({
         timeoutPayment("Payment is still pending. Please wait a moment or send a new STK push.")
       }
     } catch {
-      // On network error, attempt reload anyway
-      window.location.reload()
+      timeoutPayment("We could not reach billing. Please check status again shortly.")
     }
   }
 
@@ -711,16 +721,16 @@ function PaymentDialog({
                   <Clock className="w-10 h-10 text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Still waiting for confirmation</h3>
+                  <h3 className="text-lg font-bold">Payment status</h3>
                   <p className="text-sm text-slate-500 mt-1">
                     {paymentError || "We could not confirm the payment within 30 seconds."}
                     {" "}If you entered your PIN, check the status before sending a new STK push.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 max-w-xs mx-auto">
-                  <Button className="bg-primary hover:bg-primary" onClick={handleCheckAndRefresh}>
+                  <Button className="bg-primary hover:bg-primary" disabled={paymentStatus === "sending"} onClick={handleCheckAndRefresh}>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Check Status
+                    {paymentStatus === "sending" ? "Checking..." : "Check Status"}
                   </Button>
                   <Button variant="outline" onClick={handleRetry}>
                     <Phone className="w-4 h-4 mr-2" />

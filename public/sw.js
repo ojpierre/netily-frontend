@@ -17,6 +17,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (
+    url.pathname.startsWith("/api/") ||
     url.pathname === "/netilysystempayment" ||
     url.pathname.startsWith("/api/netily-system-payment")
   ) {
