@@ -544,11 +544,21 @@ async function redeemHotspotLoyaltyPoints(data: {
 }
 
 /**
- * The ONLY way we hand credentials back to MikroTik.
- * POST form submit matches exactly what MikroTik's own hotspot login
- * page does — GET query-string redirects to link-login-only are
- * unreliable and can silently fail to authenticate (frontend shows
- * "connected" while the router never actually logs the user in).
+ * The way we hand credentials back to MikroTik: a plain top-level GET
+ * navigation to the hotspot's link-login-only URL, NOT a <form method="POST">
+ * submission.
+ *
+ * We switched away from POST because a <form> submitting from this HTTPS
+ * portal page to the router's HTTP gateway (http://172.x.x.x/login) triggers
+ * Chrome/Edge's "insecure form" mixed-content warning on laptops and TVs
+ * (desktop browsers enforce this; phone OS captive-portal webviews do not,
+ * which is why the warning only ever showed up on laptops/TVs). A plain
+ * navigation to the same HTTP URL is never flagged by that check — only
+ * form submissions are.
+ *
+ * GET-based login against RouterOS's hotspot login handler (http-pap) is
+ * the same mechanism RouterOS itself uses for "auto-login" links, so this
+ * is a supported, not a workaround, path.
  *
  * dst is intentionally left empty: RouterOS then redirects the client
  * to whatever URL it originally requested (e.g. Android/iOS's own
@@ -562,29 +572,26 @@ function submitRouterLogin(loginUrl: string, username: string, password: string)
     console.error("[hotspot] Missing login_url — cannot authenticate with MikroTik")
     return false
   }
-  const form = document.createElement("form")
-  form.method = "POST"
-  form.action = loginUrl
-  form.style.display = "none"
-  const addField = (name: string, value: string) => {
-    const input = document.createElement("input")
-    input.type = "hidden"
-    input.name = name
-    input.value = value
-    form.appendChild(input)
+  try {
+    const url = new URL(loginUrl)
+    url.searchParams.set("username", username)
+    url.searchParams.set("password", password)
+    // Leave dst empty so RouterOS redirects to the client's originally
+    // requested URL (Android/iOS connectivity-check target) instead of
+    // bouncing back into this portal — same reasoning as before.
+    url.searchParams.set("dst", "")
+    url.searchParams.set("popup", "true")
+
+    // Plain top-level navigation — NOT a <form> POST. Chrome/Edge only
+    // show the "insecure form" warning for form submissions from an
+    // HTTPS page to an HTTP action; a normal navigation is never flagged,
+    // which is what eliminates the warning on laptops/TVs.
+    window.location.replace(url.toString())
+    return true
+  } catch (e) {
+    console.error("[hotspot] Invalid login_url:", loginUrl, e)
+    return false
   }
-  addField("username", username)
-  addField("password", password)
-  // IMPORTANT: leave dst empty so RouterOS redirects to the client's
-  // originally-requested URL (Android's connectivity-check target) instead
-  // of bouncing the browser back into this captive portal app. This is
-  // what correctly dismisses the "Sign in to network" notification on
-  // phones that otherwise reload straight back into the plan list.
-  addField("dst", "")
-  addField("popup", "true")
-  document.body.appendChild(form)
-  form.submit()
-  return true
 }
 
 // ═══════════════════════════════════════════════════════════════
