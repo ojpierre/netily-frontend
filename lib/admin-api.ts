@@ -183,6 +183,9 @@ import type {
   LoyaltyStats,
   // Hotspot Client Detail types
   HotspotClientDetailResponse,
+  // Hotspot Chat types
+  HotspotChatThread,
+  HotspotChatMessage,
   // Network Map types
   NetworkMapElement,
   // IP Binding types
@@ -4680,6 +4683,32 @@ async activateService(
     return this.request<{ total_income: number; hotspot_income: number; pppoe_income: number }>(
       `/hotspot/admin/routers/${routerId}/income/`
     )
+  }
+
+  // ------------------------------------------
+  // HOTSPOT CHAT (NEW)
+  // Reuses /admin/tickets RBAC bucket on backend
+  // ------------------------------------------
+
+  async getHotspotChatThreads(params?: { status?: string; search?: string }) {
+    const qs = params ? '?' + new URLSearchParams(params as any).toString() : ''
+    return this.request<{ count: number; results: HotspotChatThread[] }>(`/hotspot/admin/chats/${qs}`)
+  }
+
+  async getHotspotChatThread(id: number) {
+    return this.request<HotspotChatThread>(`/hotspot/admin/chats/${id}/`)
+  }
+
+  async replyHotspotChat(id: number, message: string) {
+    return this.request<HotspotChatMessage>(`/hotspot/admin/chats/${id}/reply/`, {
+      method: 'POST', body: JSON.stringify({ message }),
+    })
+  }
+
+  async updateHotspotChatStatus(id: number, status: string) {
+    return this.request<{ id: number; status: string }>(`/hotspot/admin/chats/${id}/status/`, {
+      method: 'POST', body: JSON.stringify({ status }),
+    })
   }
 
     // ------------------------------------------

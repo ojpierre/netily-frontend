@@ -2317,6 +2317,29 @@ export interface HotspotClientDetailResponse {
 }
 
 // ==========================================
+// HOTSPOT CHAT (NEW)
+// ==========================================
+
+export interface HotspotChatMessage {
+  id: number
+  sender_type: 'customer' | 'agent' | 'system'
+  sender_name: string
+  body: string
+  created_at: string
+}
+
+export interface HotspotChatThread {
+  id: number
+  phone_number: string
+  status: 'open' | 'pending' | 'resolved'
+  subject: string
+  last_message_preview: string
+  last_message_at: string | null
+  unread_by_customer: boolean
+  messages?: HotspotChatMessage[]
+}
+
+// ==========================================
 // DASHBOARD STATS (Backend Aligned)
 // ==========================================
 

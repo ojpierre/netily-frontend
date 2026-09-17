@@ -12,6 +12,7 @@ const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
 const AdVideoModal = dynamic(() => import("./AdVideoModal"), { ssr: false })
 const LoyaltyRedeemModal = dynamic(() => import("./LoyaltyRedeemModal"), { ssr: false })
 const PhoneReconnectModal = dynamic(() => import("./PhoneReconnectModal"), { ssr: false })
+const ChatWidget = dynamic(() => import("./ChatWidget"), { ssr: false })
 
 // ==========================================
 // TYPES - EXPORTED for use in modal components
@@ -2348,6 +2349,9 @@ export default function HotspotClientView({
           onClose={() => setShowPhoneModal(false)}
         />
       )}
+
+      {/* ━━━ HOTSPOT SUPPORT CHAT WIDGET ━━━ */}
+      <ChatWidget routerId={routerId} tenant={getTenant()} theme={theme} />
     </div>
   )
 }
