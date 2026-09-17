@@ -97,6 +97,8 @@ import type {
   SupportTicketPriority,
   SupportTicketCategory,
   Customer,
+  HotspotChatThread,
+  HotspotChatMessage as HSMessage,
 } from "@/lib/types"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
 
@@ -168,6 +170,14 @@ export default function TicketsPage() {
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false)
   const searchDebounceRef = useRef<NodeJS.Timeout>()
 
+  // ── Hotspot chat state ───────────────────────────────────────────────────
+  const [hotspotThreads, setHotspotThreads] = useState<HotspotChatThread[]>([])
+  const [hotspotLoading, setHotspotLoading] = useState(false)
+  const [selectedThread, setSelectedThread] = useState<HotspotChatThread | null>(null)
+  const [threadDrawerOpen, setThreadDrawerOpen] = useState(false)
+  const [threadReply, setThreadReply] = useState("")
+  const [sendingThreadReply, setSendingThreadReply] = useState(false)
+
   // ─── Fetch tickets + stats ───────────────────────────────────────────────
   const fetchTickets = useCallback(async () => {
     try {
@@ -212,6 +222,52 @@ export default function TicketsPage() {
     setRefreshing(false)
     toast.success("Tickets refreshed")
   }, [fetchTickets])
+
+  // ─── Fetch hotspot chats ─────────────────────────────────────────────────
+  const fetchHotspotChats = useCallback(async () => {
+    setHotspotLoading(true)
+    try {
+      const data = await adminApi.getHotspotChatThreads({
+        status: activeTab === "hotspot_open" ? "open" : activeTab === "hotspot_pending" ? "pending" : undefined,
+      })
+      setHotspotThreads(data.results ?? [])
+    } catch {
+      // non-fatal — keep last known list
+    } finally {
+      setHotspotLoading(false)
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab.startsWith("hotspot")) fetchHotspotChats()
+  }, [activeTab, fetchHotspotChats])
+
+  const handleViewThread = async (thread: HotspotChatThread) => {
+    setSelectedThread(thread)
+    setThreadDrawerOpen(true)
+    try {
+      const fresh = await adminApi.getHotspotChatThread(thread.id)
+      setSelectedThread(fresh)
+      setHotspotThreads((prev) => prev.map((t) => (t.id === thread.id ? fresh : t)))
+    } catch { /* keep cached */ }
+  }
+
+  const handleSendThreadReply = async () => {
+    if (!threadReply.trim() || !selectedThread || sendingThreadReply) return
+    setSendingThreadReply(true)
+    try {
+      const message = await adminApi.replyHotspotChat(selectedThread.id, threadReply)
+      setSelectedThread((prev) =>
+        prev ? { ...prev, messages: [...(prev.messages ?? []), message], status: "pending" } : prev
+      )
+      setThreadReply("")
+      toast.success("Reply sent")
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to send reply")
+    } finally {
+      setSendingThreadReply(false)
+    }
+  }
 
   // ─── Customer search (debounced) ─────────────────────────────────────────
   useEffect(() => {
@@ -777,6 +833,7 @@ export default function TicketsPage() {
             <TabsTrigger value="in_progress">In Progress</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="resolved">Resolved</TabsTrigger>
+            <TabsTrigger value="hotspot_open">Hotspot Chats</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -831,7 +888,32 @@ export default function TicketsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {activeTab.startsWith("hotspot") ? (
+            hotspotLoading ? (
+              <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+            ) : hotspotThreads.length === 0 ? (
+              <div className="text-center py-12">
+                <MessageSquare className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                <p className="text-slate-600 font-medium">No hotspot chats</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border divide-y">
+                {hotspotThreads.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleViewThread(t)}
+                    className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{t.phone_number}</p>
+                      <p className="text-xs text-slate-500 truncate">{t.last_message_preview}</p>
+                    </div>
+                    <Badge variant="outline">{t.status}</Badge>
+                  </button>
+                ))}
+              </div>
+            )
+          ) : loading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-16 w-full" />
@@ -1159,6 +1241,39 @@ export default function TicketsPage() {
               </div>
             </>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Hotspot Chat Detail Drawer ── */}
+      <Sheet open={threadDrawerOpen} onOpenChange={setThreadDrawerOpen}>
+        <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
+          <SheetHeader className="p-6 border-b">
+            <SheetTitle>{selectedThread?.phone_number}</SheetTitle>
+            <SheetDescription>Hotspot captive-portal chat</SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-4">
+              {(selectedThread?.messages ?? []).map((m) => (
+                <div key={m.id} className={`flex ${m.sender_type === "agent" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-lg p-3 text-sm ${m.sender_type === "agent" ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-700"}`}>
+                    {m.body}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <div className="p-4 border-t flex gap-2">
+            <Textarea
+              value={threadReply}
+              onChange={(e) => setThreadReply(e.target.value)}
+              rows={2}
+              className="flex-1 resize-none"
+              placeholder="Reply to this hotspot user..."
+            />
+            <Button size="icon" onClick={handleSendThreadReply} disabled={sendingThreadReply || !threadReply.trim()}>
+              {sendingThreadReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
     </div>

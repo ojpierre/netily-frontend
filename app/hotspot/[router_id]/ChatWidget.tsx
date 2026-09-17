@@ -60,8 +60,8 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-      <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
         <div className="flex items-center justify-between p-4 border-b bg-blue-600 text-white">
           <span className="font-semibold">Support Chat</span>
           <button onClick={() => setOpen(false)}><X className="w-5 h-5" /></button>
@@ -78,7 +78,7 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
               placeholder="07XX XXX XXX"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {error && <p className="text-red-500 text-xs">{error}</p>}
             <button
@@ -113,7 +113,7 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 placeholder="Type a message..."
-                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border rounded-lg text-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button onClick={send} className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center">
                 <Send className="w-4 h-4" />
