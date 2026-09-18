@@ -312,13 +312,12 @@ export default function TicketsPage() {
     }
   }
 
-  const handleResolveThread = async () => {
-    if (!selectedThread || resolvingThread) return
-    if (!window.confirm("Resolve and permanently delete this chat?")) return
+  const performResolveThread = async (threadId: number) => {
+    if (resolvingThread) return
     setResolvingThread(true)
     try {
-      await adminApi.deleteHotspotChat(selectedThread.id)
-      setHotspotThreads((prev) => prev.filter((t) => t.id !== selectedThread.id))
+      await adminApi.deleteHotspotChat(threadId)
+      setHotspotThreads((prev) => prev.filter((t) => t.id !== threadId))
       setThreadDrawerOpen(false)
       setSelectedThread(null)
       toast.success("Chat resolved and deleted")
@@ -327,6 +326,23 @@ export default function TicketsPage() {
     } finally {
       setResolvingThread(false)
     }
+  }
+
+  const handleResolveThread = () => {
+    if (!selectedThread || resolvingThread) return
+    const threadId = selectedThread.id
+    toast("Resolve this chat?", {
+      description: "This will permanently delete the conversation.",
+      duration: 8000,
+      action: {
+        label: "Resolve",
+        onClick: () => performResolveThread(threadId),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => {},
+      },
+    })
   }
 
   // ─── Customer search (debounced) ─────────────────────────────────────────

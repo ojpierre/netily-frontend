@@ -230,7 +230,7 @@ export default function AdminDashboard() {
     online_count: number
     routers: RouterDashboardStats
     revenue: { today: number; today_change: number; week: number; month: number; month_change: number; transactions_today: number }
-    tickets: { total: number; open: number; in_progress: number; resolved: number; avg_response_time: string }
+    tickets: { total: number; open: number; in_progress: number; resolved: number; avg_response_time: string; hotspot_chats?: number; hotspot_chats_unread?: number }
     recent_activity: ActivityItem[]
     overview: {
       today_revenue: number
@@ -1026,6 +1026,8 @@ export default function AdminDashboard() {
               const open   = tk?.open       ?? 0
               const prog   = tk?.in_progress ?? 0
               const resolved = tk?.resolved ?? 0
+              const hsChats  = tk?.hotspot_chats ?? 0
+              const hsUnread = tk?.hotspot_chats_unread ?? 0
 
               // Proportion bar segments
               const safeDenom = total || 1
@@ -1040,6 +1042,12 @@ export default function AdminDashboard() {
                 { label: "In Progress", value: prog,     color: "#c5840a", delay: "0.06s" },
                 { label: "Resolved",    value: resolved, color: "#3d7a5f", delay: "0.12s" },
                 { label: "Total",       value: total,    color: "#6366f1", delay: "0.18s" },
+                {
+                  label: hsUnread > 0 ? `Hotspot Chats · ${hsUnread} new` : "Hotspot Chats",
+                  value: hsChats,
+                  color: "#0ea5e9",
+                  delay: "0.24s",
+                },
               ]
 
               return (
