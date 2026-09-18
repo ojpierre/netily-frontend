@@ -178,6 +178,7 @@ export default function TicketsPage() {
   const [threadReply, setThreadReply] = useState("")
   const [sendingThreadReply, setSendingThreadReply] = useState(false)
   const [resolvingThread, setResolvingThread] = useState(false)
+  const [resolveConfirmOpen, setResolveConfirmOpen] = useState(false)
   const lastThreadMsgIdRef = useRef(0)
 
   // ─── Fetch tickets + stats ───────────────────────────────────────────────
@@ -318,10 +319,12 @@ export default function TicketsPage() {
     try {
       await adminApi.deleteHotspotChat(threadId)
       setHotspotThreads((prev) => prev.filter((t) => t.id !== threadId))
+      setResolveConfirmOpen(false)
       setThreadDrawerOpen(false)
       setSelectedThread(null)
       toast.success("Chat resolved and deleted")
     } catch (err: any) {
+      setResolveConfirmOpen(false)
       toast.error(err.message ?? "Failed to resolve chat")
     } finally {
       setResolvingThread(false)
@@ -330,19 +333,7 @@ export default function TicketsPage() {
 
   const handleResolveThread = () => {
     if (!selectedThread || resolvingThread) return
-    const threadId = selectedThread.id
-    toast("Resolve this chat?", {
-      description: "This will permanently delete the conversation.",
-      duration: 8000,
-      action: {
-        label: "Resolve",
-        onClick: () => performResolveThread(threadId),
-      },
-      cancel: {
-        label: "Cancel",
-        onClick: () => {},
-      },
-    })
+    setResolveConfirmOpen(true)
   }
 
   // ─── Customer search (debounced) ─────────────────────────────────────────
@@ -1379,6 +1370,45 @@ export default function TicketsPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ── Resolve hotspot chat confirmation ── */}
+      <Dialog
+        open={resolveConfirmOpen}
+        onOpenChange={(open) => {
+          if (!resolvingThread) setResolveConfirmOpen(open)
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Resolve this chat?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the conversation with {selectedThread?.phone_number}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setResolveConfirmOpen(false)}
+              disabled={resolvingThread}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => selectedThread && performResolveThread(selectedThread.id)}
+              disabled={resolvingThread}
+            >
+              {resolvingThread ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resolving...
+                </>
+              ) : (
+                "Resolve"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
