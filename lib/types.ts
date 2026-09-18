@@ -2336,6 +2336,7 @@ export interface HotspotChatThread {
   last_message_preview: string
   last_message_at: string | null
   unread_by_customer: boolean
+  unread_by_admin: boolean
   messages?: HotspotChatMessage[]
 }
 

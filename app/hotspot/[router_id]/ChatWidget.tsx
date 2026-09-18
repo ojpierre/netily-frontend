@@ -69,6 +69,9 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to send")
+      if (data.thread?.id && data.thread.id !== threadId) {
+        setThreadId(data.thread.id)   // thread was recreated after admin resolved it
+      }
       setMessages((prev) => [...prev, data.message])
     } catch (e: any) { setError(e.message) }
   }

@@ -177,6 +177,7 @@ export default function TicketsPage() {
   const [threadDrawerOpen, setThreadDrawerOpen] = useState(false)
   const [threadReply, setThreadReply] = useState("")
   const [sendingThreadReply, setSendingThreadReply] = useState(false)
+  const [resolvingThread, setResolvingThread] = useState(false)
   const lastThreadMsgIdRef = useRef(0)
 
   // ─── Fetch tickets + stats ───────────────────────────────────────────────
@@ -228,20 +229,32 @@ export default function TicketsPage() {
   const fetchHotspotChats = useCallback(async () => {
     setHotspotLoading(true)
     try {
-      const data = await adminApi.getHotspotChatThreads({
-        status: activeTab === "hotspot_open" ? "open" : activeTab === "hotspot_pending" ? "pending" : undefined,
-      })
+      // No status filter: open + pending must both be visible.
+      const data = await adminApi.getHotspotChatThreads()
       setHotspotThreads(data.results ?? [])
     } catch {
       // non-fatal — keep last known list
     } finally {
       setHotspotLoading(false)
     }
-  }, [activeTab])
+  }, [])
 
   useEffect(() => {
     if (activeTab.startsWith("hotspot")) fetchHotspotChats()
   }, [activeTab, fetchHotspotChats])
+
+  // Poll the hotspot list only while the hotspot tab is active and the browser tab is visible
+  useEffect(() => {
+    if (!activeTab.startsWith("hotspot")) return
+    const id = setInterval(async () => {
+      if (document.hidden) return
+      try {
+        const data = await adminApi.getHotspotChatThreads()
+        setHotspotThreads(data.results ?? [])
+      } catch { /* retry next tick */ }
+    }, 8000)
+    return () => clearInterval(id)
+  }, [activeTab])
 
   // keep lastThreadMsgIdRef synced to the newest message in the open thread
   useEffect(() => {
@@ -296,6 +309,23 @@ export default function TicketsPage() {
       toast.error(err.message ?? "Failed to send reply")
     } finally {
       setSendingThreadReply(false)
+    }
+  }
+
+  const handleResolveThread = async () => {
+    if (!selectedThread || resolvingThread) return
+    if (!window.confirm("Resolve and permanently delete this chat?")) return
+    setResolvingThread(true)
+    try {
+      await adminApi.deleteHotspotChat(selectedThread.id)
+      setHotspotThreads((prev) => prev.filter((t) => t.id !== selectedThread.id))
+      setThreadDrawerOpen(false)
+      setSelectedThread(null)
+      toast.success("Chat resolved and deleted")
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to resolve chat")
+    } finally {
+      setResolvingThread(false)
     }
   }
 
@@ -934,9 +964,12 @@ export default function TicketsPage() {
                     onClick={() => handleViewThread(t)}
                     className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between"
                   >
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{t.phone_number}</p>
-                      <p className="text-xs text-slate-500 truncate">{t.last_message_preview}</p>
+                    <div className="min-w-0 flex items-center gap-2">
+                      {t.unread_by_admin && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                      <div className="min-w-0">
+                        <p className={`truncate ${t.unread_by_admin ? "font-bold" : "font-medium"}`}>{t.phone_number}</p>
+                        <p className="text-xs text-slate-500 truncate">{t.last_message_preview}</p>
+                      </div>
                     </div>
                     <Badge variant="outline">{t.status}</Badge>
                   </button>
@@ -1278,8 +1311,28 @@ export default function TicketsPage() {
       <Sheet open={threadDrawerOpen} onOpenChange={setThreadDrawerOpen}>
         <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
           <SheetHeader className="p-6 border-b">
-            <SheetTitle>{selectedThread?.phone_number}</SheetTitle>
-            <SheetDescription>Hotspot captive-portal chat</SheetDescription>
+            <div className="flex items-start justify-between gap-3 pr-8">
+              <div>
+                <SheetTitle>{selectedThread?.phone_number}</SheetTitle>
+                <SheetDescription>Hotspot captive-portal chat</SheetDescription>
+              </div>
+              {perms.canDelete && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-success border-success/30 hover:bg-success/10"
+                  onClick={handleResolveThread}
+                  disabled={resolvingThread}
+                >
+                  {resolvingThread ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                  )}
+                  Resolve
+                </Button>
+              )}
+            </div>
           </SheetHeader>
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">

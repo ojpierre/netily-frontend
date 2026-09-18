@@ -4727,6 +4727,10 @@ async activateService(
     return this.request(`/hotspot/admin/chats/${id}/poll/?after_id=${afterId}`)
   }
 
+  async deleteHotspotChat(id: number): Promise<void> {
+    await this.request(`/hotspot/admin/chats/${id}/`, { method: 'DELETE' })
+  }
+
     // ------------------------------------------
   // HOTSPOT SESSION EXTENSION
   // ------------------------------------------
