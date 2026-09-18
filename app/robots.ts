@@ -1,62 +1,24 @@
 import type { MetadataRoute } from "next"
 
-const privateDisallow = [
-  "/dashboard/",
-  "/admin/",
-  "/superadmin/",
-  "/customer/",
-  "/hotspot/",
-  "/portal/",
-  "/api/",
-  "/affiliate/dashboard/",
-  "/affiliate/referrals/",
-  "/affiliate/analytics/",
-  "/affiliate/payouts/",
-  "/affiliate/marketing/",
-  "/affiliate/payment-settings/",
-  "/affiliate/tiers/",
-  "/affiliate/guide/",
-  "/affiliate/login",
-  "/affiliate/verify",
-  "/affiliate/admin-access",
-]
-
-const allowPublicOnly = (userAgent: string) => ({
-  userAgent,
-  allow: "/",
-  disallow: privateDisallow,
-})
+// Advertise public content and rendering assets without listing private routes.
+const publicPages = ["/", "/blog", "/alternatives", "/docs", "/solutions", "/compare", "/demo", "/privacy", "/terms", "/affiliate", "/affiliate/register"]
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [
-      allowPublicOnly("*"),
-      allowPublicOnly("GPTBot"),
-      allowPublicOnly("ChatGPT-User"),
-      allowPublicOnly("OAI-SearchBot"),
-      allowPublicOnly("Google-Extended"),
-      allowPublicOnly("Googlebot"),
-      allowPublicOnly("ClaudeBot"),
-      allowPublicOnly("anthropic-ai"),
-      allowPublicOnly("Claude-Web"),
-      allowPublicOnly("PerplexityBot"),
-      allowPublicOnly("Meta-ExternalAgent"),
-      allowPublicOnly("Meta-ExternalFetcher"),
-      allowPublicOnly("Bingbot"),
-      allowPublicOnly("msnbot"),
-      allowPublicOnly("cohere-ai"),
-      allowPublicOnly("YouBot"),
-      allowPublicOnly("Bytespider"),
-      allowPublicOnly("CCBot"),
-      allowPublicOnly("DataForSeoBot"),
-      allowPublicOnly("ImagesiftBot"),
-      allowPublicOnly("omgili"),
-    ],
-    sitemap: [
-      "https://netily.co.ke/sitemap-index.xml",
-      "https://netily.co.ke/sitemap.xml",
-      "https://netily.co.ke/sitemap-gsc.xml",
-    ],
+    rules: {
+      userAgent: "*",
+      disallow: "/",
+      allow: [
+        ...publicPages.flatMap((path) => [`${path}$`, `${path}?*`]),
+        "/blog/", "/alternatives/", "/docs/", "/solutions/", "/compare/",
+        "/_next/", "/images/", "/icons/", "/payments-logos/",
+        "/internetily", "/video-", "/favicon", "/icon", "/apple-icon",
+        "/og-image.svg", "/manifest.json", "/sw.js", "/llms.txt", "/netily-docs.md",
+        "/sitemap.xml$", "/sitemap-index.xml$", "/sitemap-gsc.xml$",
+        "/.well-known/security.txt$",
+      ],
+    },
+    sitemap: "https://netily.co.ke/sitemap-index.xml",
     host: "https://netily.co.ke",
   }
 }

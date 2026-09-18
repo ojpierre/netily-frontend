@@ -1,0 +1,4 @@
+Contact: mailto:netilysupport@gmail.com
+Expires: 2027-09-01T00:00:00Z
+Preferred-Languages: en
+Canonical: https://netily.co.ke/.well-known/security.txt

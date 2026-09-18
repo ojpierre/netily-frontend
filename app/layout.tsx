@@ -29,30 +29,32 @@ import { APPEARANCE_FONT_STORAGE_KEY, DEFAULT_APPEARANCE_FONT } from "@/lib/appe
 import "./globals.css"
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
-const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" })
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" })
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
+const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap", preload: false })
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap", preload: false })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap", preload: false })
 const roboto = Roboto({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
   variable: "--font-roboto",
+  preload: false,
   display: "swap",
 })
-const lato = Lato({ subsets: ["latin"], weight: ["400", "700", "900"], variable: "--font-lato", display: "swap" })
-const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" })
-const sourceSans3 = Source_Sans_3({ subsets: ["latin"], variable: "--font-source-sans-3", display: "swap" })
+const lato = Lato({ subsets: ["latin"], weight: ["400", "700", "900"], variable: "--font-lato", display: "swap", preload: false })
+const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap", preload: false })
+const sourceSans3 = Source_Sans_3({ subsets: ["latin"], variable: "--font-source-sans-3", display: "swap", preload: false })
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-ibm-plex-sans",
+  preload: false,
   display: "swap",
 })
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" })
-const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" })
-const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-poppins", display: "swap" })
-const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta-sans", display: "swap" })
-const workSans = Work_Sans({ subsets: ["latin"], variable: "--font-work-sans", display: "swap" })
-const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap" })
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap", preload: false })
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap", preload: false })
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-poppins", display: "swap", preload: false })
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta-sans", display: "swap", preload: false })
+const workSans = Work_Sans({ subsets: ["latin"], variable: "--font-work-sans", display: "swap", preload: false })
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap", preload: false })
 
 const fontVariables = [
   outfit.variable,

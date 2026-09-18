@@ -131,6 +131,12 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
 
+  if (pathname === '/robots.txt' && !isRootMarketingDomain(hostname) && !hostname.startsWith('localhost:')) {
+    return new NextResponse('User-agent: *\nDisallow: /\n', {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+    })
+  }
+
   if (pathname === '/api/netily-system-payment' || pathname.startsWith('/api/netily-system-payment/')) {
     const upstream = new URL(request.url)
     upstream.protocol = 'https:'
