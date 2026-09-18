@@ -4042,6 +4042,20 @@ async activateService(
     })
   }
 
+  async getLatestPendingSubscriptionPayment(): Promise<{
+    payment: {
+      id: string
+      status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+      amount: string
+      phone_number?: string | null
+      created_at?: string | null
+    } | null
+  }> {
+    return this.request('/subscriptions/payments/latest-pending/', {
+      cache: 'no-store', signal: AbortSignal.timeout(12_000),
+    })
+  }
+
   /** Invalidate cached subscription so the next fetch hits the server */
   invalidateSubscriptionCache() {
     this._subscriptionGeneration += 1

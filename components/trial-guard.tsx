@@ -141,6 +141,29 @@ function PaymentDialog({
   // Countdown (for the waiting state)
   const [countdown, setCountdown] = useState(TIMEOUT_SECONDS)
 
+  useEffect(() => {
+    if (!open || pendingPaymentId || paymentStatus !== "idle") return
+
+    let cancelled = false
+    const resumePendingPayment = async () => {
+      try {
+        const res = await adminApi.getLatestPendingSubscriptionPayment()
+        if (cancelled || !res.payment?.id) return
+        setPendingPaymentId(res.payment.id)
+        setCountdown(TIMEOUT_SECONDS)
+        setPaymentError(null)
+        setPaymentFeedback("We found a recent STK payment and are checking M-Pesa confirmation.")
+        setPaymentStatus("waiting")
+        setStep("checkout")
+      } catch {
+        // No resume candidate or a transient network issue should not block checkout.
+      }
+    }
+
+    resumePendingPayment()
+    return () => { cancelled = true }
+  }, [open, pendingPaymentId, paymentStatus])
+
   const refreshBillingCycleAfterPayment = useCallback(async (res?: SubscriptionPaymentStatusResponse) => {
     adminApi.invalidateSubscriptionCache()
     await Promise.allSettled([
