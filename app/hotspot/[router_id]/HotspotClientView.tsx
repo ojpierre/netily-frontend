@@ -1971,7 +1971,7 @@ export default function HotspotClientView({
 
           {/* TV MAC VERIFICATION BLOCK */}
           {targetDevice === 'tv' && (
-            <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
+            <div className="mb-6 p-4 border rounded-xl bg-blue-50 border-blue-200 text-gray-900">
               {!tvMacVerified ? (
                 <>
                   <div className="flex gap-2 mb-3">
@@ -1994,7 +1994,7 @@ export default function HotspotClientView({
                       <button
                         onClick={handleScanDevices}
                         disabled={tvScanLoading}
-                        className="w-full mb-3 py-2.5 text-sm font-medium bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                        className="w-full mb-3 py-2.5 text-sm font-medium bg-white text-gray-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
                       >
                         {tvScanLoading ? (
                           <><Loader2 className="w-4 h-4 animate-spin" /> Scanning network...</>
@@ -2027,7 +2027,7 @@ export default function HotspotClientView({
                         placeholder="e.g. AA:BB:CC:DD:EE:FF"
                         value={tvMacInput}
                         onChange={(e) => { setTvMacInput(e.target.value); setTvMacError(null) }}
-                        className="w-full px-3 py-2 border border-blue-200 rounded-lg font-mono text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="w-full px-3 py-2 border border-blue-200 rounded-lg font-mono text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 placeholder-gray-400"
                       />
                     </div>
                   )}
@@ -2044,7 +2044,7 @@ export default function HotspotClientView({
                           placeholder="Hidden chars"
                           value={tvMacLastDigits}
                           onChange={(e) => { setTvMacLastDigits(e.target.value.toUpperCase()); setTvMacError(null) }}
-                          className="flex-1 px-3 py-2 border border-blue-200 rounded-lg font-mono text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          className="flex-1 px-3 py-2 border border-blue-200 rounded-lg font-mono text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 placeholder-gray-400"
                         />
                         <button
                           onClick={handleVerifyMacDigits}

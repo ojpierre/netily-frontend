@@ -2638,7 +2638,7 @@ export default function PlansPage() {
                   value={hotspotForm.is_free_trial ? '0' : hotspotForm.price}
                   onChange={(e) => setHotspotForm({ ...hotspotForm, price: e.target.value })}
                   disabled={hotspotForm.is_free_trial}
-                  className={hotspotForm.is_free_trial ? 'bg-green-50 border-green-200 text-green-700 font-bold' : ''}
+                  className={hotspotForm.is_free_trial ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 font-bold' : ''}
                   placeholder="e.g., 100"
                 />
                 {hotspotForm.is_free_trial && (
@@ -2747,13 +2747,13 @@ export default function PlansPage() {
             </div>
 
             {/* ─── TV PLAN TOGGLE ─── */}
-            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
               <Switch
                 checked={hotspotForm.is_tv_plan}
                 onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_tv_plan: c })}
               />
               <Label className="text-sm flex items-center gap-1">
-                <Monitor className="w-3 h-3 inline text-blue-500" />
+                <Monitor className="w-3 h-3 inline text-blue-500 dark:text-blue-400" />
                 TV Plan
                 <span className="text-xs text-muted-foreground ml-1">(only shows under &quot;Pay for TV&quot;)</span>
               </Label>
@@ -2806,7 +2806,7 @@ export default function PlansPage() {
               const isFreeTrial = hotspotForm.is_free_trial || false
 
               return (
-                <div className="flex flex-col gap-3 rounded-lg border border-green-200 bg-green-50 p-3 sm:flex-row sm:items-center">
+                <div className="flex flex-col gap-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <Switch
                       checked={isFreeTrial}
@@ -2827,7 +2827,7 @@ export default function PlansPage() {
                     </Label>
                   </div>
                   {hasFreeTrial && (
-                    <span className="w-fit text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                    <span className="w-fit text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded border border-amber-200 dark:border-amber-800">
                       ⚠️ Router already has a free trial
                     </span>
                   )}
