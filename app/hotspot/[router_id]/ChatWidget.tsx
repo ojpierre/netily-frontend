@@ -12,10 +12,35 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
   const [draft, setDraft] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [threadId, setThreadId] = useState<number | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const lastIdRef = useRef(0)
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
+
+  useEffect(() => {
+    lastIdRef.current = messages.length ? messages[messages.length - 1].id : 0
+  }, [messages])
+
+  // poll only while widget is open and verified
+  useEffect(() => {
+    if (!open || !verified || !threadId) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${apiBase}/hotspot/chat/poll/?tenant=${tenant}&thread_id=${threadId}&after_id=${lastIdRef.current}`,
+          { cache: "no-store" }
+        )
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.messages?.length) {
+          setMessages((prev) => [...prev, ...data.messages])
+        }
+      } catch { /* silent — retry next tick */ }
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [open, verified, threadId, tenant, apiBase])
 
   const enterChat = async () => {
     if (!phone.trim()) { setError("Enter the phone number you used to chat"); return }
@@ -28,6 +53,7 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Could not open chat")
       setMessages(data.thread.messages || [])
+      setThreadId(data.thread.id)
       setVerified(true)
     } catch (e: any) { setError(e.message) } finally { setLoading(false) }
   }
@@ -97,9 +123,11 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
               )}
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.sender_type === "agent" ? "justify-start" : "justify-end"}`}>
-                  <div className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
-                    m.sender_type === "agent" ? "bg-gray-100 text-gray-800" : "bg-blue-600 text-white"
-                  }`}>
+                  <div
+                    className={`max-w-[75%] rounded-xl px-3 py-2 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                      m.sender_type === "agent" ? "bg-gray-100 text-gray-800" : "bg-blue-600 text-white"
+                    }`}
+                  >
                     {m.body}
                   </div>
                 </div>

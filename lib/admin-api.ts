@@ -2286,8 +2286,6 @@ async activateService(
     return this.request<EquipmentItem>(`/inventory/equipment/${id}/`)
   }
 
-
-
   // Stock Alerts
   async getStockAlerts(params?: Record<string, string>): Promise<StockAlert[]> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
@@ -2410,8 +2408,6 @@ async activateService(
     return this.request<PaginatedResponse<EquipmentItem>>(`/inventory/equipment/available/${queryString}`)
   }
 
-
-
   // Stock Report
   async getStockReport(): Promise<Record<string, unknown>> {
     return this.request<Record<string, unknown>>('/inventory/stock-report/')
@@ -2446,8 +2442,6 @@ async activateService(
       body: JSON.stringify(data),
     })
   }
-
-
 
   // ------------------------------------------
   // ALERTS - /alerts/
@@ -4725,6 +4719,14 @@ async activateService(
     })
   }
 
+  /**
+   * Poll for new messages in a hotspot chat thread after a given message ID.
+   * Returns only messages with id > afterId plus the current thread status.
+   */
+  async pollHotspotChatThread(id: number, afterId: number): Promise<{ messages: HotspotChatMessage[]; status: string }> {
+    return this.request(`/hotspot/admin/chats/${id}/poll/?after_id=${afterId}`)
+  }
+
     // ------------------------------------------
   // HOTSPOT SESSION EXTENSION
   // ------------------------------------------
@@ -4951,7 +4953,6 @@ async activateService(
     return data
   }
 
-
     // ── Passkey Management (list, delete, register) ──
 
   async getMyPasskeys(): Promise<Array<{ id: number; device_label: string; created_at: string; last_used_at: string | null }>> {
@@ -4971,7 +4972,6 @@ async activateService(
       device_label: deviceLabel || navigator.userAgent.slice(0, 60) 
     })
   }
-
 
   // ------------------------------------------
   // SYSTEM NOTIFICATIONS - /notifications/

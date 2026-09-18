@@ -177,6 +177,7 @@ export default function TicketsPage() {
   const [threadDrawerOpen, setThreadDrawerOpen] = useState(false)
   const [threadReply, setThreadReply] = useState("")
   const [sendingThreadReply, setSendingThreadReply] = useState(false)
+  const lastThreadMsgIdRef = useRef(0)
 
   // ─── Fetch tickets + stats ───────────────────────────────────────────────
   const fetchTickets = useCallback(async () => {
@@ -241,6 +242,35 @@ export default function TicketsPage() {
   useEffect(() => {
     if (activeTab.startsWith("hotspot")) fetchHotspotChats()
   }, [activeTab, fetchHotspotChats])
+
+  // keep lastThreadMsgIdRef synced to the newest message in the open thread
+  useEffect(() => {
+    lastThreadMsgIdRef.current = selectedThread?.messages?.length
+      ? selectedThread.messages[selectedThread.messages.length - 1].id
+      : 0
+  }, [selectedThread])
+
+  // poll the open thread drawer only
+  useEffect(() => {
+    if (!threadDrawerOpen || !selectedThread) return
+    const id = selectedThread.id
+    const interval = setInterval(async () => {
+      try {
+        const data = await adminApi.pollHotspotChatThread(id, lastThreadMsgIdRef.current)
+        if (data.messages?.length) {
+          setSelectedThread((prev) =>
+            prev && prev.id === id
+              ? { ...prev, messages: [...(prev.messages ?? []), ...data.messages], status: data.status ?? prev.status }
+              : prev
+          )
+          setHotspotThreads((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, last_message_preview: data.messages[data.messages.length - 1].body } : t))
+          )
+        }
+      } catch { /* silent — retry next tick */ }
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [threadDrawerOpen, selectedThread?.id])
 
   const handleViewThread = async (thread: HotspotChatThread) => {
     setSelectedThread(thread)
@@ -1255,7 +1285,11 @@ export default function TicketsPage() {
             <div className="space-y-4">
               {(selectedThread?.messages ?? []).map((m) => (
                 <div key={m.id} className={`flex ${m.sender_type === "agent" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-lg p-3 text-sm ${m.sender_type === "agent" ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-700"}`}>
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                      m.sender_type === "agent" ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-700"
+                    }`}
+                  >
                     {m.body}
                   </div>
                 </div>
