@@ -33,13 +33,19 @@ export interface BlogPost {
   metaTitle: string
   metaDescription: string
   keywords: string[]
+  spatialCoverage?: string[]
   toc: { id: string; text: string }[]
   content: ContentBlock[]
 }
 
 // ─── Blog Posts ────────────────────────────────────────────────────────────
 
+import { operationsGuides } from "./blog-operations-guides"
+import { businessGrowthGuides } from "./blog-business-growth-guides"
+
 export const blogPosts: BlogPost[] = [
+  ...businessGrowthGuides,
+  ...operationsGuides,
   // ── Article 1: Buyer's Guide ──────────────────────────────────────────────
   {
     slug: "isp-billing-software-kenya-2026",

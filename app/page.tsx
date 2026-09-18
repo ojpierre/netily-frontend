@@ -9,6 +9,12 @@ export const metadata: Metadata = {
   description:
     "Internetily helps ISPs manage billing, MikroTik PPPoE, hotspot access, M-Pesa, mobile money, card payments, support, and renewals.",
   keywords: [
+    "Centipid alternative", "ISPMAN alternative", "WISPMAN alternative", "Jasiyo alternative",
+    "Netily ISP billing", "Internetily WISP software",
+    "automated M-Pesa subscriber renewals", "self-care captive portal",
+    "ISP billing software Uganda", "ISP billing software Tanzania", "ISP billing software South Africa",
+    "ISP marketing ideas", "WISP business growth", "local ISP lead generation",
+    "internet service advertising", "ISP customer retention", "ISP support automation",
     // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
     "isp billing software",
     "isp billing software nigeria",
@@ -1022,7 +1028,8 @@ export default function Page() {
       url: `https://netily.co.ke/blog/${post.slug}`,
       datePublished: post.publishedAt,
       dateModified: post.updatedAt,
-      author: { "@type": "Person", name: post.author.name },
+      author: { "@type": post.author.name === "Netily Editorial Team" ? "Organization" : "Person", name: post.author.name },
+      spatialCoverage: post.spatialCoverage?.map((name) => ({ "@type": "Place", name })),
       keywords: post.keywords.join(", "),
     })),
   }

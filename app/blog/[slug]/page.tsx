@@ -251,7 +251,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
     author: {
-      "@type": "Person",
+      "@type": post.author.name === "Netily Editorial Team" ? "Organization" : "Person",
       name: post.author.name,
       jobTitle: post.author.role,
       url: "https://netily.co.ke",
@@ -265,6 +265,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
     image: { "@type": "ImageObject", url: post.coverImage, width: 1400, height: 933 },
     keywords: post.keywords.join(", "),
     articleSection: post.category,
+    spatialCoverage: post.spatialCoverage?.map((name) => ({ "@type": "Place", name })),
     inLanguage: "en-KE",
     mainEntityOfPage: { "@type": "WebPage", "@id": `https://netily.co.ke/blog/${post.slug}` },
   }

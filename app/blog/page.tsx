@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description:
     "Expert guides on ISP billing software, MikroTik automation, M-Pesa integration, and ISP management for Kenya and East Africa.",
   keywords: [
+    "WISP billing automation", "TR-069 SmartOLT guide", "self-care captive portal",
+    "ISP marketing ideas", "WISP business growth", "local ISP lead generation",
+    "ISP customer retention", "ISP support automation", "internet provider advertising",
+    "Centipid alternative", "ISPMAN alternative", "WISPMAN alternative", "Jasiyo alternative",
     "isp billing software kenya blog",
     "isp management guides kenya",
     "mikrotik isp billing guide",
