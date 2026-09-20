@@ -563,6 +563,49 @@ export default function UsersPage() {
   const [onlineMap, setOnlineMap] = useState<Record<string, { usage: string; ip: string; mac: string; router_ip: string }>>({})
   const [onlineMapLoading, setOnlineMapLoading] = useState(false)
 
+  // ── Period-anchored usage (PPPoE + Hotspot), lazy-loaded after the list renders ──
+  const [usageMap, setUsageMap] = useState<Record<string, { usage: string; gb: number }>>({})
+  const usageMapRef = useRef(usageMap)
+  usageMapRef.current = usageMap
+  const usageInflight = useRef<Set<string>>(new Set())
+
+  const loadUsage = React.useCallback(async (usernames: string[]) => {
+    const todo = Array.from(new Set(usernames)).filter(
+      (u) => u && !(u in usageMapRef.current) && !usageInflight.current.has(u)
+    )
+    if (!todo.length) return
+    todo.forEach((u) => usageInflight.current.add(u))
+
+    const chunks: string[][] = []
+    for (let i = 0; i < todo.length; i += 100) chunks.push(todo.slice(i, i + 100))
+
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        try {
+          const res = await adminApi.getRadiusUsage(chunk)
+          setUsageMap((prev) => {
+            const next = { ...prev }
+            for (const u of chunk) {
+              const r = res[u]
+              next[u] = r
+                ? { usage: r.usage, gb: r.bytes / 1073741824 }
+                : { usage: "0.00 MB", gb: 0 }
+            }
+            return next
+          })
+        } catch {
+          setUsageMap((prev) => {
+            const next = { ...prev }
+            for (const u of chunk) next[u] = { usage: "—", gb: 0 }
+            return next
+          })
+        } finally {
+          chunk.forEach((u) => usageInflight.current.delete(u))
+        }
+      })
+    )
+  }, [])
+
   const [activeStatFilter, setActiveStatFilter] = useState<string>("all")
   const [hotspotSubFilter, setHotspotSubFilter] = useState<"active" | "expired">("active")
 
@@ -868,6 +911,14 @@ export default function UsersPage() {
     setHotspotPage(1)
   }, [hotspotSubFilter])
 
+  // Trigger it when the list changes. This also covers infinite scroll, because only new usernames are fetched:
+  useEffect(() => {
+    const names = users
+      .map((u) => u.radiusCredentials?.username)
+      .filter((n): n is string => !!n)
+    if (names.length) loadUsage(names)
+  }, [users, loadUsage])
+
   const loadPlans = async () => {
     try {
       setPlansLoading(true)
@@ -1166,11 +1217,35 @@ export default function UsersPage() {
     }
   }, [activeTab])
 
+  const filteredHotspot = useMemo(
+    () =>
+      activeSubscriptions.hotspot.filter((item) => {
+        const isActive =
+          item.is_active_sub ??
+          (item.subscription_status === 'active' &&
+            item.expiry_date &&
+            new Date(item.expiry_date) > new Date())
+        return hotspotSubFilter === "active" ? isActive : !isActive
+      }),
+    [activeSubscriptions.hotspot, hotspotSubFilter]
+  )
+
+  useEffect(() => {
+    if (activeTab !== "hotspot") return
+    const names = filteredHotspot
+      .slice(0, hotspotPage * hotspotPageSize)
+      .map((i) => i.canonical_username || i.username)
+      .filter((n): n is string => !!n)
+    if (names.length) loadUsage(names)
+  }, [activeTab, filteredHotspot, hotspotPage, loadUsage])
+
   // ============================================================
   // FIX 6: handleRefresh - resets pagination state
   // ============================================================
   const handleRefresh = async () => {
     setRefreshing(true)
+    usageMapRef.current = {}
+    setUsageMap({})
     setServerPage(1)
     setHasMore(true)
     await Promise.all([
@@ -1534,21 +1609,26 @@ export default function UsersPage() {
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
       const username = user.radiusCredentials?.username
-      if (!username || !onlineMap[username]) {
-        return { ...user, connectionStatus: 'offline' as const }
+      const usage = username ? usageMap[username] : undefined
+      const usageFields = {
+        liveUsageString: usage?.usage ?? (username ? "…" : undefined),
+        dataUsed: usage ? usage.gb : user.dataUsed,
       }
+      const sessionInfo = username ? onlineMap[username] : undefined
 
-      const sessionInfo = onlineMap[username]
+      if (!sessionInfo) {
+        return { ...user, ...usageFields, connectionStatus: 'offline' as const }
+      }
       return {
         ...user,
+        ...usageFields,
         connectionStatus: 'online' as const,
-        liveUsageString: sessionInfo.usage,
         ipAddress: sessionInfo.ip || user.ipAddress,
         macAddress: sessionInfo.mac || user.macAddress,
         lastOnline: 'Now',
       }
     })
-  }, [users, onlineMap])
+  }, [users, onlineMap, usageMap])
 
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
@@ -3546,20 +3626,14 @@ export default function UsersPage() {
                           <TableHead className="dark:text-slate-300">Status</TableHead>
                           <TableHead className="dark:text-slate-300">Connection</TableHead>
                           <TableHead className="dark:text-slate-300">Expiry</TableHead>
+                          <TableHead className="dark:text-slate-300">Usage</TableHead>
                           <TableHead className="dark:text-slate-300">Router</TableHead>
                           <TableHead className="text-right dark:text-slate-300">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {(() => {
-                          const filtered = activeSubscriptions.hotspot.filter(item => {
-                            const isActive = item.is_active_sub ?? (
-                              item.subscription_status === 'active' &&
-                              item.expiry_date &&
-                              new Date(item.expiry_date) > new Date()
-                            )
-                            return hotspotSubFilter === "active" ? isActive : !isActive
-                          })
+                          const filtered = filteredHotspot
                           const paginated = filtered.slice(0, hotspotPage * hotspotPageSize)
                           return paginated.map((item) => {
                             const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
@@ -3622,6 +3696,11 @@ export default function UsersPage() {
                                       </p>
                                     )}
                                   </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm font-medium font-mono dark:text-slate-300">
+                                    {usageMap[hotspotIdentifier]?.usage ?? "…"}
+                                  </span>
                                 </TableCell>
                                 <TableCell>
                                   <span className="text-sm text-muted-foreground">{item.router || '—'}</span>

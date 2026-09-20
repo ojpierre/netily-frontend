@@ -4351,6 +4351,17 @@ async activateService(
     }
   }
 
+  /** Subscription-period usage for a set of RADIUS usernames (PPPoE or hotspot). */
+  async getRadiusUsage(usernames: string[]): Promise<Record<string, { bytes: number; usage: string }>> {
+    if (!usernames.length) return {}
+    const qs = new URLSearchParams()
+    usernames.forEach((u) => qs.append('usernames', u))
+    const data = await this.request<{ usage: Record<string, { bytes: number; usage: string }> }>(
+      `/radius/usage/?${qs.toString()}`
+    )
+    return data.usage || {}
+  }
+
   // ------------------------------------------
   // RADIUS CUSTOMER CREDENTIALS - /radius/credentials/
   // NEW: Auto-sync customer RADIUS credentials
