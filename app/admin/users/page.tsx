@@ -622,6 +622,19 @@ export default function UsersPage() {
   const [suspending, setSuspending] = useState(false)
 
   // ============================================================
+  // RENEW SUBSCRIPTION STATE
+  // ============================================================
+  const [showRenewDialog, setShowRenewDialog] = useState(false)
+  const [userToRenew, setUserToRenew] = useState<User | null>(null)
+  const [renewing, setRenewing] = useState(false)
+  const [renewForm, setRenewForm] = useState({
+    record_payment: true,
+    amount: "",
+    reference: "",
+    send_sms: true,
+  })
+
+  // ============================================================
   // IP BINDING FUNCTIONS
   // ============================================================
   const loadIPBindings = async () => {
@@ -2184,6 +2197,69 @@ export default function UsersPage() {
   }
 
   // ============================================================
+  // RENEW SUBSCRIPTION HANDLERS
+  // ============================================================
+  const handleOpenRenew = (user: User) => {
+    setUserToRenew(user)
+    setRenewForm({ record_payment: true, amount: "", reference: "", send_sms: true })
+    setShowRenewDialog(true)
+  }
+
+  const confirmRenew = async () => {
+    if (!userToRenew || renewing) return
+    const amt = renewForm.amount.trim()
+    if (renewForm.record_payment && amt && !(parseFloat(amt) > 0)) {
+      toast.error("Enter a valid amount")
+      return
+    }
+    try {
+      setRenewing(true)
+      const res = await adminApi.renewCustomerSubscription(userToRenew.customerId, {
+        record_payment: renewForm.record_payment,
+        send_sms: renewForm.send_sms,
+        ...(renewForm.record_payment && amt ? { amount: parseFloat(amt) } : {}),
+        ...(renewForm.record_payment && renewForm.reference.trim()
+          ? { payment_reference: renewForm.reference.trim() }
+          : {}),
+      })
+
+      const expiryLabel = res.new_expiration
+        ? new Date(res.new_expiration).toLocaleString("en-GB", {
+            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+          })
+        : "Unlimited"
+      toast.success(`${userToRenew.name} renewed — expires ${expiryLabel}`)
+
+      // Usage restarts for the new period → drop cached value so it reloads
+      const uname = userToRenew.radiusCredentials?.username
+      if (uname) {
+        setUsageMap((prev) => {
+          const next = { ...prev }
+          delete next[uname]
+          return next
+        })
+      }
+
+      setShowRenewDialog(false)
+      setUserToRenew(null)
+      setServerPage(1)
+      setHasMore(true)
+      await Promise.all([
+        loadUsers(1, searchQuery, statusFilter, false),
+        loadOnlineMap(),
+        loadServerStats(),
+        loadStatusCounts(),
+        statusFilter === "expired" ? loadExpiredUsersFromRADIUS() : Promise.resolve(),
+        activeTab === "active-subs" ? loadAllActiveUsers() : Promise.resolve(),
+      ])
+    } catch (err: any) {
+      toast.error(err.message || "Failed to renew subscription")
+    } finally {
+      setRenewing(false)
+    }
+  }
+
+  // ============================================================
   // FIX 2a: handleEditUser - fetch authoritative password
   // ============================================================
   const handleEditUser = async (user: User) => {
@@ -3489,6 +3565,13 @@ export default function UsersPage() {
                                   )}
                                   {perms.canEdit && (
                                     <>
+                                      <DropdownMenuItem
+                                        onClick={() => handleOpenRenew(user)}
+                                        className="text-emerald-600 dark:text-emerald-400 dark:hover:bg-slate-800"
+                                      >
+                                        <CreditCard className="w-4 h-4 mr-2" />
+                                        Renew Subscription
+                                      </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                         <Calendar className="w-4 h-4 mr-2" />
                                         Extend Subscription
@@ -4063,6 +4146,13 @@ export default function UsersPage() {
                                     <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                       <Edit className="w-4 h-4 mr-2" />
                                       Edit User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenRenew(user)}
+                                      className="text-emerald-600 dark:text-emerald-400 dark:hover:bg-slate-800"
+                                    >
+                                      <CreditCard className="w-4 h-4 mr-2" />
+                                      Renew Subscription
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                       <Calendar className="w-4 h-4 mr-2" />
@@ -5385,6 +5475,113 @@ export default function UsersPage() {
                   <><CheckCircle2 className="w-4 h-4 mr-2" />Unsuspend</>
                 ) : (
                   <><Power className="w-4 h-4 mr-2" />Suspend</>
+                )}
+              </Button>
+            </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Renew Subscription Dialog ── */}
+      <Dialog open={showRenewDialog} onOpenChange={(open) => { if (!renewing) { setShowRenewDialog(open); if (!open) setUserToRenew(null) } }}>
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="p-6"
+          >
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <CreditCard className="w-4 h-4" />
+                Renew Subscription
+              </DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
+                Renews <strong>{userToRenew?.name}</strong> on their current plan, exactly as if they had just paid.
+                One plan period is added (on top of any remaining time), usage restarts, and internet access is restored.
+              </DialogDescription>
+            </DialogHeader>
+
+            {userToRenew && (
+              <div className="rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Plan</span>
+                  <span className="font-medium">
+                    {userToRenew.plan}
+                    {userToRenew.planPrice > 0 && ` · KES ${userToRenew.planPrice.toLocaleString()}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current expiry</span>
+                  <span className="font-medium">
+                    {userToRenew.expiryDate
+                      ? new Date(userToRenew.expiryDate).toLocaleString("en-GB", {
+                          day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                        })
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3 mt-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="renew_record_payment"
+                  checked={renewForm.record_payment}
+                  onCheckedChange={(c) =>
+                    setRenewForm((f) => ({ ...f, record_payment: !!c, send_sms: !!c ? f.send_sms : f.send_sms }))
+                  }
+                />
+                <Label htmlFor="renew_record_payment" className="cursor-pointer text-sm dark:text-slate-200">
+                  Record a payment (cash / manual)
+                </Label>
+              </div>
+
+              {renewForm.record_payment && (
+                <div className="grid grid-cols-2 gap-3 pl-6">
+                  <div className="space-y-1">
+                    <Label className="text-xs dark:text-slate-300">Amount (KES)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Plan price"
+                      value={renewForm.amount}
+                      onChange={(e) => setRenewForm((f) => ({ ...f, amount: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs dark:text-slate-300">Reference (optional)</Label>
+                    <Input
+                      placeholder="Receipt / note"
+                      value={renewForm.reference}
+                      onChange={(e) => setRenewForm((f) => ({ ...f, reference: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="renew_send_sms"
+                  checked={renewForm.send_sms}
+                  onCheckedChange={(c) => setRenewForm((f) => ({ ...f, send_sms: !!c }))}
+                />
+                <Label htmlFor="renew_send_sms" className="cursor-pointer text-sm dark:text-slate-200">
+                  Send renewal SMS to customer
+                </Label>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setShowRenewDialog(false)} disabled={renewing}>
+                Cancel
+              </Button>
+              <Button onClick={confirmRenew} disabled={renewing} className="bg-emerald-600 hover:bg-emerald-700">
+                {renewing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Renewing...</>
+                ) : (
+                  <><CreditCard className="w-4 h-4 mr-2" />Renew Now</>
                 )}
               </Button>
             </DialogFooter>

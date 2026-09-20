@@ -1044,6 +1044,31 @@ async activateService(
     })
   }
 
+  /** Manually renew a PPPoE/Static subscription — behaves like a completed payment. */
+  async renewCustomerSubscription(
+    customerId: number,
+    data: {
+      record_payment?: boolean
+      amount?: number
+      payment_reference?: string
+      notes?: string
+      send_sms?: boolean
+    } = {}
+  ): Promise<{
+    status: string
+    message: string
+    username: string
+    plan_name: string
+    previous_expiration: string | null
+    new_expiration: string | null
+    payment: { id: number; payment_number: string; amount: number } | null
+  }> {
+    return this.request(`/customers/${customerId}/renew/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
   async getPendingActivations(): Promise<CustomerService[]> {
     return this.request<CustomerService[]>('/customers/services/pending-activations/')
   }
