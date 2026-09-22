@@ -82,6 +82,8 @@ export interface FupDashboardSummaryDto {
   users_under_fup: number
   active_violations: number
   currently_throttled: number
+  // 🆕 FUP rework: last time usage buckets were updated (ISO timestamp or null)
+  last_synced_at?: string | null
 }
 
 export interface FupAnalyticsOverviewDto {
@@ -228,6 +230,18 @@ const getBillingPlanBucket = (plan: FupPlanOptionDto): "pppoe" | "static" | "oth
   return "other"
 }
 
+// 🆕 FUP rework: humanize seconds-since for the staleness indicator
+const humanizeAgo = (seconds: number): string => {
+  if (seconds < 5) return "just now"
+  if (seconds < 60) return `${seconds}s ago`
+  const mins = Math.floor(seconds / 60)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
 export default function FUPPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("policies")
@@ -240,6 +254,12 @@ export default function FUPPage() {
   const [throttledUsers, setThrottledUsers] = useState<FupThrottleStateDto[]>([])
   const [analytics, setAnalytics] = useState<FupAnalyticsOverviewDto | null>(null)
   const [usageWindows, setUsageWindows] = useState<FupUsageWindowDto[]>([])
+
+  // 🆕 FUP rework: live impact preview for the create-policy sheet
+  const [impactPreview, setImpactPreview] = useState<{ affected: number; would_throttle_now: number } | null>(null)
+
+  // 🆕 FUP rework: tick counter to refresh the "synced X ago" indicator
+  const [nowTick, setNowTick] = useState(Date.now())
 
   // --- FILTERS ---
   const [policySearch, setPolicySearch] = useState("")
@@ -325,6 +345,41 @@ export default function FUPPage() {
     const timer = setTimeout(() => { fetchViolations() }, 500)
     return () => clearTimeout(timer)
   }, [violSearch, violStatusFilter, violPolicyFilter])
+
+  // 🆕 FUP rework: 1s tick so "synced X ago" stays fresh without refetching
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // 🆕 FUP rework: debounced impact preview when the create-policy form changes.
+  // Only fires when we're editing an existing policy (policyForm.id present),
+  // because a brand new unsaved policy has no linked plans yet — the backend
+  // returns {affected: 0, would_throttle_now: 0} in that case, which we skip.
+  useEffect(() => {
+    if (!isCreateOpen) return
+    if (!policyForm.data_limit_gb || !policyForm.reset_period) {
+      setImpactPreview(null)
+      return
+    }
+    const t = setTimeout(async () => {
+      try {
+        const preview = await adminApi.rawRequest<{ affected: number; would_throttle_now: number }>(
+          '/fup/policies/preview_impact/',
+          { method: 'POST', body: JSON.stringify(policyForm) }
+        )
+        setImpactPreview(preview)
+      } catch {
+        // non-blocking — leave previous preview or null
+      }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [
+    isCreateOpen,
+    policyForm.data_limit_gb,
+    policyForm.reset_period,
+    policyForm.throttle_download_mbps,
+  ])
 
   // --- ACTIONS ---
   const handleCreatePolicy = async () => {
@@ -468,6 +523,14 @@ export default function FUPPage() {
   const totalSelectedPlans = selectedBillingIds.length + selectedHotspotIds.length
   const totalAvailablePlans = availablePlans.billing_plans.length + availablePlans.hotspot_plans.length
 
+  // 🆕 FUP rework: compute "synced Xs ago" from dashboard.last_synced_at
+  const lastSyncAgo = useMemo(() => {
+    if (!dashboard.last_synced_at) return null
+    const ts = new Date(dashboard.last_synced_at).getTime()
+    if (!Number.isFinite(ts)) return null
+    return Math.max(0, Math.floor((nowTick - ts) / 1000))
+  }, [dashboard.last_synced_at, nowTick])
+
   const renderPlanCard = (plan: FupPlanOptionDto, source: "billing" | "hotspot") => {
     const isSelected = source === "billing"
       ? selectedBillingIds.includes(plan.id)
@@ -564,7 +627,11 @@ export default function FUPPage() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div><h1 className="text-3xl font-bold text-foreground">Fair Usage Policy</h1><p className="text-muted-foreground mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          {/* 🆕 FUP rework: staleness indicator next to Refresh */}
+          <span className="text-xs text-slate-500 sm:mr-2 order-last sm:order-first">
+            Usage synced {lastSyncAgo !== null ? humanizeAgo(lastSyncAgo) : '—'}
+          </span>
           <Button variant="outline" onClick={fetchAllData} disabled={isLoading} className="w-full sm:w-auto"><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
           <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>
         </div>
@@ -1002,6 +1069,21 @@ export default function FUPPage() {
                   onCheckedChange={v => setPolicyForm({ ...policyForm, notify_on_violation: v })}
                 />
               </div>
+
+              {/* 🆕 FUP rework: live impact preview above the Save button.
+                  Backend returns {affected, would_throttle_now}. For a brand
+                  new unsaved policy both are 0 (no linked plans yet), so we
+                  only render when there's something meaningful to show. */}
+              {impactPreview && (impactPreview.affected > 0 || impactPreview.would_throttle_now > 0) && (
+                <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-1">
+                  <p><strong>{impactPreview.affected}</strong> users would fall under this policy.</p>
+                  {impactPreview.would_throttle_now > 0 && (
+                    <p className="text-warning">
+                      <strong>{impactPreview.would_throttle_now}</strong> are already over this limit and would be throttled immediately on save.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Button className="w-full mt-6" onClick={handleCreatePolicy}>
                 Save Policy
