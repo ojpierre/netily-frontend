@@ -607,16 +607,18 @@ async function submitRouterLoginConfirmed(
   if (!loginUrl) return
   // First attempt
   submitRouterLogin(loginUrl, username, password)
-  // Give MikroTik a moment, then confirm it actually authenticated.
-  // If not, resubmit once — handles the race where the first POST
-  // lands before the router clears the stale binding for this MAC.
-  setTimeout(async () => {
+
+  // FIX: two staggered confirmation checks instead of one — covers the
+  // extra latency the CoA pre-clear round-trip now adds before the NAS
+  // is actually ready to accept the new login.
+  const attempts = [2500, 5000]
+  for (const delay of attempts) {
+    await new Promise((r) => setTimeout(r, delay))
     const mac = getMacAddress()
     const confirmed = await verifyMikrotikAuth(routerId, mac)
-    if (!confirmed) {
-      submitRouterLogin(loginUrl, username, password)
-    }
-  }, 2500)
+    if (confirmed) return
+    submitRouterLogin(loginUrl, username, password)
+  }
 }
 
 // ==========================================
