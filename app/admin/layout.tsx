@@ -90,6 +90,7 @@ import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
+import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
 import { submitLead } from "@/lib/api"
 import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
 import { toast } from "sonner"                            // ← ADDED
@@ -177,6 +178,14 @@ const detailSearchUrl = (href: string, query: string) => {
 
 const sidebarSectionId = (title: string) =>
   `admin-sidebar-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+
+const onboardingNavTarget = (href: string) => {
+  if (href === "/admin/routers") return "nav-routers"
+  if (href === "/admin/plans") return "nav-plans"
+  if (href === "/admin/payment-methods") return "nav-payment-methods"
+  if (href === "/admin/sms") return "nav-sms"
+  return undefined
+}
 
 // Navigation organized by sections
 const navigationSections: NavigationSection[] = [
@@ -1331,6 +1340,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                       <AnimatedNavItem key={item.name} isActive={isActive}>
                         <Link
                           href={item.href}
+                          data-onboarding={onboardingNavTarget(item.href)}
                           className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                             isActive
                               ? "text-white shadow-sm"
@@ -1373,6 +1383,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   <AnimatedNavItem key={item.name} isActive={isActive}>
                     <Link
                       href={item.href}
+                      data-onboarding={onboardingNavTarget(item.href)}
                       className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                         isActive
                           ? "text-white shadow-sm"
@@ -1833,6 +1844,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           </>
         )}
         <NetilySupportChat />
+        <AdminOnboardingTour user={user} disabled={isDemoMode || isPublicPage || loading} />
       </div>
     </div>
   )

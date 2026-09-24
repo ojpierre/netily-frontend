@@ -485,6 +485,17 @@ export default function SMSPage() {
     auto_welcome_message: true, auto_service_suspension: false,
   })
 
+  useEffect(() => {
+    const openGateway = () => setActiveTab("gateway")
+    const openNotifications = () => setActiveTab("notifications")
+    window.addEventListener("netily:onboarding:sms-gateway", openGateway)
+    window.addEventListener("netily:onboarding:sms-notifications", openNotifications)
+    return () => {
+      window.removeEventListener("netily:onboarding:sms-gateway", openGateway)
+      window.removeEventListener("netily:onboarding:sms-notifications", openNotifications)
+    }
+  }, [])
+
   // FIX: Compose dialog with customer search
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerResults, setCustomerResults] = useState<{id:string; name:string; phone:string; code:string; type:string}[]>([])
@@ -817,8 +828,8 @@ export default function SMSPage() {
             <TabsTrigger value="history" className="text-xs"><History className="w-3.5 h-3.5 mr-1.5" />History</TabsTrigger>
             <TabsTrigger value="templates" className="text-xs"><FileText className="w-3.5 h-3.5 mr-1.5" />Templates</TabsTrigger>
             <TabsTrigger value="campaigns" className="text-xs"><Users className="w-3.5 h-3.5 mr-1.5" />Campaigns</TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs"><Bell className="w-3.5 h-3.5 mr-1.5" />Notifications</TabsTrigger>
-            <TabsTrigger value="gateway" className="text-xs"><Settings className="w-3.5 h-3.5 mr-1.5" />Gateway</TabsTrigger>
+            <TabsTrigger data-onboarding="sms-notifications-tab" value="notifications" className="text-xs"><Bell className="w-3.5 h-3.5 mr-1.5" />Notifications</TabsTrigger>
+            <TabsTrigger data-onboarding="sms-gateway-tab" value="gateway" className="text-xs"><Settings className="w-3.5 h-3.5 mr-1.5" />Gateway</TabsTrigger>
             {notifSettings.use_inbuilt_system && (
               <TabsTrigger value="wallet" className="text-xs"><Wallet className="w-3.5 h-3.5 mr-1.5" />Wallet</TabsTrigger>
             )}
@@ -1095,7 +1106,7 @@ export default function SMSPage() {
             <div className="grid lg:grid-cols-2 gap-4">
 
               {/* -- Inbuilt toggle ---------------------------------------- */}
-              <Card className="lg:col-span-2">
+              <Card data-onboarding="sms-notifications-panel" className="lg:col-span-2">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${notifSettings.use_inbuilt_system ? 'bg-primary' : 'bg-slate-100'}`}>
@@ -1259,7 +1270,7 @@ export default function SMSPage() {
           {/* -- GATEWAY ------------------------------------------------------- */}
           <TabsContent value="gateway" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
-              <Card>
+              <Card data-onboarding="sms-gateway-panel">
                 <CardHeader>
                   <CardTitle>Provider Configuration</CardTitle>
                   <CardDescription>

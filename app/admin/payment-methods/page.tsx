@@ -135,6 +135,12 @@ export default function PaymentMethodsPage() {
   }, [])
 
   useEffect(() => {
+    const openDarajaSetup = () => setDarajaOpen(true)
+    window.addEventListener("netily:onboarding:open-daraja", openDarajaSetup)
+    return () => window.removeEventListener("netily:onboarding:open-daraja", openDarajaSetup)
+  }, [])
+
+  useEffect(() => {
     fetchMethods()
     fetchStats()
     adminApi.getKopoKopoConfig().then((d: any) => setKopoConfig(d || {})).catch(() => {})
@@ -300,6 +306,7 @@ export default function PaymentMethodsPage() {
               onConfigure={() => setDarajaOpen(true)}
               iconColor="text-violet-600"
               iconBg="bg-violet-50 dark:bg-violet-950/30"
+              onboardingTarget="payment-methods-daraja-card"
             />
             <GatewayCard
               icon={Wallet}
@@ -331,7 +338,7 @@ export default function PaymentMethodsPage() {
 
         {/* Daraja dialog — reuses your existing multi-config panel as-is */}
         <Dialog open={darajaOpen} onOpenChange={setDarajaOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent data-onboarding="daraja-config-form" className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>M-Pesa Paybill / Till (API Keys)</DialogTitle>
               <DialogDescription>
@@ -375,6 +382,7 @@ function GatewayCard({
   onActivate,
   iconColor = "text-primary",
   iconBg = "bg-primary/10",
+  onboardingTarget,
 }: {
   icon: typeof Landmark
   title: string
@@ -389,9 +397,10 @@ function GatewayCard({
   onActivate?: () => void
   iconColor?: string
   iconBg?: string
+  onboardingTarget?: string
 }) {
   return (
-    <Card className={active ? "border-primary/40 shadow-sm" : ""}>
+    <Card data-onboarding={onboardingTarget} className={active ? "border-primary/40 shadow-sm" : ""}>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className={`p-2.5 rounded-xl ${iconBg}`}>

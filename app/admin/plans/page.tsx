@@ -874,6 +874,29 @@ export default function PlansPage() {
     })
   }
 
+  useEffect(() => {
+    const openPlanPicker = () => {
+      setActiveTab("all")
+      setIsPlanTypePickerOpen(true)
+    }
+    const openPppoePlan = () => {
+      setIsPlanTypePickerOpen(false)
+      setActiveTab("pppoe")
+      resetForm()
+      setPlanForm(prev => ({
+        ...prev,
+        plan_type: "PPPOE" as PlanType,
+      }))
+      setIsCreateOpen(true)
+    }
+    window.addEventListener("netily:onboarding:open-plan-picker", openPlanPicker)
+    window.addEventListener("netily:onboarding:open-plan-pppoe", openPppoePlan)
+    return () => {
+      window.removeEventListener("netily:onboarding:open-plan-picker", openPlanPicker)
+      window.removeEventListener("netily:onboarding:open-plan-pppoe", openPppoePlan)
+    }
+  }, [])
+
   // Reset hotspot form - UPDATED with is_tv_plan
   const resetHotspotForm = () => {
     setHotspotForm({ 
@@ -1447,6 +1470,7 @@ export default function PlansPage() {
         </div>
         {perms.canAdd && (
           <Button
+            data-onboarding="plans-create-button"
             size="lg"
             className="w-full sm:w-auto"
             onClick={() => {
@@ -1481,7 +1505,7 @@ export default function PlansPage() {
 
       {/* ── Plan Type Picker Dialog (shown from "All Plans" tab) ── */}
       <Dialog open={isPlanTypePickerOpen} onOpenChange={setIsPlanTypePickerOpen}>
-        <DialogContent className="max-w-md gap-3">
+        <DialogContent data-onboarding="plan-type-picker" className="max-w-md gap-3">
           <DialogHeader className="pr-8 text-left">
             <DialogTitle className="text-lg leading-snug">What type of plan do you want to create?</DialogTitle>
             <DialogDescription>
@@ -1878,7 +1902,7 @@ export default function PlansPage() {
 
       {/* Create Plan Dialog - PPPoE */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent data-onboarding="plan-form" className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-purple-500" />

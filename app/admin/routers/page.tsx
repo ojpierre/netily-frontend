@@ -115,6 +115,15 @@ export default function RoutersPage() {
     is_active: true,
   })
 
+  useEffect(() => {
+    const openRouterForm = () => {
+      resetForm()
+      setIsAddDialogOpen(true)
+    }
+    window.addEventListener("netily:onboarding:open-router", openRouterForm)
+    return () => window.removeEventListener("netily:onboarding:open-router", openRouterForm)
+  }, [])
+
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
@@ -463,7 +472,11 @@ export default function RoutersPage() {
             Refresh
           </Button>
           {perms.canAdd && (
-            <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+            <Button
+              data-onboarding="routers-add-button"
+              onClick={() => setIsAddDialogOpen(true)}
+              className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Router
             </Button>
@@ -1035,7 +1048,7 @@ export default function RoutersPage() {
 
       {/* Add Router Dialog - Glassmorphism */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="admin-theme-dialog max-w-md rounded-2xl backdrop-blur-sm bg-card/95 border-border">
+        <DialogContent data-onboarding="router-form" className="admin-theme-dialog max-w-md rounded-2xl backdrop-blur-sm bg-card/95 border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Add New Router</DialogTitle>
             <DialogDescription>
