@@ -141,50 +141,49 @@ function LazyVideo({
   poster,
   label,
   className,
-  buttonLabel = "Play preview",
 }: {
   src: string
   poster: string
   label: string
   className: string
-  buttonLabel?: string
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
-  const [activated, setActivated] = useState(false)
 
-  const play = () => {
-    setActivated(true)
-    window.setTimeout(() => {
-      videoRef.current?.play().catch(() => undefined)
-    }, 0)
-  }
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.muted = true
+    video.defaultMuted = true
+
+    const play = () => {
+      video.play().catch(() => undefined)
+    }
+
+    play()
+    video.addEventListener("canplay", play, { once: true })
+
+    return () => {
+      video.removeEventListener("canplay", play)
+    }
+  }, [src])
 
   return (
-    <>
-      <video
-        ref={videoRef}
-        className={className}
-        src={activated ? src : undefined}
-        poster={poster}
-        muted
-        loop
-        playsInline
-        preload="none"
-        controls={activated}
-        aria-label={label}
-      />
-      {!activated && (
-        <button
-          type="button"
-          onClick={play}
-          className="absolute bottom-4 right-4 z-10 inline-flex min-h-12 items-center justify-center gap-2 border border-white/20 bg-zinc-950/80 px-4 text-sm font-semibold text-white shadow-xl backdrop-blur transition hover:bg-zinc-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
-          aria-label={buttonLabel}
-        >
-          {buttonLabel}
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      )}
-    </>
+    <video
+      ref={videoRef}
+      className={className}
+      src={src}
+      poster={poster}
+      muted
+      autoPlay
+      loop
+      playsInline
+      preload="auto"
+      aria-label={label}
+      onLoadedData={(event) => {
+        event.currentTarget.play().catch(() => undefined)
+      }}
+    />
   )
 }
 
@@ -909,7 +908,6 @@ export function LandingPage() {
               src="/internetily_intro.mp4"
               poster="/internetily_intro_poster.webp"
               label="Internetily intro video"
-              buttonLabel="Play intro"
             />
             <div className="pointer-events-none absolute inset-0 bg-zinc-950/30" />
             <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-zinc-950/82 via-zinc-950/20 to-zinc-950/10" />
