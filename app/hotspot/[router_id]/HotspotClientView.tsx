@@ -428,7 +428,7 @@ async function phoneReconnect(data: {
       cache: 'no-store',
     },
     // 🔥 FIX: No retries for mutating endpoints - prevent duplicate reconnects
-    { timeoutMs: 8000, retries: 0, retryDelayMs: 0 }
+    { timeoutMs: 12000, retries: 0, retryDelayMs: 0 }
   )
   const json = await response.json()
   if (!response.ok) throw new Error(json.error || 'Could not connect')
