@@ -271,7 +271,10 @@ export default function FUPPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isLinkOpen, setIsLinkOpen] = useState(false)
   const [selectedPolicyForLink, setSelectedPolicyForLink] = useState<FupPolicyDto | null>(null)
-  
+
+  // ─── FIX 2a: track whether the sheet is editing an existing policy ───
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null)
+
   const [availablePlans, setAvailablePlans] = useState<FupAvailablePlansDto>({ billing_plans: [], hotspot_plans: [] })
   
   // Link State
@@ -382,14 +385,44 @@ export default function FUPPage() {
   ])
 
   // --- ACTIONS ---
-  const handleCreatePolicy = async () => {
+  // ─── FIX 2a: open the sheet pre-filled for editing ───
+  const openEditPolicy = (policy: FupPolicyDto) => {
+    setEditingPolicyId(policy.id)
+    setPolicyForm({
+      name: policy.name,
+      description: policy.description,
+      data_limit_gb: policy.data_limit_gb,
+      reset_period: policy.reset_period,
+      throttle_download_mbps: policy.throttle_download_mbps,
+      throttle_upload_mbps: policy.throttle_upload_mbps,
+      auto_enforce: policy.auto_enforce,
+      notify_on_violation: policy.notify_on_violation,
+      status: policy.status,
+      peak_hour_start: policy.peak_hour_start || "19:00",
+      peak_hour_end: policy.peak_hour_end || "22:00",
+    })
+    setIsCreateOpen(true)
+  }
+
+  // ─── FIX 2a: unified save handler (create OR update) ───
+  const handleSavePolicy = async () => {
     try {
-      await adminApi.createFupPolicy(policyForm)
-      toast({ title: "Success", description: "Policy created successfully." })
+      if (editingPolicyId) {
+        await adminApi.updateFupPolicy(editingPolicyId, policyForm)
+        toast({ title: "Success", description: "Policy updated successfully." })
+      } else {
+        await adminApi.createFupPolicy(policyForm)
+        toast({ title: "Success", description: "Policy created successfully." })
+      }
       setIsCreateOpen(false)
+      setEditingPolicyId(null)
       fetchAllData()
     } catch (error: any) {
-      toast({ title: "Failed to create policy", description: error.message, variant: "destructive" })
+      toast({
+        title: `Failed to ${editingPolicyId ? "update" : "create"} policy`,
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
@@ -547,14 +580,14 @@ export default function FUPPage() {
         className={`w-full rounded-lg border p-4 text-left transition-all duration-200 ${
           isSelected
             ? "border-primary bg-primary/10 shadow-sm"
-            : "border-slate-200 bg-white hover:border-primary/20 hover:bg-slate-50"
+            : "border-border bg-card hover:border-primary/30 hover:bg-muted/50"
         }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <Checkbox checked={isSelected} className="mt-0.5 pointer-events-none data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
             <div>
-              <p className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-slate-800"}`}>{plan.name}</p>
+              <p className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{plan.name}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {plan.already_linked && (
                   <Badge variant="outline" className="border-slate-300 text-slate-600">Previously linked</Badge>
@@ -568,12 +601,12 @@ export default function FUPPage() {
               </div>
             </div>
           </div>
-          <Badge className={active ? "bg-primary/15 text-primary hover:bg-primary/15" : "bg-slate-100 text-slate-600 hover:bg-slate-100"}>
+          <Badge className={active ? "bg-primary/15 text-primary hover:bg-primary/15" : "bg-muted text-muted-foreground hover:bg-muted"}>
             {active ? "active" : "inactive"}
           </Badge>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-700">
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-foreground/80">
           <div className="flex items-center gap-1.5">
             <DollarSign className="h-3.5 w-3.5 text-success" />
             <span>{formatPlanPrice(plan)}</span>
@@ -609,7 +642,7 @@ export default function FUPPage() {
       </div>
 
       {plans.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           {emptyMessage}
         </div>
       ) : (
@@ -633,7 +666,22 @@ export default function FUPPage() {
             Usage synced {lastSyncAgo !== null ? humanizeAgo(lastSyncAgo) : '—'}
           </span>
           <Button variant="outline" onClick={fetchAllData} disabled={isLoading} className="w-full sm:w-auto"><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
-          <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>
+          {/* ─── FIX 2a: reset edit state when "Create Policy" is clicked fresh ─── */}
+          <Button
+            onClick={() => {
+              setEditingPolicyId(null)
+              setPolicyForm({
+                name: "", description: "", data_limit_gb: 100, reset_period: "MONTHLY",
+                throttle_download_mbps: 2, throttle_upload_mbps: 1,
+                auto_enforce: true, notify_on_violation: true, status: "ACTIVE",
+                peak_hour_start: "19:00", peak_hour_end: "22:00",
+              })
+              setIsCreateOpen(true)
+            }}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Create Policy
+          </Button>
         </div>
       </div>
 
@@ -666,7 +714,7 @@ export default function FUPPage() {
               {isLoading ? (
                 <div className="p-4 text-center animate-pulse text-slate-500">Loading usage data...</div>
               ) : usageWindows.length === 0 ? (
-                <div className="p-4 text-center border rounded-lg bg-slate-50 text-slate-500">No users currently under FUP tracking.</div>
+                <div className="p-4 text-center border border-border rounded-lg bg-muted/30 text-muted-foreground">No users currently under FUP tracking.</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -737,7 +785,10 @@ export default function FUPPage() {
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openLinkDialog(policy)}><LinkIcon className="w-4 h-4 mr-2" /> Link Plans</DropdownMenuItem>
-                        <DropdownMenuItem><Edit className="w-4 h-4 mr-2" /> Edit Policy</DropdownMenuItem>
+                        {/* ─── FIX 2a: wire up the Edit Policy dropdown item ─── */}
+                        <DropdownMenuItem onClick={() => openEditPolicy(policy)}>
+                          <Edit className="w-4 h-4 mr-2" /> Edit Policy
+                        </DropdownMenuItem>
                         {policy.status === "ACTIVE" ? (
                           <DropdownMenuItem onClick={() => handleTogglePolicyStatus(policy)}><AlertTriangle className="w-4 h-4 mr-2" /> Deactivate</DropdownMenuItem>
                         ) : (
@@ -928,9 +979,18 @@ export default function FUPPage() {
       </Tabs>
 
       {/* CREATE POLICY SHEET */}
-      <Sheet open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader><SheetTitle>Create FUP Policy</SheetTitle><SheetDescription>Define limits and throttle speeds</SheetDescription></SheetHeader>
+      {/* ─── FIX 2a: open-state + title/description/button reflect edit mode ─── */}
+      <Sheet
+        open={isCreateOpen}
+        onOpenChange={(open) => { setIsCreateOpen(open); if (!open) setEditingPolicyId(null) }}
+      >
+        <SheetContent className="w-full sm:max-w-md bg-background text-foreground border-border">
+          <SheetHeader>
+            <SheetTitle>{editingPolicyId ? "Edit FUP Policy" : "Create FUP Policy"}</SheetTitle>
+            <SheetDescription>
+              {editingPolicyId ? "Update limits and throttle speeds" : "Define limits and throttle speeds"}
+            </SheetDescription>
+          </SheetHeader>
           <ScrollArea className="h-[calc(100vh-120px)] mt-4 pr-4">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -1085,8 +1145,9 @@ export default function FUPPage() {
                 </div>
               )}
 
-              <Button className="w-full mt-6" onClick={handleCreatePolicy}>
-                Save Policy
+              {/* ─── FIX 2a: button label reflects edit mode, calls unified save handler ─── */}
+              <Button className="w-full mt-6" onClick={handleSavePolicy}>
+                {editingPolicyId ? "Update Policy" : "Save Policy"}
               </Button>
             </div>
           </ScrollArea>
@@ -1095,8 +1156,8 @@ export default function FUPPage() {
 
       {/* LINK PLANS DIALOG */}
       <Dialog open={isLinkOpen} onOpenChange={setIsLinkOpen}>
-        <DialogContent className="w-[96vw] max-w-5xl p-0">
-          <DialogHeader className="border-b bg-slate-50 px-6 py-5">
+        <DialogContent className="w-[96vw] max-w-5xl p-0 bg-background text-foreground border-border">
+          <DialogHeader className="border-b border-border bg-muted/40 px-6 py-5">
             <DialogTitle>Attach Plans to {selectedPolicyForLink?.name || "Policy"}</DialogTitle>
             <DialogDescription>
               Select the internet plans that should be managed by this policy. Selected plans: {totalSelectedPlans}
@@ -1144,7 +1205,7 @@ export default function FUPPage() {
             </div>
           </ScrollArea>
 
-          <DialogFooter className="border-t bg-white px-6 py-4">
+          <DialogFooter className="border-t border-border bg-background px-6 py-4">
             <Button variant="outline" onClick={() => setIsLinkOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveLinks} disabled={pendingChangesCount === 0}>
               Save Links {pendingChangesCount > 0 ? `(${pendingChangesCount} changes)` : ""}

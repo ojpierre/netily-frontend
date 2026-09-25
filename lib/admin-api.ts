@@ -4817,6 +4817,14 @@ async activateService(
     })
   }
 
+  // ─── FIX: FUP Edit Policy — missing update method ───────────────
+  async updateFupPolicy(id: string, data: Record<string, any>): Promise<any> {
+    return this.request<any>(`/fup/policies/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
   async activateFupPolicy(id: string): Promise<any> {
     return this.request<any>(`/fup/policies/${id}/activate/`, { method: 'POST' })
   }
