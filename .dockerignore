@@ -1,5 +1,7 @@
 node_modules
+**/node_modules
 .next
+**/.next
 .vercel
 .git
 .gitignore
@@ -10,3 +12,4 @@ npm-debug.log*
 !.env.production
 Dockerfile
 .dockerignore
+shop-standalone-source
