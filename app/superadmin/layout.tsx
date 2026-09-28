@@ -32,6 +32,7 @@ import {
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
+import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -223,6 +224,7 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
           {children}
           <MjengoFooter />
         </main>
+        <SessionInactivityGuard onLogout={logout} areaLabel="superadmin dashboard" />
       </div>
     </div>
   )

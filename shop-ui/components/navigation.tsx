@@ -9,7 +9,6 @@ import { MiniCart } from "./mini-cart"
 import { useCart } from "@/shop-ui/lib/cart-context"
 
 export function Navigation() {
-  const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -21,14 +20,6 @@ export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
   const { itemCount } = useCart()
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 80)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
 
   useEffect(() => {
     setIsMenuOpen(false)
@@ -78,11 +69,10 @@ export function Navigation() {
     { href: "/shop/heritage", label: "About" },
   ]
 
-  // When scrolled: dark text on white bg. When at top: white text on transparent bg.
-  const navItemColor = isScrolled ? "text-foreground" : "text-white"
-  const navItemHoverColor = isScrolled ? "text-foreground/60 hover:text-foreground" : "text-white/70 hover:text-white"
-  const iconColor = isScrolled ? "text-foreground" : "text-white"
-  const logoColor = isScrolled ? "text-foreground" : "text-white"
+  const navItemColor = "text-foreground"
+  const navItemHoverColor = "text-foreground/60 hover:text-foreground"
+  const iconColor = "text-foreground"
+  const logoColor = "text-foreground"
 
   return (
     <>
@@ -90,12 +80,7 @@ export function Navigation() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          isScrolled
-            ? "bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-border"
-            : "bg-transparent"
-        }`}
-        style={isScrolled ? { boxShadow: "0 4px 24px rgba(0,0,0,0.08)" } : {}}
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border/70 bg-white/[0.92] text-foreground shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-500"
       >
         <nav className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="flex h-16 lg:h-20 items-center justify-between">
@@ -153,11 +138,7 @@ export function Navigation() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search devices..."
-                        className={`w-full bg-transparent border-b text-sm py-1 pr-2 outline-none transition-colors duration-500 ${
-                          isScrolled
-                            ? "border-foreground/30 text-foreground placeholder:text-foreground/50"
-                            : "border-white/30 text-white placeholder:text-white/50"
-                        }`}
+                        className="w-full bg-transparent border-b border-foreground/30 py-1 pr-2 text-sm text-foreground outline-none transition-colors duration-500 placeholder:text-foreground/50"
                       />
                     </motion.form>
                   )}
@@ -240,9 +221,7 @@ export function Navigation() {
                 <ShoppingBag className="h-5 w-5 stroke-[1.5]" />
                 {itemCount > 0 && (
                   <span
-                    className={`absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center transition-colors duration-500 rounded-none ${
-                      isScrolled ? "bg-foreground text-background" : "bg-white text-foreground"
-                    }`}
+                    className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center rounded-none bg-foreground text-background transition-colors duration-500"
                   >
                     {itemCount}
                   </span>

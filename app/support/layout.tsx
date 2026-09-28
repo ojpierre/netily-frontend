@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Headphones, LayoutDashboard, LogOut, Menu, ShieldCheck, Sparkles, UserPlus, X } from "lucide-react"
 import { SupportAuthProvider, useSupportAuth } from "./support-auth-context"
 import { Button } from "@/components/ui/button"
+import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 
 const navItems = [
   { name: "Dashboard", href: "/support/dashboard", icon: LayoutDashboard },
@@ -107,6 +108,7 @@ function SupportShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="min-h-[calc(100vh-4rem)] p-4 md:p-8">{children}</main>
       </div>
+      <SessionInactivityGuard onLogout={logout} areaLabel="support dashboard" />
     </div>
   )
 }

@@ -91,6 +91,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
 import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
+import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
 import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
 import { toast } from "sonner"                            // ← ADDED
@@ -1842,6 +1843,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </DialogContent>
             </Dialog>
           </>
+        )}
+        {user && !isPublicPage && (
+          <SessionInactivityGuard onLogout={logout} areaLabel="tenant dashboard" />
         )}
         <NetilySupportChat />
         <AdminOnboardingTour user={user} disabled={isDemoMode || isPublicPage || loading} />
