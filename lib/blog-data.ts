@@ -42,8 +42,10 @@ export interface BlogPost {
 
 import { operationsGuides } from "./blog-operations-guides"
 import { businessGrowthGuides } from "./blog-business-growth-guides"
+import { networkInfrastructureGuides } from "./blog-network-infrastructure-guides"
 
 export const blogPosts: BlogPost[] = [
+  ...networkInfrastructureGuides,
   ...businessGrowthGuides,
   ...operationsGuides,
   // ── Article 1: Buyer's Guide ──────────────────────────────────────────────

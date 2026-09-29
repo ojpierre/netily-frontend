@@ -6,13 +6,14 @@ import { blogPosts } from "@/lib/blog-data"
 import BlogLeadModal from "@/components/blog-lead-modal"
 
 export const metadata: Metadata = {
-  title: "ISP Billing Blog | Internetily",
+  title: "ISP Operations, Billing & Network Guides | Internetily",
   description:
-    "Expert guides on ISP billing software, MikroTik automation, M-Pesa integration, and ISP management for Kenya and East Africa.",
+    "Human, practical guides on ISP billing, TR-069, OLT management, AP mapping, MikroTik automation, M-Pesa workflows and ISP growth.",
   keywords: [
-    "WISP billing automation", "TR-069 SmartOLT guide", "self-care captive portal",
+    "WISP billing automation", "TR-069 ISP management", "OLT management software", "AP mapping software", "SmartOLT guide", "self-care captive portal",
     "ISP marketing ideas", "WISP business growth", "local ISP lead generation",
     "ISP customer retention", "ISP support automation", "internet provider advertising",
+    "CPE management software", "FTTH ISP management", "estate WiFi management", "start an ISP",
     "Centipid alternative", "ISPMAN alternative", "WISPMAN alternative", "Jasiyo alternative",
     "isp billing software kenya blog",
     "isp management guides kenya",
@@ -27,8 +28,8 @@ export const metadata: Metadata = {
     canonical: "https://netily.co.ke/blog",
   },
   openGraph: {
-    title: "ISP Billing & Management Blog | Internetily",
-    description: "Expert guides on ISP billing, MikroTik automation, and M-Pesa integration for Kenyan ISPs.",
+    title: "ISP Operations, Billing & Network Guides | Internetily",
+    description: "Practical guides on ISP billing, TR-069, OLT management, AP mapping, MikroTik automation and growth.",
     url: "https://netily.co.ke/blog",
     images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily Blog" }],
   },
@@ -59,10 +60,10 @@ export default function BlogPage() {
               <BookOpen className="h-4 w-4" />
               Internetily Blog
             </div>
-            <h1 className="text-4xl font-normal tracking-tight md:text-6xl">Guides for Kenyan ISP Owners</h1>
+            <h1 className="text-4xl font-normal tracking-tight md:text-6xl">Guides for ISP Owners and Operators</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">
-              In-depth guides on ISP billing software, MikroTik automation, M-Pesa integration, and growing your internet
-              service provider business in Kenya and East Africa.
+              In-depth guides on ISP billing, TR-069, OLT management, AP mapping, MikroTik automation, M-Pesa workflows,
+              support operations, and growing an internet provider with cleaner systems.
             </p>
           </div>
         </div>

@@ -1020,7 +1020,7 @@ export default function Page() {
     name: "Internetily ISP Blog",
     alternateName: "Netily ISP Blog",
     url: "https://netily.co.ke/blog",
-    description: "Expert guides on ISP billing software, MikroTik automation, and M-Pesa integration for Kenyan ISPs",
+    description: "Expert guides on ISP billing, TR-069, OLT management, AP mapping, MikroTik automation and ISP growth.",
     blogPost: blogPosts.map((post) => ({
       "@type": "BlogPosting",
       headline: post.title,

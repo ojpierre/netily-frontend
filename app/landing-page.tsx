@@ -1331,18 +1331,18 @@ export function LandingPage() {
             <div className="mb-12 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
                 <SectionLabel>Guides</SectionLabel>
-                <h2 className="mt-6 text-balance text-4xl font-normal md:text-5xl">ISP growth resources</h2>
+                <h2 className="mt-6 text-balance text-4xl font-normal md:text-5xl">ISP operations resources</h2>
               </div>
               <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-medium text-amber-400">
                 View all articles
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {blogPosts.slice(0, 3).map((post) => (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              {blogPosts.slice(0, 5).map((post) => (
                 <article key={post.slug} className="group border border-zinc-800 bg-zinc-950">
                   <div className="relative h-44 overflow-hidden border-b border-zinc-800">
-                    <Image src={post.coverImage} alt={post.coverImageAlt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-75 transition group-hover:scale-105" />
+                    <Image src={post.coverImage} alt={post.coverImageAlt} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 20vw" className="object-cover opacity-75 transition group-hover:scale-105" />
                     <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
                   </div>
                   <div className="p-5">
