@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { Search, ShoppingBag, Menu, X, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -64,9 +65,10 @@ export function Navigation() {
   }
 
   const navLinks = [
-    { href: "/shop", label: "Home" },
-    { href: "/shop/catalog", label: "Shop" },
-    { href: "/shop/heritage", label: "About" },
+    { href: "/shop", label: "Catalog" },
+    { href: "/shop/catalog?cat=Fiber+Optics+%26+OLT", label: "Fiber" },
+    { href: "/shop/catalog?cat=Routers+%26+Gateways", label: "Routers" },
+    { href: "/shop/catalog?cat=Wireless+%26+Backhaul", label: "Wireless" },
   ]
 
   const navItemColor = "text-foreground"
@@ -111,12 +113,16 @@ export function Navigation() {
             {/* Logo — centered luxury editorial */}
             <Link
               href="/shop"
-              className={`absolute left-1/2 -translate-x-1/2 flex flex-col items-center transition-colors duration-500 ${logoColor}`}
+              className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-colors duration-500 ${logoColor}`}
             >
-              <span className="font-serif text-xl lg:text-2xl tracking-[0.3em] uppercase leading-none">Netily Shop</span>
-              <span className="text-[0.6rem] tracking-[0.2em] uppercase font-light mt-1 text-inherit opacity-80">
-                Enterprise & Networking
-              </span>
+              <Image
+                src="/internetily-logo-320.webp"
+                alt="Internetily Shop"
+                width={160}
+                height={48}
+                priority
+                className="h-9 w-auto object-contain lg:h-11"
+              />
             </Link>
 
             {/* Right icons */}

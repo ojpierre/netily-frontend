@@ -1,16 +1,15 @@
+import { Suspense } from "react"
 import { Navigation } from "@/shop-ui/components/navigation"
-import { HeroSection } from "@/shop-ui/components/hero-section"
-import { CollectionGrid } from "@/shop-ui/components/collection-grid"
-import { HeritageSection } from "@/shop-ui/components/heritage-section"
 import { PremiumFooter } from "@/shop-ui/components/premium-footer"
+import { ShopCatalogExperience } from "@/shop-ui/components/shop-catalog-experience"
 
 export default function Home() {
   return (
     <main className="min-h-screen">
       <Navigation />
-      <HeroSection />
-      <CollectionGrid />
-      <HeritageSection />
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <ShopCatalogExperience />
+      </Suspense>
       <PremiumFooter />
     </main>
   )

@@ -24,11 +24,16 @@ import {
 } from "lucide-react"
 import {
   getStoredProducts,
+  getStoredOfferSlides,
+  addOfferSlide,
+  removeOfferSlide,
+  resetOfferSlidesToDefault,
   addProduct,
   removeProduct,
   resetProductsToDefault,
   categories,
-  type Product
+  type Product,
+  type ShopOfferSlide
 } from "@/shop-ui/lib/products"
 import { MOCK_ORDERS, type DjangoOrder } from "@/shop-ui/lib/django-api"
 import { toast } from "sonner"
@@ -43,13 +48,15 @@ const PRESET_IMAGES = [
 ]
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"products" | "add" | "orders" | "overview">("products")
+  const [activeTab, setActiveTab] = useState<"products" | "add" | "offers" | "orders" | "overview">("products")
   const [productsList, setProductsList] = useState<Product[]>([])
+  const [offerSlides, setOfferSlides] = useState<ShopOfferSlide[]>([])
   const [ordersList, setOrdersList] = useState<DjangoOrder[]>(MOCK_ORDERS)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [offerToDelete, setOfferToDelete] = useState<ShopOfferSlide | null>(null)
 
   // Form State for Adding Product
   const [formData, setFormData] = useState({
@@ -64,20 +71,38 @@ export default function AdminPage() {
     warranty: "2-Year Official Netily Warranty",
   })
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
+  const [offerForm, setOfferForm] = useState({
+    eyebrow: "",
+    badge: "",
+    title: "",
+    description: "",
+    image: "/shop-assets/shop_hero.png",
+    href: "/shop/catalog",
+    ctaLabel: "Shop now",
+  })
+  const [offerErrors, setOfferErrors] = useState<{ [key: string]: string }>({})
 
   // Initialize and synchronize products from localStorage
   useEffect(() => {
     setProductsList(getStoredProducts())
+    setOfferSlides(getStoredOfferSlides())
 
     const handleUpdate = () => {
       setProductsList(getStoredProducts())
     }
+    const handleOfferUpdate = () => {
+      setOfferSlides(getStoredOfferSlides())
+    }
 
     window.addEventListener("netily_products_updated", handleUpdate)
+    window.addEventListener("netily_shop_offers_updated", handleOfferUpdate)
     window.addEventListener("storage", handleUpdate)
+    window.addEventListener("storage", handleOfferUpdate)
     return () => {
       window.removeEventListener("netily_products_updated", handleUpdate)
+      window.removeEventListener("netily_shop_offers_updated", handleOfferUpdate)
       window.removeEventListener("storage", handleUpdate)
+      window.removeEventListener("storage", handleOfferUpdate)
     }
   }, [])
 
@@ -118,6 +143,57 @@ export default function AdminPage() {
     setProductsList(getStoredProducts())
     setShowResetConfirm(false)
     toast.success("Catalog reset to default items")
+  }
+
+  function handleCreateOffer(e: React.FormEvent) {
+    e.preventDefault()
+    const errors: { [key: string]: string } = {}
+    if (!offerForm.title.trim()) errors.title = "Add the main offer headline"
+    if (!offerForm.description.trim()) errors.description = "Add a short offer description"
+    if (!offerForm.image.trim()) errors.image = "Add an image path or URL"
+    if (!offerForm.href.trim()) errors.href = "Add a CTA destination"
+
+    if (Object.keys(errors).length) {
+      setOfferErrors(errors)
+      toast.error("Please complete the offer slide")
+      return
+    }
+
+    const created = addOfferSlide({
+      eyebrow: offerForm.eyebrow || "Shop offer",
+      badge: offerForm.badge,
+      title: offerForm.title,
+      description: offerForm.description,
+      image: offerForm.image,
+      href: offerForm.href,
+      ctaLabel: offerForm.ctaLabel || "Shop now",
+    })
+    setOfferSlides(getStoredOfferSlides())
+    toast.success(`Offer "${created.badge || created.eyebrow}" is live on the shop hero`)
+    setOfferForm({
+      eyebrow: "",
+      badge: "",
+      title: "",
+      description: "",
+      image: "/shop-assets/shop_hero.png",
+      href: "/shop/catalog",
+      ctaLabel: "Shop now",
+    })
+    setOfferErrors({})
+  }
+
+  function handleRemoveOffer() {
+    if (!offerToDelete) return
+    removeOfferSlide(offerToDelete.id)
+    setOfferSlides(getStoredOfferSlides())
+    toast.success("Offer slide removed")
+    setOfferToDelete(null)
+  }
+
+  function handleResetOffers() {
+    resetOfferSlidesToDefault()
+    setOfferSlides(getStoredOfferSlides())
+    toast.success("Offer slider restored to default artworks")
   }
 
   function handleCreateProduct(e: React.FormEvent) {
@@ -202,6 +278,7 @@ export default function AdminPage() {
           {[
             { id: "products", label: `Products (${productsList.length})` },
             { id: "add", label: "Add Product" },
+            { id: "offers", label: `Offers (${offerSlides.length})` },
             { id: "orders", label: `Orders (${ordersList.length})` },
             { id: "overview", label: "Overview" },
           ].map((tab) => (
@@ -639,6 +716,99 @@ export default function AdminPage() {
       {/* ────────────────────────────────────────────────────────────────────── */}
       {/* 3. ORDERS TAB */}
       {/* ────────────────────────────────────────────────────────────────────── */}
+      {activeTab === "offers" && (
+        <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
+          <div className="border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <div>
+                <h2 className="font-serif text-lg">Homepage Offer Slider</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">Slides shown at the top of /shop and /shop/catalog.</p>
+              </div>
+              <button onClick={handleResetOffers} className="flex items-center gap-2 border border-border px-3 py-2 text-[11px] uppercase tracking-wider hover:bg-muted">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset Offers
+              </button>
+            </div>
+
+            <div className="divide-y divide-border">
+              {offerSlides.map((slide) => (
+                <div key={slide.id} className="grid gap-4 p-4 md:grid-cols-[160px_1fr_auto] md:items-center">
+                  <div className="relative aspect-[16/10] overflow-hidden border border-border bg-muted">
+                    <Image src={slide.image || "/placeholder.svg"} alt={slide.title} fill className="object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-blue-600">{slide.badge || slide.eyebrow}</p>
+                    <h3 className="mt-1 text-base font-semibold leading-snug">{slide.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{slide.description}</p>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      CTA: <span className="text-foreground">{slide.ctaLabel}</span> · {slide.href}
+                    </p>
+                  </div>
+                  <button onClick={() => setOfferToDelete(slide)} className="justify-self-start border border-red-500/30 p-2 text-red-600 transition hover:bg-red-500/10 md:justify-self-end" title="Remove offer slide">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleCreateOffer} className="border border-border bg-card p-5">
+            <div className="mb-5">
+              <h3 className="font-serif text-lg">Add Offer Artwork</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Use a strong artwork image, short headline, and a CTA pointing to a category or product.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Eyebrow</label>
+                  <input value={offerForm.eyebrow} onChange={(e) => setOfferForm({ ...offerForm, eyebrow: e.target.value })} placeholder="FTTH rollout bundle" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Badge</label>
+                  <input value={offerForm.badge} onChange={(e) => setOfferForm({ ...offerForm, badge: e.target.value })} placeholder="Fiber offers" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Headline</label>
+                <input value={offerForm.title} onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })} placeholder="GPON OLTs, ONTs, drop cable, and test tools..." className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                {offerErrors.title && <p className="mt-1 text-[11px] text-red-600">{offerErrors.title}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Description</label>
+                <textarea rows={3} value={offerForm.description} onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })} placeholder="Describe the offer in one clear sentence..." className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                {offerErrors.description && <p className="mt-1 text-[11px] text-red-600">{offerErrors.description}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Artwork URL / Path</label>
+                <input value={offerForm.image} onChange={(e) => setOfferForm({ ...offerForm, image: e.target.value })} placeholder="/shop-assets/shop_hero.png" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                {offerErrors.image && <p className="mt-1 text-[11px] text-red-600">{offerErrors.image}</p>}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">CTA Label</label>
+                  <input value={offerForm.ctaLabel} onChange={(e) => setOfferForm({ ...offerForm, ctaLabel: e.target.value })} placeholder="Shop Fiber Gear" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">CTA Link</label>
+                  <input value={offerForm.href} onChange={(e) => setOfferForm({ ...offerForm, href: e.target.value })} placeholder="/shop/catalog?cat=Fiber+Optics+%26+OLT" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                  {offerErrors.href && <p className="mt-1 text-[11px] text-red-600">{offerErrors.href}</p>}
+                </div>
+              </div>
+
+              <button type="submit" className="flex w-full items-center justify-center gap-2 bg-blue-600 px-5 py-3 text-xs uppercase tracking-[0.15em] text-white transition hover:bg-blue-700">
+                <Plus className="h-3.5 w-3.5" />
+                Publish Offer Slide
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {activeTab === "orders" && (
         <div className="border border-border bg-card p-6">
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
@@ -890,6 +1060,28 @@ export default function AdminPage() {
       {/* ────────────────────────────────────────────────────────────────────── */}
       {/* CONFIRMATION MODAL: RESET CATALOG */}
       {/* ────────────────────────────────────────────────────────────────────── */}
+      {offerToDelete && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border p-6 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex items-center gap-3 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              <h3 className="font-serif text-lg text-foreground">Remove Offer Slide</h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Remove <strong className="text-foreground">"{offerToDelete.badge || offerToDelete.eyebrow}"</strong> from the shop hero slider?
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button onClick={() => setOfferToDelete(null)} className="px-4 py-2 text-xs uppercase tracking-wider border border-border hover:bg-muted transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleRemoveOffer} className="px-4 py-2 text-xs uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors">
+                Yes, Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border p-6 max-w-md w-full space-y-4 shadow-xl">

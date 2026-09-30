@@ -1258,16 +1258,136 @@ export const categories = [
   "Routers & Gateways",
   "Switches & PoE",
   "Fiber Optics & OLT",
+  "ONTs & Subscriber CPE",
   "Cabling & Infrastructure",
+  "Structured Cabling",
   "Wireless & Backhaul",
+  "Access Points & Wi-Fi",
+  "Surveillance & CCTV",
   "Racks & Power",
+  "Power Backup & UPS",
+  "Tools & Test Equipment",
+  "Servers & Mini PCs",
   "Laptops",
   "Phones",
   "Monitors",
-  "Accessories"
+  "Accessories",
 ]
 
 export const PRODUCTS_STORAGE_KEY = "netily_shop_products_catalog"
+
+export interface ShopOfferSlide {
+  id: string
+  title: string
+  eyebrow: string
+  description: string
+  image: string
+  ctaLabel: string
+  href: string
+  badge?: string
+}
+
+export const defaultOfferSlides: ShopOfferSlide[] = [
+  {
+    id: "fiber-rollout-offer",
+    eyebrow: "FTTH rollout bundle",
+    title: "GPON OLTs, ONTs, drop cable, and test tools in one clean order.",
+    description: "Build your next estate fiber rollout with verified hardware, dispatch support, and ISP-friendly recommendations.",
+    image: "/shop-assets/shop_hero.png",
+    ctaLabel: "Shop Fiber Gear",
+    href: "/shop/catalog?cat=Fiber+Optics+%26+OLT",
+    badge: "Fiber offers",
+  },
+  {
+    id: "tower-upgrade-offer",
+    eyebrow: "Tower and backhaul",
+    title: "Upgrade tower PoE, backhaul radios, and rack power before peak demand.",
+    description: "A practical bundle for WISPs adding sectors, repeaters, tower switches, and clean power protection.",
+    image: "/shop-assets/hero_bg.png",
+    ctaLabel: "Browse Backhaul",
+    href: "/shop/catalog?cat=Wireless+%26+Backhaul",
+    badge: "WISP ready",
+  },
+  {
+    id: "network-core-offer",
+    eyebrow: "Core network refresh",
+    title: "RouterOS edge routers and PoE switching for serious subscriber growth.",
+    description: "Choose MikroTik and carrier-grade switching for PPPoE, hotspot, CGNAT, and branch aggregation workloads.",
+    image: "/shop-assets/products/mikrotik_router.jpg",
+    ctaLabel: "View Core Deals",
+    href: "/shop/catalog?cat=Routers+%26+Gateways",
+    badge: "Core deals",
+  },
+]
+
+export const SHOP_OFFERS_STORAGE_KEY = "netily_shop_offer_slides"
+
+export function getStoredOfferSlides(): ShopOfferSlide[] {
+  if (typeof window === "undefined") {
+    return defaultOfferSlides
+  }
+  try {
+    const raw = window.localStorage.getItem(SHOP_OFFERS_STORAGE_KEY)
+    if (!raw) return defaultOfferSlides
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed
+    }
+    return defaultOfferSlides
+  } catch {
+    return defaultOfferSlides
+  }
+}
+
+export function saveStoredOfferSlides(list: ShopOfferSlide[]): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(SHOP_OFFERS_STORAGE_KEY, JSON.stringify(list))
+    window.dispatchEvent(new CustomEvent("netily_shop_offers_updated", { detail: list }))
+  } catch (error) {
+    console.error("Failed to save shop offers to localStorage", error)
+  }
+}
+
+export function addOfferSlide(newSlide: Omit<ShopOfferSlide, "id"> & { id?: string }): ShopOfferSlide {
+  const current = getStoredOfferSlides()
+  const baseSlug = newSlide.title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+  const created: ShopOfferSlide = {
+    id: newSlide.id || `${baseSlug || "offer"}-${Date.now().toString(36)}`,
+    eyebrow: newSlide.eyebrow.trim() || "Shop offer",
+    title: newSlide.title.trim(),
+    description: newSlide.description.trim(),
+    image: newSlide.image.trim() || "/shop-assets/shop_hero.png",
+    ctaLabel: newSlide.ctaLabel.trim() || "Shop now",
+    href: newSlide.href.trim() || "/shop/catalog",
+    badge: newSlide.badge?.trim() || "",
+  }
+  const updated = [created, ...current.filter((slide) => slide.id !== created.id)]
+  saveStoredOfferSlides(updated)
+  return created
+}
+
+export function removeOfferSlide(id: string): boolean {
+  const updated = getStoredOfferSlides().filter((slide) => slide.id !== id)
+  saveStoredOfferSlides(updated.length ? updated : defaultOfferSlides)
+  return true
+}
+
+export function resetOfferSlidesToDefault(): ShopOfferSlide[] {
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(SHOP_OFFERS_STORAGE_KEY)
+      window.dispatchEvent(new CustomEvent("netily_shop_offers_updated", { detail: defaultOfferSlides }))
+    } catch (error) {
+      console.error("Failed to reset shop offers", error)
+    }
+  }
+  return defaultOfferSlides
+}
 
 export function getStoredProducts(): Product[] {
   if (typeof window === "undefined") {
@@ -1402,4 +1522,3 @@ export function getRelatedProducts(currentId: string, limit = 4): Product[] {
 
   return [...sameCategory, ...others].slice(0, limit)
 }
-
