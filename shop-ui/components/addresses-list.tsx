@@ -123,7 +123,7 @@ export function AddressesList({ initialAddresses }: { initialAddresses: DjangoAd
                       value={newAddr.label}
                       onChange={(e) => setNewAddr({ ...newAddr, label: e.target.value })}
                       placeholder="Mombasa Fiber Hub"
-                      className="mt-1.5 rounded-none border-border"
+                      className="mt-1.5 rounded-xl border-border"
                     />
                   </div>
                   <div>
@@ -136,7 +136,7 @@ export function AddressesList({ initialAddresses }: { initialAddresses: DjangoAd
                       value={newAddr.name}
                       onChange={(e) => setNewAddr({ ...newAddr, name: e.target.value })}
                       placeholder="David Kimani (Field Lead)"
-                      className="mt-1.5 rounded-none border-border"
+                      className="mt-1.5 rounded-xl border-border"
                     />
                   </div>
                 </div>
@@ -151,7 +151,7 @@ export function AddressesList({ initialAddresses }: { initialAddresses: DjangoAd
                     value={newAddr.street}
                     onChange={(e) => setNewAddr({ ...newAddr, street: e.target.value })}
                     placeholder="Moi Avenue, Telecom Tower Enclosure Level 3"
-                    className="mt-1.5 rounded-none border-border"
+                    className="mt-1.5 rounded-xl border-border"
                   />
                 </div>
 
@@ -166,7 +166,7 @@ export function AddressesList({ initialAddresses }: { initialAddresses: DjangoAd
                       value={newAddr.city}
                       onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
                       placeholder="Mombasa"
-                      className="mt-1.5 rounded-none border-border"
+                      className="mt-1.5 rounded-xl border-border"
                     />
                   </div>
                   <div>
@@ -179,7 +179,7 @@ export function AddressesList({ initialAddresses }: { initialAddresses: DjangoAd
                       value={newAddr.phone}
                       onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
                       placeholder="+254 711 222 333"
-                      className="mt-1.5 rounded-none border-border"
+                      className="mt-1.5 rounded-xl border-border"
                     />
                   </div>
                   <div>
@@ -191,7 +191,7 @@ export function AddressesList({ initialAddresses }: { initialAddresses: DjangoAd
                       required
                       value={newAddr.country}
                       onChange={(e) => setNewAddr({ ...newAddr, country: e.target.value })}
-                      className="mt-1.5 rounded-none border-border"
+                      className="mt-1.5 rounded-xl border-border"
                     />
                   </div>
                 </div>

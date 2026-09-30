@@ -118,7 +118,7 @@ export default function LoginPage() {
                       <Input
                         placeholder="engineer@company.com"
                         type="email"
-                        className="rounded-none border-border"
+                        className="rounded-xl border-border"
                         {...field}
                       />
                     </FormControl>
@@ -146,7 +146,7 @@ export default function LoginPage() {
                     <FormControl>
                       <Input
                         type="password"
-                        className="rounded-none border-border"
+                        className="rounded-xl border-border"
                         {...field}
                       />
                     </FormControl>

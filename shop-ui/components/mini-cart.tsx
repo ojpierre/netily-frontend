@@ -35,7 +35,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.4, ease: "easeInOut" }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-background border-l border-border z-50 flex flex-col text-foreground shadow-2xl"
+            className="fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-background text-foreground shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
@@ -60,7 +60,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
             <div className="flex-1 overflow-y-auto p-6">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-16 h-16 bg-muted flex items-center justify-center mb-4 border border-border">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-muted">
                     <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
@@ -86,7 +86,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                       transition={{ duration: 0.3 }}
                       className="flex gap-4 border-b border-border/40 pb-4"
                     >
-                      <div className="w-20 h-24 bg-muted flex-shrink-0 relative overflow-hidden border border-border">
+                      <div className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
                         <Image
                           src={item.image || "/placeholder.svg"}
                           alt={item.name}
@@ -114,7 +114,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                           <p className="text-xs text-muted-foreground">{item.selectedColor}</p>
                         )}
                         <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center border border-border">
+                          <div className="flex items-center rounded-full border border-border">
                             <button
                               onClick={() => decrement(item.id)}
                               className="p-1.5 hover:bg-muted transition-colors"
@@ -151,7 +151,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                 </div>
                 <p className="text-xs text-muted-foreground">Shipping and taxes calculated at checkout</p>
                 <Link href="/shop/checkout" onClick={onClose}>
-                  <Button className="w-full py-6 text-sm tracking-[0.2em] uppercase rounded-none">
+                  <Button className="w-full rounded-2xl py-6 text-sm uppercase">
                     Proceed to Checkout
                   </Button>
                 </Link>

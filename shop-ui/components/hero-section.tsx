@@ -120,7 +120,7 @@ export function HeroSection() {
                 <Link href={slide.primaryCta.href}>
                   <Button
                     size="lg"
-                    className="bg-white text-foreground hover:bg-white/90 px-10 py-6 text-sm tracking-[0.2em] uppercase rounded-none group"
+                    className="group rounded-full bg-white px-10 py-6 text-sm uppercase text-foreground hover:bg-white/90"
                   >
                     {slide.primaryCta.label}
                     <ArrowRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -132,7 +132,7 @@ export function HeroSection() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-transparent border border-white text-white hover:bg-white/10 px-10 py-6 text-sm tracking-[0.2em] uppercase rounded-none"
+                    className="rounded-full border border-white bg-transparent px-10 py-6 text-sm uppercase text-white hover:bg-white/10"
                   >
                     {slide.secondaryCta.label}
                   </Button>

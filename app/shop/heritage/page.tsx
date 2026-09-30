@@ -195,7 +195,7 @@ export function HeritagePage() {
             <Link href="/shop/catalog">
               <Button
                 size="lg"
-                className="bg-foreground text-background hover:bg-foreground/90 px-10 py-6 text-sm tracking-[0.2em] uppercase rounded-none"
+                className="rounded-full bg-foreground px-10 py-6 text-sm uppercase text-background hover:bg-foreground/90"
               >
                 Browse Equipment Collection
                 <ArrowRight className="ml-3 h-4 w-4" />

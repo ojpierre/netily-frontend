@@ -34,7 +34,7 @@ export function ProfileForm({ user }: { user: DjangoUserProfile }) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="p-4 border border-border bg-muted/20 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 border border-border bg-foreground text-background font-serif text-sm flex items-center justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-foreground font-serif text-sm text-background">
             {profile.name.split(" ").map((n) => n[0]).join("")}
           </div>
           <div>
@@ -57,7 +57,7 @@ export function ProfileForm({ user }: { user: DjangoUserProfile }) {
             value={profile.name}
             onChange={(e) => setProfile({ ...profile, name: e.target.value })}
             required
-            className="mt-1.5 rounded-none border-border"
+            className="mt-1.5 rounded-xl border-border"
           />
         </div>
 
@@ -70,7 +70,7 @@ export function ProfileForm({ user }: { user: DjangoUserProfile }) {
             value={profile.company}
             onChange={(e) => setProfile({ ...profile, company: e.target.value })}
             required
-            className="mt-1.5 rounded-none border-border"
+            className="mt-1.5 rounded-xl border-border"
           />
         </div>
 
@@ -84,7 +84,7 @@ export function ProfileForm({ user }: { user: DjangoUserProfile }) {
             value={profile.email}
             onChange={(e) => setProfile({ ...profile, email: e.target.value })}
             required
-            className="mt-1.5 rounded-none border-border"
+            className="mt-1.5 rounded-xl border-border"
           />
         </div>
 
@@ -96,7 +96,7 @@ export function ProfileForm({ user }: { user: DjangoUserProfile }) {
             id="phone"
             value={profile.phone}
             onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-            className="mt-1.5 rounded-none border-border"
+            className="mt-1.5 rounded-xl border-border"
           />
         </div>
       </div>

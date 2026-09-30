@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowRight, CheckCircle2, Search, SlidersHorizontal, Truck } from "lucide-react"
+import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Search, SlidersHorizontal, Truck } from "lucide-react"
 import {
   categories,
   getStoredOfferSlides,
@@ -101,88 +101,129 @@ export function ShopCatalogExperience() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-[#06183b] pt-20 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(27,94,255,0.42),transparent_36%),linear-gradient(135deg,#06183b_0%,#0a2e69_52%,#08111f_100%)]" />
-        <div className="relative mx-auto grid min-h-[620px] max-w-7xl items-center gap-10 px-6 py-12 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-16">
-          <div className="max-w-2xl">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentOffer?.id}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -18 }}
-                transition={{ duration: 0.45 }}
-              >
-                <span className="mb-5 inline-flex items-center border border-white/20 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/80 backdrop-blur">
-                  {currentOffer?.badge || "Internetily shop"}
-                </span>
-                <p className="mb-4 text-sm uppercase tracking-[0.28em] text-[#8ec5ff]">{currentOffer?.eyebrow}</p>
-                <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.02em] md:text-6xl">
-                  {currentOffer?.title}
-                </h1>
-                <p className="mt-6 max-w-xl text-base leading-8 text-white/76 md:text-lg">{currentOffer?.description}</p>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href={currentOffer?.href || "/shop/catalog"}
-                    className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#1b5eff] px-6 text-sm font-semibold text-white transition hover:bg-[#0f48d8]"
-                  >
-                    {currentOffer?.ctaLabel || "Shop offers"}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="#catalog"
-                    className="inline-flex min-h-12 items-center justify-center border border-white/25 px-6 text-sm font-semibold text-white transition hover:bg-white/10"
-                  >
-                    Browse catalog
-                  </Link>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-            <div className="mt-10 flex items-center gap-3">
-              {offers.map((offer, index) => (
-                <button
-                  key={offer.id}
-                  type="button"
-                  onClick={() => setActiveSlide(index)}
-                  aria-label={`Show offer ${index + 1}`}
-                  className={`h-1.5 rounded-full transition-all ${index === activeSlide ? "w-12 bg-white" : "w-5 bg-white/35"}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="relative min-h-[420px] overflow-hidden border border-white/15 bg-white/8 shadow-2xl shadow-black/25">
+      <section className="relative flex min-h-screen items-end overflow-hidden bg-foreground text-white">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentOffer?.id || "shop-offer"}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.05, ease: "easeInOut" }}
+            className="absolute inset-0"
+          >
             {currentOffer && (
               <Image
                 src={currentOffer.image}
                 alt={currentOffer.title}
                 fill
                 priority
-                sizes="(max-width: 1024px) 100vw, 52vw"
+                sizes="100vw"
                 className="object-cover"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#06183b]/85 via-transparent to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 grid gap-3 sm:grid-cols-3">
-              {[
-                ["Verified", "Hardware checked"],
-                ["Dispatch", "Regional delivery"],
-                ["Support", "ISP-ready advice"],
-              ].map(([title, copy]) => (
-                <div key={title} className="border border-white/15 bg-black/25 p-3 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em]">{title}</p>
-                  <p className="mt-1 text-xs text-white/70">{copy}</p>
-                </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/32 to-black/82" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_78%,rgba(27,94,255,0.28),transparent_34%)]" />
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-end px-6 pb-28 pt-32 lg:px-8 lg:pb-36">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentOffer?.id || "shop-copy"}
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.75, delay: 0.15, ease: "easeOut" }}
+              className="max-w-3xl"
+            >
+              <span className="mb-5 inline-flex rounded-full border border-white/18 bg-white/12 px-4 py-2 text-[11px] font-semibold uppercase text-white/78 backdrop-blur">
+                {currentOffer?.badge || "Internetily shop"}
+              </span>
+              <p className="mb-5 text-xs font-semibold uppercase text-[#8ec5ff]">{currentOffer?.eyebrow}</p>
+              <h1 className="max-w-4xl whitespace-pre-line font-serif text-5xl leading-[1.05] text-white md:text-6xl lg:text-8xl">
+                {currentOffer?.title || "ISP hardware ready for the field"}
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-8 text-white/80 lg:text-xl">
+                {currentOffer?.description ||
+                  "Shop routers, fiber tools, wireless backhaul, PoE switches, and deployment gear curated for growing network operators."}
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={currentOffer?.href || "/shop/catalog"}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-sm font-semibold uppercase text-foreground transition hover:bg-white/90"
+                >
+                  {currentOffer?.ctaLabel || "Shop offers"}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="#catalog"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/35 bg-white/8 px-8 text-sm font-semibold uppercase text-white backdrop-blur transition hover:bg-white/14"
+                >
+                  Browse catalog
+                </Link>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {offers.length > 1 && (
+          <div className="absolute bottom-8 right-6 z-20 flex items-center gap-5 lg:right-20">
+            <div className="flex items-center gap-2">
+              {offers.map((offer, index) => (
+                <button
+                  key={offer.id}
+                  type="button"
+                  onClick={() => setActiveSlide(index)}
+                  aria-label={`Show offer ${index + 1}`}
+                  className="py-2 focus:outline-none"
+                >
+                  <span
+                    className={`block h-1.5 rounded-full transition-all duration-500 ${
+                      index === activeSlide ? "w-10 bg-white" : "w-4 bg-white/42 hover:bg-white/70"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
+            <div className="flex items-center gap-2 border-l border-white/22 pl-5">
+              <button
+                type="button"
+                onClick={() => setActiveSlide((current) => (current - 1 + offers.length) % offers.length)}
+                aria-label="Previous shop offer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/18 bg-white/10 text-white/75 backdrop-blur transition hover:bg-white/18 hover:text-white"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSlide((current) => (current + 1) % offers.length)}
+                aria-label="Next shop offer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/18 bg-white/10 text-white/75 backdrop-blur transition hover:bg-white/18 hover:text-white"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 1 }}
+          className="pointer-events-none absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 md:block"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            className="h-12 w-px bg-white/50"
+          />
+        </motion.div>
       </section>
 
       <section id="catalog" className="bg-background py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mb-8 grid gap-6 lg:grid-cols-[280px_1fr]">
-            <aside className="border border-border bg-white p-4 shadow-sm lg:sticky lg:top-24 lg:self-start">
+            <aside className="rounded-2xl border border-border bg-white p-4 shadow-sm lg:sticky lg:top-24 lg:self-start">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
                 <SlidersHorizontal className="h-4 w-4 text-[#1b5eff]" />
                 Catalog filters
@@ -196,7 +237,7 @@ export function ShopCatalogExperience() {
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       placeholder="Search routers, OLTs, cable..."
-                      className="h-11 w-full border border-border bg-muted/30 pl-9 pr-3 text-sm outline-none transition focus:border-[#1b5eff]"
+                      className="h-11 w-full rounded-xl border border-border bg-muted/30 pl-9 pr-3 text-sm outline-none transition focus:border-[#1b5eff]"
                     />
                   </div>
                 </div>
@@ -209,7 +250,7 @@ export function ShopCatalogExperience() {
                         key={category}
                         type="button"
                         onClick={() => setActiveCategory(category)}
-                        className={`flex min-h-10 items-center justify-between border px-3 text-left text-xs font-medium transition ${
+                        className={`flex min-h-10 items-center justify-between rounded-xl border px-3 text-left text-xs font-medium transition ${
                           activeCategory === category
                             ? "border-[#1b5eff] bg-[#1b5eff] text-white"
                             : "border-border bg-white text-foreground hover:border-[#1b5eff]/50 hover:bg-[#f2f6ff]"
@@ -225,7 +266,7 @@ export function ShopCatalogExperience() {
                   <select
                     value={stockFilter}
                     onChange={(event) => setStockFilter(event.target.value as (typeof stockFilters)[number])}
-                    className="h-10 border border-border bg-muted/30 px-3 text-xs outline-none focus:border-[#1b5eff]"
+                    className="h-10 rounded-xl border border-border bg-muted/30 px-3 text-xs outline-none focus:border-[#1b5eff]"
                     aria-label="Stock filter"
                   >
                     {stockFilters.map((filter) => (
@@ -235,7 +276,7 @@ export function ShopCatalogExperience() {
                   <select
                     value={sortBy}
                     onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-                    className="h-10 border border-border bg-muted/30 px-3 text-xs outline-none focus:border-[#1b5eff]"
+                    className="h-10 rounded-xl border border-border bg-muted/30 px-3 text-xs outline-none focus:border-[#1b5eff]"
                     aria-label="Sort products"
                   >
                     <option value="featured">Featured</option>
@@ -250,7 +291,7 @@ export function ShopCatalogExperience() {
               <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-[#1b5eff]">Shop catalog</p>
-                  <h2 className="mt-1 text-3xl font-semibold tracking-[-0.02em]">ISP hardware, ready for deployment</h2>
+                  <h2 className="mt-1 text-3xl font-semibold">ISP hardware, ready for deployment</h2>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredProducts.length} of {products.length} items
@@ -270,9 +311,9 @@ export function ShopCatalogExperience() {
                     <Link
                       key={product.id}
                       href={`/shop/product/${product.id}`}
-                      className="group border border-border bg-white p-3 transition hover:-translate-y-1 hover:border-[#1b5eff]/60 hover:shadow-xl hover:shadow-[#1b5eff]/10"
+                      className="group rounded-2xl border border-border bg-white p-3 transition hover:-translate-y-1 hover:border-[#1b5eff]/60 hover:shadow-xl hover:shadow-[#1b5eff]/10"
                     >
-                      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
                         <Image
                           src={product.image || "/placeholder.svg"}
                           alt={product.name}
@@ -280,7 +321,7 @@ export function ShopCatalogExperience() {
                           sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                           className="object-cover transition duration-700 group-hover:scale-105"
                         />
-                        <div className="absolute left-3 top-3 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1b5eff]">
+                        <div className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase text-[#1b5eff]">
                           {product.brand || "Netily"}
                         </div>
                       </div>
@@ -307,7 +348,7 @@ export function ShopCatalogExperience() {
               </AnimatePresence>
 
               {filteredProducts.length === 0 && (
-                <div className="border border-border bg-white p-10 text-center">
+                <div className="rounded-2xl border border-border bg-white p-10 text-center">
                   <h3 className="text-xl font-semibold">No matching products</h3>
                   <p className="mt-2 text-sm text-muted-foreground">Try another category, search term, or stock filter.</p>
                   <button
@@ -317,7 +358,7 @@ export function ShopCatalogExperience() {
                       setSearchTerm("")
                       setStockFilter("All Stock")
                     }}
-                    className="mt-5 min-h-11 bg-[#1b5eff] px-5 text-sm font-semibold text-white"
+                    className="mt-5 min-h-11 rounded-full bg-[#1b5eff] px-5 text-sm font-semibold text-white"
                   >
                     Reset filters
                   </button>
@@ -326,7 +367,7 @@ export function ShopCatalogExperience() {
             </div>
           </div>
 
-          <div className="grid gap-3 border border-[#1b5eff]/20 bg-[#f3f7ff] p-4 text-sm text-[#12336e] md:grid-cols-3">
+          <div className="grid rounded-2xl border border-[#1b5eff]/20 bg-[#f3f7ff] p-4 text-sm text-[#12336e] md:grid-cols-3">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-[#1b5eff]" />
               Genuine hardware verification

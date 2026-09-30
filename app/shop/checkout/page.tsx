@@ -274,7 +274,7 @@ export default function CheckoutPage() {
                         required
                         value={form.company}
                         onChange={handleFormChange}
-                        className="mt-1.5 rounded-none border-border"
+                        className="mt-1.5 rounded-xl border-border"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -287,7 +287,7 @@ export default function CheckoutPage() {
                           required
                           value={form.firstName}
                           onChange={handleFormChange}
-                          className="mt-1.5 rounded-none border-border"
+                          className="mt-1.5 rounded-xl border-border"
                         />
                       </div>
                       <div>
@@ -299,7 +299,7 @@ export default function CheckoutPage() {
                           required
                           value={form.lastName}
                           onChange={handleFormChange}
-                          className="mt-1.5 rounded-none border-border"
+                          className="mt-1.5 rounded-xl border-border"
                         />
                       </div>
                     </div>
@@ -314,7 +314,7 @@ export default function CheckoutPage() {
                           required
                           value={form.email}
                           onChange={handleFormChange}
-                          className="mt-1.5 rounded-none border-border"
+                          className="mt-1.5 rounded-xl border-border"
                         />
                       </div>
                       <div>
@@ -327,7 +327,7 @@ export default function CheckoutPage() {
                           required
                           value={form.phone}
                           onChange={handleFormChange}
-                          className="mt-1.5 rounded-none border-border"
+                          className="mt-1.5 rounded-xl border-border"
                         />
                       </div>
                     </div>
@@ -345,7 +345,7 @@ export default function CheckoutPage() {
                         required
                         value={form.address}
                         onChange={handleFormChange}
-                        className="mt-1.5 rounded-none border-border"
+                        className="mt-1.5 rounded-xl border-border"
                       />
                     </div>
                     <div>
@@ -356,7 +356,7 @@ export default function CheckoutPage() {
                         id="apartment"
                         value={form.apartment}
                         onChange={handleFormChange}
-                        className="mt-1.5 rounded-none border-border"
+                        className="mt-1.5 rounded-xl border-border"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -369,7 +369,7 @@ export default function CheckoutPage() {
                           required
                           value={form.city}
                           onChange={handleFormChange}
-                          className="mt-1.5 rounded-none border-border"
+                          className="mt-1.5 rounded-xl border-border"
                         />
                       </div>
                       <div>
@@ -381,7 +381,7 @@ export default function CheckoutPage() {
                           required
                           value={form.country}
                           onChange={handleFormChange}
-                          className="mt-1.5 rounded-none border-border"
+                          className="mt-1.5 rounded-xl border-border"
                         />
                       </div>
                     </div>

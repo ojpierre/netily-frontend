@@ -118,7 +118,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
             {/* Clean Hardware Specs Sheet (if present) */}
             {p.specsSheet && Object.keys(p.specsSheet).length > 0 && (
-              <div className="border border-border p-6 bg-card">
+              <div className="rounded-2xl border border-border bg-card p-6">
                 <h3 className="font-serif text-lg mb-4 pb-2 border-b border-border">
                   Technical Specifications
                 </h3>
@@ -174,7 +174,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             {/* Add to Bag */}
             <motion.button
               onClick={handleAddToCart}
-              className={`w-full py-4 text-sm tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 rounded-none ${
+              className={`flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-sm uppercase transition-all duration-300 ${
                 addedToCart
                   ? "bg-emerald-700 text-white"
                   : "bg-foreground text-background hover:bg-foreground/90"
@@ -215,7 +215,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 "Same-Day Dispatch",
                 "100% Genuine",
               ].map((badge) => (
-                <div key={badge} className="border border-border p-2.5 rounded-none">
+                <div key={badge} className="rounded-2xl border border-border p-2.5">
                   <p className="text-xs text-muted-foreground tracking-wider uppercase text-[10px]">{badge}</p>
                 </div>
               ))}

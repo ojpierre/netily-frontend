@@ -227,7 +227,7 @@ export function Navigation() {
                 <ShoppingBag className="h-5 w-5 stroke-[1.5]" />
                 {itemCount > 0 && (
                   <span
-                    className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center rounded-none bg-foreground text-background transition-colors duration-500"
+                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[10px] text-background transition-colors duration-500"
                   >
                     {itemCount}
                   </span>

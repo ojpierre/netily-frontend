@@ -42,7 +42,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     "--border": "#e5e5e5",
     "--input": "#e5e5e5",
     "--ring": "#6b7280",
-    "--radius": "0rem",
+    "--radius": "1rem",
   } as React.CSSProperties
 
   return (

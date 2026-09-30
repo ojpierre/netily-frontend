@@ -96,7 +96,7 @@ export default function RegisterPage() {
                     <FormControl>
                       <Input
                         placeholder="Alex Mercer"
-                        className="rounded-none border-border"
+                        className="rounded-xl border-border"
                         {...field}
                       />
                     </FormControl>
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                     <FormControl>
                       <Input
                         placeholder="Apex Telecom Ltd"
-                        className="rounded-none border-border"
+                        className="rounded-xl border-border"
                         {...field}
                       />
                     </FormControl>
@@ -137,7 +137,7 @@ export default function RegisterPage() {
                       <Input
                         placeholder="alex@company.com"
                         type="email"
-                        className="rounded-none border-border"
+                        className="rounded-xl border-border"
                         {...field}
                       />
                     </FormControl>
@@ -157,7 +157,7 @@ export default function RegisterPage() {
                     <FormControl>
                       <Input
                         type="password"
-                        className="rounded-none border-border"
+                        className="rounded-xl border-border"
                         {...field}
                       />
                     </FormControl>
