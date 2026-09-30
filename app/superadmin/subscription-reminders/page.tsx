@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { BellRing, CalendarClock, Loader2, MessageSquareText, Save, Send, Users, Wallet } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,8 @@ const TEMPLATE_PRESETS = [
       "Hi {admin_name}, your Netily subscription for {company_name} has expired. Please open Admin > Subscription and renew to restore full access.",
   },
 ]
+
+const LOG_PAGE_SIZE = 20
 
 function reminderMilestoneLabel(milestone: string) {
   if (milestone.startsWith("manual-")) return "Manual reminder"
@@ -80,6 +82,9 @@ export default function SubscriptionRemindersPage() {
   const [content, setContent] = useState("")
   const [balance, setBalance] = useState<SubscriptionReminderBalanceSummary | null>(null)
   const [logs, setLogs] = useState<SubscriptionReminderLogEntry[]>([])
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsTotal, setLogsTotal] = useState(0)
+  const [logsLoadingMore, setLogsLoadingMore] = useState(false)
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [selectedTenantId, setSelectedTenantId] = useState("")
   const [manualChannels, setManualChannels] = useState<ReminderChannel[]>(["sms"])
@@ -89,6 +94,26 @@ export default function SubscriptionRemindersPage() {
   const [manualSending, setManualSending] = useState(false)
   const providerDisplay = providerBalanceDisplay(balance)
   const platformWallet = balance?.platform_wallet
+  const logsSentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const applyLogPage = useCallback((results: SubscriptionReminderLogEntry[], append: boolean) => {
+    setLogs((current) => {
+      if (!append) return results
+      const seen = new Set(current.map((log) => log.id))
+      return [...current, ...results.filter((log) => !seen.has(log.id))]
+    })
+  }, [])
+
+  const loadLogsPage = useCallback(async (page = 1, append = false) => {
+    const response = await superadminApi.getSubscriptionReminderLogs({
+      page: String(page),
+      page_size: String(LOG_PAGE_SIZE),
+    })
+    applyLogPage(response.results || [], append)
+    setLogsPage(response.page || page)
+    setLogsTotal(response.count || 0)
+    return response
+  }, [applyLogPage])
 
   const load = async () => {
     setLoading(true)
@@ -96,7 +121,7 @@ export default function SubscriptionRemindersPage() {
       const [tplRes, balRes, logRes, tenantRes] = await Promise.allSettled([
         superadminApi.getSubscriptionReminderTemplate(),
         superadminApi.getSubscriptionReminderBalance(),
-        superadminApi.getSubscriptionReminderLogs({ page_size: "20" }),
+        superadminApi.getSubscriptionReminderLogs({ page: "1", page_size: String(LOG_PAGE_SIZE) }),
         superadminApi.getTenants({ page_size: "500" }),
       ])
 
@@ -110,9 +135,13 @@ export default function SubscriptionRemindersPage() {
         setBalance({ success: false, balance: 0, error: balRes.reason?.message || "Could not load balance" })
       }
       if (logRes.status === "fulfilled") {
-        setLogs(logRes.value.results)
+        applyLogPage(logRes.value.results || [], false)
+        setLogsPage(logRes.value.page || 1)
+        setLogsTotal(logRes.value.count || 0)
       } else {
         setLogs([])
+        setLogsPage(1)
+        setLogsTotal(0)
       }
       if (tenantRes.status === "fulfilled") {
         const rows = Array.isArray(tenantRes.value) ? tenantRes.value : []
@@ -142,6 +171,32 @@ export default function SubscriptionRemindersPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  const loadMoreLogs = useCallback(async () => {
+    if (logsLoadingMore || logs.length >= logsTotal) return
+    setLogsLoadingMore(true)
+    try {
+      await loadLogsPage(logsPage + 1, true)
+    } catch (err: any) {
+      toast.error(err.message || "Could not load more reminders")
+    } finally {
+      setLogsLoadingMore(false)
+    }
+  }, [loadLogsPage, logs.length, logsLoadingMore, logsPage, logsTotal])
+
+  useEffect(() => {
+    const node = logsSentinelRef.current
+    if (!node || logs.length >= logsTotal) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreLogs()
+      },
+      { rootMargin: "240px" },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [loadMoreLogs, logs.length, logsTotal])
 
   const save = async () => {
     setSaving(true)
@@ -411,6 +466,18 @@ export default function SubscriptionRemindersPage() {
                 </Badge>
               </div>
             ))}
+            <div ref={logsSentinelRef} className="flex min-h-10 items-center justify-center pt-2 text-xs text-slate-500">
+              {logsLoadingMore ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading more reminders
+                </span>
+              ) : logs.length > 0 && logs.length >= logsTotal ? (
+                <span>All reminder history loaded</span>
+              ) : logs.length > 0 ? (
+                <span>Scroll to load more</span>
+              ) : null}
+            </div>
           </div>
         </CardContent>
       </Card>

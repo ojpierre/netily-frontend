@@ -26,15 +26,31 @@ const kes = (amount: number | string) =>
     style: "currency", currency: "KES", maximumFractionDigits: 0,
   }).format(Number(amount))
 
+const getInvoiceItemsTotal = (inv: Invoice) => {
+  const items = Array.isArray((inv as any)?.items) ? (inv as any).items : []
+  return items.reduce((sum: number, item: any) => sum + Number(item?.total || 0), 0)
+}
+
+const getInvoiceEffectiveTotal = (inv: Invoice) => {
+  const invoiceTotal = Number((inv as any)?.total_amount || (inv as any)?.amount || 0)
+  const itemsTotal = getInvoiceItemsTotal(inv)
+  const tax = Number((inv as any)?.tax_amount || 0)
+  const discount = Number((inv as any)?.discount_amount || 0)
+  const itemDerivedTotal = Math.max(itemsTotal + tax - discount, 0)
+  return Math.max(invoiceTotal, itemDerivedTotal)
+}
+
 const getInvoiceBalance = (inv: Invoice) => {
   const explicitBalance = (inv as any).balance_due ?? (inv as any).balance ?? (inv as any).invoice_balance
+  const effectiveTotal = getInvoiceEffectiveTotal(inv)
+  const paid = Number(inv.amount_paid || (inv as any).invoice_amount_paid || 0)
+  const calculatedBalance = Math.max(effectiveTotal - paid, 0)
+
   if (explicitBalance !== undefined && explicitBalance !== null && explicitBalance !== "") {
-    return Number(explicitBalance || 0)
+    return Math.max(Number(explicitBalance || 0), calculatedBalance)
   }
 
-  const total = Number(inv.total_amount || 0)
-  const paid = Number(inv.amount_paid || (inv as any).invoice_amount_paid || 0)
-  return Math.max(total - paid, 0)
+  return calculatedBalance
 }
 
 const isInvoicePaid = (inv: Invoice) => {
@@ -315,6 +331,7 @@ function BillingContent() {
   // Client-side PDF generation via print window
   const handleDownloadPDF = (inv: Invoice) => {
     const billingDate = (inv as any).billing_date || inv.invoice_date
+    const effectiveTotal = getInvoiceEffectiveTotal(inv)
     const w = window.open('', '_blank')
     if (!w) { toast.error("Please allow pop-ups to download PDF"); return }
     w.document.write(`<html><head><title>Invoice ${inv.invoice_number}</title>
@@ -324,7 +341,7 @@ function BillingContent() {
 <p>Status: <span class="badge ${inv.status === 'paid' ? 'paid' : 'pending'}">${(inv.status || 'pending').toUpperCase()}</span></p>
 <table><thead><tr><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>
 ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}</td><td style="text-align:right">KES ${Number(item.total || 0).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;color:#999;padding:24px">Platform subscription fee</td></tr>'}
-</tbody></table><div class="total">Total: KES ${Number(inv.total_amount || 0).toLocaleString()}</div>
+</tbody></table><div class="total">Total: KES ${Number(effectiveTotal || 0).toLocaleString()}</div>
 </body></html>`)
     w.document.close()
     setTimeout(() => w.print(), 300)
@@ -338,7 +355,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       return
     }
     const inv = invoices.find(i => i.id === invoiceId)
-    const invoiceAmount = inv ? getInvoiceBalance(inv) || Number(inv.total_amount) : 0
+    const invoiceAmount = inv ? getInvoiceBalance(inv) || getInvoiceEffectiveTotal(inv) : 0
     if (!invoiceAmount) {
       toast.error("Could not determine invoice amount")
       return
@@ -741,7 +758,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                               'Monthly Service'
                             )}
                           </TableCell>
-                          <TableCell className="font-bold text-foreground">{kes(inv?.total_amount || 0)}</TableCell>
+                          <TableCell className="font-bold text-foreground">{kes(getInvoiceEffectiveTotal(inv))}</TableCell>
                           <TableCell>
                             <Badge 
                               variant={isInvoicePaid(inv) ? 'default' : 'destructive'}
@@ -789,7 +806,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                                   )}
                                   <div className="mt-6 flex justify-between items-center border-t pt-4">
                                     <span className="font-bold uppercase text-xs tracking-widest text-slate-500">Total Due</span>
-                                    <span className="font-black text-xl text-primary">{kes(inv?.total_amount || 0)}</span>
+                                    <span className="font-black text-xl text-primary">{kes(getInvoiceEffectiveTotal(inv))}</span>
                                   </div>
                                 </div>
                               </DialogContent>
@@ -807,7 +824,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                                 <DialogContent className="sm:max-w-[400px]">
                                   <DialogHeader>
                                     <DialogTitle>Pay Invoice {inv.invoice_number}</DialogTitle>
-                                    <CardDescription>Amount: {kes(getInvoiceBalance(inv) || inv?.total_amount || 0)}</CardDescription>
+                                    <CardDescription>Amount: {kes(getInvoiceBalance(inv) || getInvoiceEffectiveTotal(inv) || 0)}</CardDescription>
                                   </DialogHeader>
                                   <div className="mt-4 space-y-4">
                                     <div>
