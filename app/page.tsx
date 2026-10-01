@@ -3,12 +3,29 @@ import type { Metadata } from "next"
 import { blogPosts } from "@/lib/blog-data"
 import { HomepagePreloader } from "@/components/homepage-preloader"
 
+const homepageSeoDescription =
+  "Internetily is a Kenya-first ISP billing system for M-Pesa STK Push, MikroTik PPPoE, hotspot vouchers, WiFi billing, invoices, SMS reminders, and customer self-service."
+
 // Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
-  title: "ISP Billing Software for Africa | Internetily",
-  description:
-    "Internetily helps ISPs manage billing, MikroTik PPPoE, hotspot access, M-Pesa, mobile money, card payments, support, and renewals.",
+  title: "ISP Billing System Kenya | M-Pesa, MikroTik & Hotspot Billing | Internetily",
+  description: homepageSeoDescription,
   keywords: [
+    "isp billing system", "isp billing system in kenya", "hotspot billing software kenya",
+    "wifi billing system kenya", "best billing system in kenya", "billing systems in kenya",
+    "isp billing", "best isp billing software in kenya", "M-Pesa ISP billing system Kenya",
+    "MikroTik PPPoE billing Kenya", "WiFi billing system for estates Kenya",
+    "hotspot voucher billing Kenya", "ISP billing software Nairobi", "ISP billing software Mombasa",
+    "isp man", "ISPMan billing system price", "centipid billing system",
+    "billing software", "internet billing system", "internet billing software",
+    "billing system for internet service provider", "internet billing",
+    "wifi billing system kenya price", "best hotspot billing system in kenya",
+    "best wifi billing system in kenya", "hotspot billing software",
+    "hotspot billing system", "wifi billing system", "wifi payments",
+    "free isp", "free isp radius billing software", "free isp billing software for mikrotik",
+    "mikrotik billing software free", "freeradius billing system",
+    "isp radius billing system", "pppoe billing system", "ftth billing system",
+    "fttx billing", "isp billing systems",
     "Centipid alternative", "ISPMAN alternative", "WISPMAN alternative", "Jasiyo alternative",
     "Netily ISP billing", "Internetily WISP software",
     "automated M-Pesa subscriber renewals", "self-care captive portal",
@@ -253,9 +270,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "ISP Billing Software for Africa | Internetily",
-    description:
-      "Internetily helps ISPs manage billing, MikroTik PPPoE, hotspot access, payments, support, and renewals.",
+    title: "ISP Billing System Kenya | Internetily",
+    description: homepageSeoDescription,
     url: "https://netily.co.ke",
     images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily, formerly Netily - ISP Billing Software Kenya" }],
   },
@@ -278,7 +294,7 @@ const softwareSchema = {
   operatingSystem: "Web",
   url: "https://netily.co.ke",
   description:
-    "Internetily, formerly Netily, is ISP billing software for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs. It automates M-Pesa STK Push payments, mobile money planning, cards, Direct Debit, ACH, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
+    "Internetily, formerly Netily, is a Kenya-first ISP billing system for internet providers, WISPs, hotspot operators, estates, hotels, and campus WiFi teams. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot voucher billing, WiFi billing, invoices, SMS reminders, and customer self-service.",
   publisher: {
     "@type": "Organization",
     "@id": "https://netily.co.ke/#organization",
@@ -545,6 +561,62 @@ const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is an ISP billing system in Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "An ISP billing system in Kenya helps internet providers manage subscribers, M-Pesa payments, invoices, renewals, router access, and customer support. Internetily is built for Kenyan ISPs that need M-Pesa STK Push, MikroTik PPPoE, hotspot billing, WiFi billing, SMS reminders, and customer self-service in one platform.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Which hotspot billing software works with M-Pesa in Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Internetily supports hotspot billing software workflows for Kenya with M-Pesa STK Push, branded captive portals, voucher plans, session control, customer renewals, and payment reconciliation for hotspot operators, hotels, hostels, estates, campuses, and public WiFi providers.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can Internetily manage WiFi billing for estates, hostels, hotels, and campuses in Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Internetily can be used as a WiFi billing system in Kenya for estates, apartments, hostels, hotels, schools, campuses, churches, and public hotspot locations. It helps teams sell packages, collect payments, manage access, and reduce manual follow-up.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How much does a WiFi billing system in Kenya cost?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Internetily pricing starts with a low activation fee, then usage-based billing around PPPoE footprint and hotspot revenue. This makes it practical for small ISPs, estates, hostels, hotels, campuses, and public hotspot operators that need a WiFi billing system Kenya price they can understand before scaling.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is free ISP billing software for MikroTik enough?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Free ISP billing software for MikroTik can work for technical teams that can host, secure, maintain, and customize their own system. Internetily is built for teams that want MikroTik billing software, M-Pesa payments, invoices, SMS reminders, support, reporting, and customer self-service in one supported workflow.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Internetily support FreeRADIUS, PPPoE, FTTH, and FTTX billing?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Internetily supports RADIUS-driven PPPoE and hotspot access workflows, then adds billing, M-Pesa payments, customer records, invoices, reminders, reporting, and renewals for PPPoE billing systems, hotspot billing systems, FTTH billing systems, and FTTX billing teams.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How should Kenyan ISPs compare Centipid, ISPMan, and other billing systems?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "When comparing Centipid, ISPMan, open-source ISP billing, and other internet billing systems, Kenyan ISPs should check M-Pesa automation, MikroTik support, RADIUS workflows, customer self-service, invoice handling, reporting, support, setup effort, and long-term maintenance cost. Internetily is positioned for M-Pesa-first ISP billing in Kenya with guided onboarding.",
+      },
+    },
     {
       "@type": "Question",
       name: "Are Internetily and Netily the same platform?",

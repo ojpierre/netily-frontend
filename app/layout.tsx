@@ -76,13 +76,43 @@ const fontVariables = [
 
 export const metadata: Metadata = {
   title: {
-    default: "ISP Billing Software Kenya | Internetily",
+    default: "ISP Billing System Kenya | M-Pesa & MikroTik Billing | Internetily",
     template: "%s | Internetily",
   },
   description:
-    "Internetily helps ISPs manage billing, M-Pesa payments, MikroTik provisioning, hotspot access, customers, support, and renewals.",
+    "Internetily is a Kenya-first ISP billing system for M-Pesa payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, customer access, and renewals.",
   keywords: [
     // — Core product —
+    "isp billing system",
+    "isp billing system in kenya",
+    "hotspot billing software kenya",
+    "wifi billing system kenya",
+    "best billing system in kenya",
+    "billing systems in kenya",
+    "isp billing",
+    "best isp billing software in kenya",
+    "isp man",
+    "ISPMan billing system price",
+    "centipid billing system",
+    "billing software",
+    "internet billing system",
+    "internet billing software",
+    "billing system for internet service provider",
+    "wifi billing system kenya price",
+    "best hotspot billing system in kenya",
+    "best wifi billing system in kenya",
+    "hotspot billing software",
+    "hotspot billing system",
+    "wifi billing system",
+    "wifi payments",
+    "free isp radius billing software",
+    "free isp billing software for mikrotik",
+    "mikrotik billing software free",
+    "freeradius billing system",
+    "isp radius billing system",
+    "pppoe billing system",
+    "ftth billing system",
+    "fttx billing",
     "ISP management software Kenya 2026",
     "ISP Billing Software Kenya",
     "ISP billing system Kenya",
@@ -370,9 +400,9 @@ export const metadata: Metadata = {
     locale: "en_KE",
     url: "https://netily.co.ke",
     siteName: "Internetily, formerly Netily",
-    title: "ISP Billing Software Kenya | Internetily",
+    title: "ISP Billing System Kenya | M-Pesa & MikroTik Billing | Internetily",
     description:
-      "Internetily automates ISP billing, M-Pesa payments, MikroTik provisioning, hotspot access, and customer operations.",
+      "Internetily is a Kenya-first ISP billing system for M-Pesa payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and customer renewals.",
     images: [
       {
         url: "/og-image.svg",
@@ -384,9 +414,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ISP Billing Software Kenya | Internetily",
+    title: "ISP Billing System Kenya | Internetily",
     description:
-      "Automate ISP billing, M-Pesa payments, and MikroTik provisioning. Internetily continues the Netily platform for Kenyan ISPs.",
+      "Automate M-Pesa ISP billing, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and renewals with Internetily.",
     images: ["/og-image.svg"],
     creator: "@netily",
   },
