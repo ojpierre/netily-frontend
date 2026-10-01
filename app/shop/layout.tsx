@@ -4,6 +4,7 @@ import { Playfair_Display, Urbanist } from "next/font/google"
 import { Toaster } from "sonner"
 import { CartProvider } from "@/shop-ui/lib/cart-context"
 import { SmoothScrollProvider } from "@/shop-ui/components/smooth-scroll-provider"
+import { ShopSupportChat } from "@/shop-ui/components/shop-support-chat"
 
 const urbanist = Urbanist({
   subsets: ["latin"],
@@ -52,6 +53,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
     >
       <CartProvider>
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
+        <ShopSupportChat />
       </CartProvider>
       <Toaster position="bottom-right" richColors theme="light" />
     </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, Lock, CheckCircle2, AlertCircle, ShoppingBag, Plus } from "lucide-react"
+import { ChevronLeft, Lock, CheckCircle2, ShoppingBag, Plus, CreditCard, Smartphone } from "lucide-react"
 import { Button } from "@/shop-ui/components/ui/button"
 import { Input } from "@/shop-ui/components/ui/input"
 import { Label } from "@/shop-ui/components/ui/label"
@@ -33,18 +33,18 @@ export default function CheckoutPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>("shipping")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"invoice" | "card" | "mpesa">("invoice")
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "mpesa">("mpesa")
   const [orderRef, setOrderRef] = useState<string>("")
   const [authReady, setAuthReady] = useState(false)
 
   const [form, setForm] = useState<ShippingForm>({
-    firstName: "Alex",
-    lastName: "Mercer",
-    company: "Apex Telecom Networks",
-    email: "alex.mercer@netily.io",
+    firstName: "",
+    lastName: "",
+    company: "",
+    email: "",
     phone: "+254 712 345 678",
-    address: "Westlands Commercial Center, 4th Floor",
-    apartment: "NOC Data Room Suite 4B",
+    address: "",
+    apartment: "",
     city: "Nairobi",
     state: "Nairobi County",
     zip: "00100",
@@ -127,9 +127,9 @@ export default function CheckoutPage() {
           <div className="w-20 h-20 bg-muted flex items-center justify-center mx-auto mb-6 border border-border">
             <ShoppingBag className="w-8 h-8 text-muted-foreground stroke-[1.5]" />
           </div>
-          <h2 className="font-serif text-3xl mb-3">Your Bag is Empty</h2>
+          <h2 className="font-serif text-3xl mb-3">Your cart is empty</h2>
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
-            Add routers, cabling, or equipment to your bag, or load our starter ISP deployment package to preview checkout.
+            Add routers, cables, tools, or other equipment to your cart before checkout.
           </p>
           <div className="space-y-3">
             <button
@@ -137,7 +137,7 @@ export default function CheckoutPage() {
               className="w-full py-4 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90 flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Load Sample ISP Hardware Package ($710)
+              Load Sample Hardware Package ($710)
             </button>
             <Link href="/shop/catalog" className="block">
               <button className="w-full py-4 text-xs tracking-[0.2em] uppercase border border-border text-foreground hover:bg-muted">
@@ -167,7 +167,7 @@ export default function CheckoutPage() {
             <Link href="/shop" className="flex flex-col items-center">
               <span className="font-serif text-xl lg:text-2xl tracking-[0.3em] uppercase leading-none">Netily Shop</span>
               <span className="text-[0.6rem] tracking-[0.2em] uppercase font-light mt-1 text-muted-foreground">
-                Enterprise & Networking
+                Network Equipment
               </span>
             </Link>
 
@@ -193,9 +193,9 @@ export default function CheckoutPage() {
             </div>
 
             <span className="text-xs tracking-[0.4em] uppercase text-muted-foreground mb-2 block">
-              Order Confirmed • Netily Shop
+              Order Confirmed - Internetily Shop
             </span>
-            <h2 className="font-serif text-3xl lg:text-4xl mb-4">Order Received</h2>
+            <h2 className="font-serif text-3xl lg:text-4xl mb-4">Order received</h2>
 
             <div className="border border-border p-6 my-6 text-left space-y-2 text-xs bg-muted/30">
               <div className="flex justify-between py-1 border-b border-border/50">
@@ -207,17 +207,17 @@ export default function CheckoutPage() {
                 <span className="truncate max-w-[200px]">{form.city}, {form.country}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-border/50">
-                <span className="text-muted-foreground uppercase tracking-wider">Payment Term:</span>
+                <span className="text-muted-foreground uppercase tracking-wider">Payment Method:</span>
                 <span className="uppercase tracking-wider font-medium">{paymentMethod}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-muted-foreground uppercase tracking-wider">Dispatch Window:</span>
-                <span>Within 24 Hours</span>
+                <span className="text-muted-foreground uppercase tracking-wider">Delivery Update:</span>
+                <span>Shared by the shop team</span>
               </div>
             </div>
 
             <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
-              We have generated your proforma equipment manifest and transmitted it to <strong>{form.email}</strong>. Our logistics hub is preparing hardware for carrier dispatch.
+              Thanks. We have received your order and will send confirmation details to <strong>{form.email}</strong>. You can track progress from your shop account.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -256,7 +256,7 @@ export default function CheckoutPage() {
                   >
                     1
                   </span>
-                  Site & Delivery
+                  Delivery Details
                 </div>
                 <div className="h-px w-8 bg-border" />
                 <div
@@ -271,7 +271,7 @@ export default function CheckoutPage() {
                   >
                     2
                   </span>
-                  Payment & Terms
+                  Payment
                 </div>
               </div>
 
@@ -282,18 +282,17 @@ export default function CheckoutPage() {
                   transition={{ duration: 0.4 }}
                   onSubmit={handleShippingSubmit}
                 >
-                  <h2 className="font-serif text-2xl mb-8">Delivery & Site Information</h2>
+                  <h2 className="font-serif text-2xl mb-8">Delivery information</h2>
 
                   {/* Company / Contact */}
                   <div className="mb-8 space-y-4">
-                    <h3 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-4">Organization & Contact</h3>
+                    <h3 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-4">Contact details</h3>
                     <div>
                       <Label htmlFor="company" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        ISP / Enterprise Company Name *
+                        Business or Organization (Optional)
                       </Label>
                       <Input
                         id="company"
-                        required
                         value={form.company}
                         onChange={handleFormChange}
                         className="mt-1.5 rounded-xl border-border"
@@ -302,7 +301,7 @@ export default function CheckoutPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="firstName" className="text-xs uppercase tracking-wider text-muted-foreground">
-                          Contact First Name *
+                          First Name *
                         </Label>
                         <Input
                           id="firstName"
@@ -328,7 +327,7 @@ export default function CheckoutPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground">
-                          Corporate Email *
+                          Email Address *
                         </Label>
                         <Input
                           id="email"
@@ -357,10 +356,10 @@ export default function CheckoutPage() {
 
                   {/* Site Address */}
                   <div className="mb-8 space-y-4">
-                    <h3 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-4">NOC / Tower Delivery Site</h3>
+                    <h3 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-4">Delivery address</h3>
                     <div>
                       <Label htmlFor="address" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Street Address / Tower Location *
+                        Street Address *
                       </Label>
                       <Input
                         id="address"
@@ -372,7 +371,7 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <Label htmlFor="apartment" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Server Room / Rack Enclosure / Suite (Optional)
+                        Apartment, suite, floor, or landmark (Optional)
                       </Label>
                       <Input
                         id="apartment"
@@ -420,13 +419,14 @@ export default function CheckoutPage() {
 
               {step === "payment" && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-                  <h2 className="font-serif text-2xl mb-8">Payment & Settlement</h2>
+                  <h2 className="font-serif text-2xl mb-8">Choose payment method</h2>
 
                   {/* Review */}
                   <div className="border border-border p-4 mb-8 space-y-2 text-xs">
                     <p className="font-medium text-sm mb-2">Delivery Summary</p>
                     <p className="text-muted-foreground">
-                      <strong className="text-foreground">{form.company}</strong> ({form.firstName} {form.lastName})
+                      <strong className="text-foreground">{form.firstName} {form.lastName}</strong>
+                      {form.company ? ` - ${form.company}` : ""}
                     </p>
                     <p className="text-muted-foreground">
                       {form.address}{form.apartment ? `, ${form.apartment}` : ""}, {form.city}, {form.country}
@@ -435,7 +435,7 @@ export default function CheckoutPage() {
                       onClick={() => setStep("shipping")}
                       className="text-muted-foreground underline underline-offset-2 hover:text-foreground pt-1"
                     >
-                      Edit Site Information
+                      Edit delivery details
                     </button>
                   </div>
 
@@ -443,38 +443,38 @@ export default function CheckoutPage() {
                   <div className="space-y-3 mb-8">
                     {[
                       {
-                        id: "invoice",
-                        title: "B2B Proforma Invoice (Net 30 / Wire)",
-                        desc: "Official commercial invoice with VAT registration for corporate accounting and bank wire settlement.",
-                      },
-                      {
                         id: "card",
-                        title: "Credit / Debit Card (Instant Authorization)",
-                        desc: "Direct corporate card processing with instant dispatch manifest generation.",
+                        title: "Pay by Card",
+                        desc: "Use a debit or credit card. Your order will be confirmed after payment is approved.",
+                        icon: CreditCard,
                       },
                       {
                         id: "mpesa",
-                        title: "M-Pesa STK Push (East Africa)",
-                        desc: "Instant mobile carrier settlement via Safaricom M-Pesa business till.",
+                        title: "Pay by M-Pesa STK Push",
+                        desc: "Enter your M-Pesa number and approve the prompt on your phone.",
+                        icon: Smartphone,
                       },
                     ].map((opt) => (
                       <div
                         key={opt.id}
-                        onClick={() => setPaymentMethod(opt.id as any)}
-                        className={`p-4 border cursor-pointer transition-colors ${
+                        onClick={() => setPaymentMethod(opt.id as "card" | "mpesa")}
+                        className={`rounded-2xl border p-4 cursor-pointer transition-colors ${
                           paymentMethod === opt.id
                             ? "border-foreground bg-muted/40"
                             : "border-border hover:border-foreground/50"
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-serif text-base">{opt.title}</span>
+                        <div className="flex items-center justify-between gap-4 mb-1">
+                          <span className="flex items-center gap-3 font-serif text-base">
+                            <opt.icon className="h-4 w-4 text-muted-foreground" />
+                            {opt.title}
+                          </span>
                           <span
-                            className={`w-3.5 h-3.5 border flex items-center justify-center ${
+                            className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                               paymentMethod === opt.id ? "border-foreground bg-foreground" : "border-border"
                             }`}
                           >
-                            {paymentMethod === opt.id && <span className="w-1.5 h-1.5 bg-background" />}
+                            {paymentMethod === opt.id && <span className="h-1.5 w-1.5 rounded-full bg-background" />}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
@@ -482,19 +482,59 @@ export default function CheckoutPage() {
                     ))}
                   </div>
 
+                  {paymentMethod === "card" && (
+                    <div className="mb-8 rounded-2xl border border-border bg-card p-4">
+                      <p className="mb-4 text-sm font-medium">Card details</p>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="cardName" className="text-xs uppercase tracking-wider text-muted-foreground">Name on card</Label>
+                          <Input id="cardName" placeholder="Jane Otieno" className="mt-1.5 rounded-xl border-border" />
+                        </div>
+                        <div>
+                          <Label htmlFor="cardNumber" className="text-xs uppercase tracking-wider text-muted-foreground">Card number</Label>
+                          <Input id="cardNumber" inputMode="numeric" placeholder="1234 1234 1234 1234" className="mt-1.5 rounded-xl border-border" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="expiry" className="text-xs uppercase tracking-wider text-muted-foreground">Expiry</Label>
+                            <Input id="expiry" placeholder="MM / YY" className="mt-1.5 rounded-xl border-border" />
+                          </div>
+                          <div>
+                            <Label htmlFor="cvc" className="text-xs uppercase tracking-wider text-muted-foreground">CVC</Label>
+                            <Input id="cvc" inputMode="numeric" placeholder="123" className="mt-1.5 rounded-xl border-border" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === "mpesa" && (
+                    <div className="mb-8 rounded-2xl border border-border bg-card p-4">
+                      <p className="mb-2 text-sm font-medium">M-Pesa phone number</p>
+                      <p className="mb-4 text-xs leading-5 text-muted-foreground">We will send an STK push to this number. Confirm the prompt on your phone to complete payment.</p>
+                      <Input
+                        id="mpesaPhone"
+                        type="tel"
+                        value={form.phone}
+                        onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                        className="rounded-xl border-border"
+                      />
+                    </div>
+                  )}
+
                   <button
                     onClick={handleCompletePayment}
                     disabled={isProcessing}
                     className="w-full py-5 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
                   >
-                    {isProcessing ? "Transmitting Manifest..." : `Confirm Order — $${orderTotal.toLocaleString()} USD`}
+                    {isProcessing ? "Processing..." : `Place Order - $${orderTotal.toLocaleString()} USD`}
                   </button>
 
                   <button
                     onClick={() => setStep("shipping")}
                     className="w-full mt-4 text-center text-xs tracking-wider uppercase text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    ← Back to Site Info
+                    Back to delivery details
                   </button>
                 </motion.div>
               )}
@@ -549,23 +589,23 @@ export default function CheckoutPage() {
                     <span>${total.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Express Dispatch & Insurance</span>
+                    <span className="text-muted-foreground">Delivery and handling</span>
                     <span className="text-emerald-700 dark:text-emerald-400 uppercase text-xs tracking-wider">Free</span>
                   </div>
                   <div className="flex justify-between text-base font-medium pt-3 border-t border-border">
-                    <span>Total Due</span>
+                    <span>Total</span>
                     <span className="font-serif text-xl">${orderTotal.toLocaleString()} USD</span>
                   </div>
                 </div>
 
                 <div className="mt-6 p-4 bg-muted/40 border border-border">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    📦 <strong>Carrier Guarantee:</strong> All orders are packed in heavy-duty anti-static boxes and insured with official traceable serial numbers.
+                    <strong>Delivery Promise:</strong> We pack orders carefully and share delivery updates after confirmation.
                   </p>
                 </div>
 
                 <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-                  {["100% Genuine", "Tax Compliant", "Free Dispatch"].map((badge) => (
+                  {["Genuine Items", "Secure Payment", "Delivery Updates"].map((badge) => (
                     <div key={badge} className="border border-border p-2.5">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{badge}</p>
                     </div>

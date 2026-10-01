@@ -10,16 +10,23 @@ Public shop:
 - `/shop/catalog` shows products, filters, search, and the offer slider.
 - `/shop/product/[id]` shows product details and add-to-cart actions.
 - `/shop/cart` is handled through the mini cart drawer.
-- `/shop/checkout` requires a customer session before order submission.
-- `/shop/login` signs in a customer and returns to the requested route.
-- `/shop/register` creates a customer preview account and returns to the requested route.
-- `/shop/account/profile` shows the customer account area.
+- `/shop/checkout` requires a customer session before order submission and supports card or M-Pesa STK payment only.
+- `/shop/login` uses the customer-friendly split-panel design, signs in a customer, and returns to the requested route.
+- `/shop/register` uses the customer-friendly split-panel design, creates a customer preview account, and returns to the requested route.
+- `/shop/account/profile` shows customer and organization details.
+- `/shop/account/orders` shows customer order history and invoice tracking.
+- `/shop/account/quotes` shows bulk quote and proforma requests.
+- `/shop/account/addresses` shows delivery sites and warehouses.
+- `/shop/account/warranty` shows warranty cover and claim tracking.
+- `/shop/account/support` shows shop support tickets and conversations.
+- `/shop/account/settings` shows customer notification and security preferences.
 
 Admin shop:
 
 - `/shop/admin` is protected by the shop admin preview session.
 - `/shop/admin/login` is the first screen for the admin route.
-- The admin workspace has side navigation for products, adding products, hero offers, orders, inventory, fulfillment, settings, and overview.
+- The admin workspace has side navigation for products, adding products, hero offers, orders, inventory, fulfillment, SMS reminders, settings, and overview.
+- The shop support widget appears across shop routes and should connect to support conversations when the backend is ready.
 
 ## Current Frontend State
 
@@ -37,7 +44,7 @@ The backend should replace these preview stores with authenticated API calls.
 
 Customer authentication should support:
 
-- Register customer account.
+- Register customer account using buyer-friendly fields: full name, optional business or organization, email, phone number, and password.
 - Login customer account.
 - Logout customer account.
 - Session refresh.
@@ -45,6 +52,9 @@ Customer authentication should support:
 - Customer profile update.
 - Customer delivery addresses.
 - Customer order history.
+- Customer quote requests.
+- Customer warranty claims.
+- Customer support conversations.
 
 Admin authentication should support:
 
@@ -120,6 +130,8 @@ Recommended endpoints:
 
 The frontend redirects checkout users to login when no customer session exists. After login or registration, the customer returns to `/shop/checkout`.
 
+Checkout copy is intentionally simple and should work for any buyer, not only ISP operators. Delivery fields should be friendly to home buyers, offices, schools, shops, organizations, and larger network rollout buyers.
+
 The backend should support:
 
 - Create checkout session.
@@ -127,10 +139,16 @@ The backend should support:
 - Calculate totals.
 - Apply delivery fee.
 - Apply tax when needed.
-- Save shipping details.
+- Save delivery details: name, optional business or organization, email, phone, street address, optional apartment or landmark, city, country, and any future delivery notes.
 - Create order.
-- Start payment.
+- Start payment by card or M-Pesa STK Push.
 - Return payment status.
+
+Payment UX requirements:
+
+- Card payment should collect name on card, card number, expiry, and CVC through a secure payment provider field or tokenized widget.
+- M-Pesa STK Push should collect the M-Pesa phone number and return a clear pending, success, or failed payment state.
+- Manual invoice, bank transfer, and pay-on-quote are not part of the checkout payment options for this frontend journey.
 
 Recommended endpoints:
 
@@ -190,25 +208,97 @@ Fulfillment needs:
 - Delivery notes.
 - Delivery proof when available.
 
+## SMS And Customer Communication
+
+The shop admin SMS tab should track operational messages for order events and quote follow-ups.
+
+SMS features needed:
+
+- Message templates for order placed, payment received, dispatch, delivery, warranty update, and quote follow-up.
+- Queue view for pending messages.
+- Delivery status for sent, queued, failed, and retried messages.
+- Link each message to customer, order, quote, or warranty claim.
+- Manual resend when a message fails.
+- Admin audit log for template edits and manual sends.
+
+Recommended endpoints:
+
+- `GET /api/shop/messages/`
+- `POST /api/shop/messages/send/`
+- `GET /api/shop/messages/templates/`
+- `POST /api/shop/messages/templates/`
+- `PATCH /api/shop/messages/templates/{id}/`
+- `POST /api/shop/messages/{id}/retry/`
+
+Suggested automated events:
+
+- Order placed.
+- Payment received.
+- Order dispatched.
+- Delivery reminder.
+- Delivery completed.
+- Quote ready.
+- Warranty claim update.
+
+## Support Chat
+
+The floating support widget is present across shop routes. It currently captures preview messages in the frontend. The backend should connect it to a real support inbox.
+
+Support chat needs:
+
+- Create conversation.
+- Send customer message.
+- Send admin reply.
+- Attach conversation to customer when logged in.
+- Attach conversation to order, quote, warranty claim, or product when known.
+- Track read and unread state.
+- Allow admin assignment.
+- Keep history visible on `/shop/account/support`.
+
+Recommended endpoints:
+
+- `GET /api/shop/support/conversations/`
+- `POST /api/shop/support/conversations/`
+- `GET /api/shop/support/conversations/{id}/`
+- `POST /api/shop/support/conversations/{id}/messages/`
+- `PATCH /api/shop/support/conversations/{id}/`
+
 ## Customer Account
 
-Customer account pages should eventually show:
+Customer account pages should support:
 
 - Profile details.
 - Saved addresses.
 - Order history.
 - Quotes and proforma invoices.
 - Receipts.
-- Support or warranty claims.
+- Warranty cover and claims.
+- Support conversations.
+- Notification preferences.
+- Security preferences.
+
+Recommended endpoints:
+
+- `GET /api/shop/account/profile/`
+- `PATCH /api/shop/account/profile/`
+- `GET /api/shop/account/orders/`
+- `GET /api/shop/account/quotes/`
+- `POST /api/shop/account/quotes/`
+- `GET /api/shop/account/addresses/`
+- `POST /api/shop/account/addresses/`
+- `PATCH /api/shop/account/addresses/{id}/`
+- `GET /api/shop/account/warranty/`
+- `POST /api/shop/account/warranty/claims/`
+- `GET /api/shop/account/support/`
+- `GET /api/shop/account/preferences/`
+- `PATCH /api/shop/account/preferences/`
 
 ## Payments
 
-The shop should support payment methods that match the business flow:
+The checkout should support only these payment methods:
 
+- Card payment.
 - M-Pesa STK Push.
-- Manual bank transfer confirmation.
-- Card payment if later required.
-- Pay on quote if large enterprise orders need approval first.
 
 Payment records should link to:
 
@@ -223,6 +313,12 @@ Payment records should link to:
 - Created date.
 - Confirmed date.
 
+Payment provider requirements:
+
+- Card payments should be tokenized and should never store raw card numbers, CVC, or sensitive card data in the Netily database.
+- M-Pesa STK payments should store checkout request ID, merchant request ID, phone number, receipt number when confirmed, result code, result description, and callback payload.
+- Both payment methods should expose a status endpoint so the checkout UI can show friendly feedback while payment is pending.
+
 ## Admin Settings
 
 The shop admin settings area should eventually control:
@@ -236,6 +332,8 @@ The shop admin settings area should eventually control:
 - Notification channels.
 - Admin roles.
 - Order status automation.
+- SMS templates.
+- Support routing and assignment rules.
 
 ## Security And Audit
 
@@ -247,6 +345,8 @@ The backend should record audit logs for:
 - Stock changes.
 - Offer slide changes.
 - Order status changes.
+- SMS template and reminder changes.
+- Support conversation assignment and replies.
 - Payment status changes.
 - Refunds and cancellations.
 
@@ -261,5 +361,7 @@ Every audit log should include actor, action, target, timestamp, IP address, and
 5. Add payment initiation and payment status polling.
 6. Add admin order management and fulfillment.
 7. Add inventory quantities and stock adjustment history.
-8. Add audit logs and role-based permissions.
-9. Add customer order history, receipts, and support claims.
+8. Add SMS templates, reminder logs, and retry handling.
+9. Add support chat conversations and admin assignment.
+10. Add audit logs and role-based permissions.
+11. Add customer order history, receipts, quotes, warranty, support, and preferences.

@@ -22,6 +22,8 @@ import {
   LogOut,
   Boxes,
   ShieldCheck,
+  MessageSquareText,
+  Send,
 } from "lucide-react"
 import {
   getStoredProducts,
@@ -51,7 +53,7 @@ const PRESET_IMAGES = [
 export default function AdminPage() {
   const router = useRouter()
   const [isAdminReady, setIsAdminReady] = useState(false)
-  const [activeTab, setActiveTab] = useState<"products" | "add" | "offers" | "orders" | "inventory" | "fulfillment" | "settings" | "overview">("products")
+  const [activeTab, setActiveTab] = useState<"products" | "add" | "offers" | "orders" | "inventory" | "fulfillment" | "sms" | "settings" | "overview">("products")
   const [productsList, setProductsList] = useState<Product[]>([])
   const [offerSlides, setOfferSlides] = useState<ShopOfferSlide[]>([])
   const [ordersList, setOrdersList] = useState<DjangoOrder[]>(MOCK_ORDERS)
@@ -146,6 +148,7 @@ export default function AdminPage() {
     { id: "orders", label: "Orders", count: ordersList.length, icon: ShoppingBag, desc: "Customer requests" },
     { id: "inventory", label: "Inventory", count: outOfStockCount, icon: Boxes, desc: "Stock control" },
     { id: "fulfillment", label: "Fulfillment", count: pendingOrders, icon: Truck, desc: "Dispatch work" },
+    { id: "sms", label: "SMS", icon: MessageSquareText, desc: "Order reminders" },
     { id: "settings", label: "Settings", icon: Settings, desc: "Shop controls" },
     { id: "overview", label: "Overview", icon: BarChart3, desc: "Store health" },
   ] as const
@@ -1141,6 +1144,85 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "sms" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-4">
+            {[
+              { label: "Queued", value: "8", sub: "Ready to send" },
+              { label: "Sent today", value: "24", sub: "Order updates" },
+              { label: "Failed", value: "1", sub: "Needs retry" },
+              { label: "Templates", value: "6", sub: "Active flows" },
+            ].map((metric) => (
+              <div key={metric.label} className="rounded-2xl border border-border bg-card p-5">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{metric.label}</p>
+                <p className="mt-2 font-serif text-3xl">{metric.value}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{metric.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl">Order Communication Log</h2>
+                  <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">Track SMS reminders for order placement, payment, dispatch, delivery, and warranty follow-up.</p>
+                </div>
+                <button onClick={() => toast.success("SMS queue refreshed")} className="rounded-full border border-border px-4 py-2 text-xs uppercase hover:bg-muted">
+                  Refresh
+                </button>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { title: "Order confirmation", to: "+254700000001", status: "sent", ref: "ORD-1028" },
+                  { title: "Dispatch reminder", to: "+254711223344", status: "queued", ref: "ORD-1027" },
+                  { title: "Payment follow-up", to: "+254722334455", status: "failed", ref: "QT-FTTH-1042" },
+                  { title: "Delivery completed", to: "+254733445566", status: "sent", ref: "ORD-1025" },
+                ].map((sms) => (
+                  <div key={`${sms.ref}-${sms.title}`} className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-serif text-sm">{sms.title}</p>
+                      <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">{sms.ref} - {sms.to}</p>
+                    </div>
+                    <span className={`w-fit rounded-full border px-3 py-1 text-[10px] uppercase tracking-wider ${
+                      sms.status === "sent"
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
+                        : sms.status === "failed"
+                        ? "border-red-500/40 bg-red-500/10 text-red-600"
+                        : "border-blue-500/40 bg-blue-500/10 text-blue-700"
+                    }`}>
+                      {sms.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-5 border-b border-border pb-4">
+                <h3 className="font-serif text-lg">Message Templates</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Short operational templates for common shop events.</p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  "Order placed",
+                  "Payment received",
+                  "Order dispatched",
+                  "Delivery reminder",
+                  "Warranty claim update",
+                  "Quote follow-up",
+                ].map((template) => (
+                  <button key={template} onClick={() => toast.success(`${template} template selected`)} className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border px-3 text-left text-xs uppercase tracking-wider hover:bg-muted">
+                    <span>{template}</span>
+                    <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

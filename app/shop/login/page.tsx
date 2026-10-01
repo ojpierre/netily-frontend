@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -16,7 +17,7 @@ import {
 import { Label } from "@/shop-ui/components/ui/label"
 import { Input } from "@/shop-ui/components/ui/input"
 import { toast } from "sonner"
-import { User } from "lucide-react"
+import { ArrowRight, LockKeyhole, ShoppingBag } from "lucide-react"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -30,8 +31,8 @@ export default function LoginPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "alex.mercer@netily.io",
-      password: "password123",
+      email: "",
+      password: "",
     },
   })
 
@@ -42,56 +43,24 @@ export default function LoginPage() {
       window.localStorage.setItem("netily_shop_customer_session", "authenticated")
       window.localStorage.setItem("netily_shop_customer_email", values.email)
       setIsLoading(false)
-      toast.success("Successfully authenticated!")
+      toast.success("Signed in successfully")
       router.push(params.get("next") || "/shop/account/profile")
     }, 600)
   }
 
-  function handleQuickDemoLogin() {
-    setIsLoading(true)
-    setTimeout(() => {
-      const params = new URLSearchParams(window.location.search)
-      window.localStorage.setItem("netily_shop_customer_session", "authenticated")
-      window.localStorage.setItem("netily_shop_customer_email", "alex.mercer@netily.io")
-      setIsLoading(false)
-      toast.success("Signed in as ISP Engineer")
-      router.push(params.get("next") || "/shop/account/profile")
-    }, 400)
-  }
-
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-foreground">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/shop" className="inline-flex flex-col items-center mb-6">
-          <span className="font-serif text-2xl lg:text-3xl tracking-[0.3em] uppercase leading-none">
-            Netily Shop
-          </span>
-          <span className="text-[0.6rem] tracking-[0.2em] uppercase font-light mt-1 text-muted-foreground">
-            Enterprise & Networking
-          </span>
-        </Link>
-        <h2 className="font-serif text-2xl tracking-wide mb-2">Welcome Back</h2>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-6">
-          Sign in to access your NOC orders, proforma quotes, and site addresses
-        </p>
-      </div>
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-card py-8 px-6 border border-border sm:px-10">
-          <div className="mb-6 p-4 border border-border bg-muted/30">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground block mb-3 font-semibold">
-              Quick Access
-            </span>
-            <div className="grid gap-2">
-              <button
-                type="button"
-                onClick={handleQuickDemoLogin}
-                className="py-2.5 px-3 text-[11px] uppercase tracking-wider border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <User className="h-3.5 w-3.5" />
-                ISP Engineer
-              </button>
+    <div className="min-h-screen bg-background px-6 py-10 text-foreground lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-5xl items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+          <div className="mb-8">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-muted">
+              <LockKeyhole className="h-5 w-5" />
             </div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Customer Login</p>
+            <h1 className="mt-2 font-serif text-3xl">Sign in to continue shopping</h1>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Access your cart, delivery details, order history, quotes, warranty claims, and shop support.
+            </p>
           </div>
 
           <Form {...form}>
@@ -106,9 +75,9 @@ export default function LoginPage() {
                     </Label>
                     <FormControl>
                       <Input
-                        placeholder="engineer@company.com"
+                        placeholder="you@example.com"
                         type="email"
-                        className="rounded-xl border-border"
+                        className="min-h-12 rounded-xl border-border bg-muted/30"
                         {...field}
                       />
                     </FormControl>
@@ -130,13 +99,14 @@ export default function LoginPage() {
                         href="#"
                         className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
                       >
-                        Forgot?
+                        Forgot password?
                       </Link>
                     </div>
                     <FormControl>
                       <Input
                         type="password"
-                        className="rounded-xl border-border"
+                        placeholder="Enter your password"
+                        className="min-h-12 rounded-xl border-border bg-muted/30"
                         {...field}
                       />
                     </FormControl>
@@ -148,19 +118,30 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-5 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-xs uppercase tracking-[0.16em] text-background transition hover:bg-foreground/90 disabled:opacity-60"
               >
-                {isLoading ? "Authenticating..." : "Sign In"}
+                {isLoading ? "Signing in..." : "Sign In"}
+                <ArrowRight className="h-4 w-4" />
               </button>
             </form>
           </Form>
 
-          <div className="mt-8 pt-6 border-t border-border text-center">
-            <p className="text-xs text-muted-foreground">
-              Don't have an enterprise account?{" "}
-              <Link href="/shop/register" className="text-foreground underline underline-offset-2 uppercase tracking-wider">
-                Register Company
+          <div className="mt-6 border-t border-border pt-5 text-xs text-muted-foreground">
+            New here?{" "}
+              <Link href="/shop/register" className="text-foreground underline underline-offset-2">
+                Create a customer account
               </Link>
+          </div>
+        </div>
+
+        <div className="relative min-h-[420px] overflow-hidden rounded-2xl border border-border bg-[#0b42d8] text-white">
+          <Image src="/internetily-white-logo-320.webp" alt="Internetily" width={220} height={80} className="absolute left-8 top-8 h-14 w-auto object-contain" />
+          <div className="absolute inset-x-8 bottom-8">
+            <ShoppingBag className="mb-5 h-10 w-10 stroke-[1.4]" />
+            <p className="text-xs uppercase tracking-[0.24em] text-white/70">Shop with confidence</p>
+            <h2 className="mt-3 font-serif text-3xl">Hardware, checkout, and support in one place</h2>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">
+              Buy network equipment, track delivery, request quotes, and get help whether you are shopping for a home, office, school, business, or larger rollout project.
             </p>
           </div>
         </div>
