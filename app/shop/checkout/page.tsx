@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"invoice" | "card" | "mpesa">("invoice")
   const [orderRef, setOrderRef] = useState<string>("")
+  const [authReady, setAuthReady] = useState(false)
 
   const [form, setForm] = useState<ShippingForm>({
     firstName: "Alex",
@@ -52,6 +53,16 @@ export default function CheckoutPage() {
 
   const shipping = 0
   const orderTotal = total + shipping
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const session = window.localStorage.getItem("netily_shop_customer_session")
+    if (session !== "authenticated") {
+      router.replace("/shop/login?next=/shop/checkout")
+      return
+    }
+    setAuthReady(true)
+  }, [router])
 
   function handleFormChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.id]: e.target.value }))
@@ -97,7 +108,18 @@ export default function CheckoutPage() {
     toast.success("Sample hardware starter kit loaded into bag!")
   }
 
-  // If cart is empty and not on success screen, show empty state
+  if (!authReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center text-foreground">
+        <div>
+          <Lock className="mx-auto mb-4 h-8 w-8 text-muted-foreground" />
+          <h1 className="font-serif text-2xl">Checking checkout access</h1>
+          <p className="mt-2 text-sm text-muted-foreground">You will sign in before placing an order.</p>
+        </div>
+      </div>
+    )
+  }
+
   if (items.length === 0 && step !== "success") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

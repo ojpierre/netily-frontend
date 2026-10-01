@@ -15,10 +15,10 @@ export function PremiumFooter() {
       { label: "Tools & Test Equipment", href: "/shop/catalog?cat=Tools+%26+Test+Equipment" },
     ],
     account: [
-      { label: "B2B Proforma Quotes", href: "/shop/checkout" },
-      { label: "Customer Account", href: "/shop/account/profile" },
-      { label: "Orders & Invoices", href: "/shop/account/orders" },
-      { label: "Catalog Admin", href: "/shop/admin" },
+      { label: "B2B Proforma Quotes", href: "/shop/login?next=/shop/checkout" },
+      { label: "Customer Account", href: "/shop/login?next=/shop/account/profile" },
+      { label: "Orders & Invoices", href: "/shop/login?next=/shop/account/orders" },
+      { label: "Catalog Admin", href: "/shop/admin/login" },
     ],
     policy: [
       { label: "Shopping Privacy Policy", href: "/shop/policies/privacy" },
@@ -102,7 +102,7 @@ export function PremiumFooter() {
             <Link href="/shop/policies/privacy" className="transition hover:text-white/85">Privacy</Link>
             <Link href="/shop/policies/terms" className="transition hover:text-white/85">Terms</Link>
             <Link href="/shop/policies/cookies" className="transition hover:text-white/85">Cookies</Link>
-            <span>© 2026 Internetily Shop. All rights reserved.</span>
+            <span>(c) 2026 Internetily Shop. All rights reserved.</span>
           </div>
         </div>
       </div>

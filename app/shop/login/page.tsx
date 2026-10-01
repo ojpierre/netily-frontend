@@ -6,19 +6,17 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/shop-ui/components/ui/button"
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/shop-ui/components/ui/form"
 import { Label } from "@/shop-ui/components/ui/label"
 import { Input } from "@/shop-ui/components/ui/input"
 import { toast } from "sonner"
-import { Shield, User, ArrowRight } from "lucide-react"
+import { User } from "lucide-react"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -40,23 +38,24 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setTimeout(() => {
+      const params = new URLSearchParams(window.location.search)
+      window.localStorage.setItem("netily_shop_customer_session", "authenticated")
+      window.localStorage.setItem("netily_shop_customer_email", values.email)
       setIsLoading(false)
       toast.success("Successfully authenticated!")
-      router.push("/shop/account/profile")
+      router.push(params.get("next") || "/shop/account/profile")
     }, 600)
   }
 
-  function handleQuickDemoLogin(role: "engineer" | "admin") {
+  function handleQuickDemoLogin() {
     setIsLoading(true)
     setTimeout(() => {
+      const params = new URLSearchParams(window.location.search)
+      window.localStorage.setItem("netily_shop_customer_session", "authenticated")
+      window.localStorage.setItem("netily_shop_customer_email", "alex.mercer@netily.io")
       setIsLoading(false)
-      if (role === "admin") {
-        toast.success("Signed in as Store Administrator")
-        router.push("/shop/admin")
-      } else {
-        toast.success("Signed in as ISP Engineer (Alex Mercer)")
-        router.push("/shop/account/profile")
-      }
+      toast.success("Signed in as ISP Engineer")
+      router.push(params.get("next") || "/shop/account/profile")
     }, 400)
   }
 
@@ -79,27 +78,18 @@ export default function LoginPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-card py-8 px-6 border border-border sm:px-10">
-          {/* 1-Click Demo Login Box */}
           <div className="mb-6 p-4 border border-border bg-muted/30">
             <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground block mb-3 font-semibold">
-              Instant Demo Access
+              Quick Access
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickDemoLogin("engineer")}
+                onClick={handleQuickDemoLogin}
                 className="py-2.5 px-3 text-[11px] uppercase tracking-wider border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center gap-1.5 transition-colors"
               >
                 <User className="h-3.5 w-3.5" />
                 ISP Engineer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("admin")}
-                className="py-2.5 px-3 text-[11px] uppercase tracking-wider border border-border bg-background hover:bg-muted text-foreground flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Shield className="h-3.5 w-3.5" />
-                Admin Panel
               </button>
             </div>
           </div>

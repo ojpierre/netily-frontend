@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import {
   DollarSign,
   Package,
@@ -11,16 +12,16 @@ import {
   Trash2,
   Search,
   ExternalLink,
-  Check,
   AlertTriangle,
   RotateCcw,
   CheckCircle2,
-  X,
-  Layers,
-  ArrowRight,
   Sparkles,
-  Tag,
-  UploadCloud
+  Truck,
+  Settings,
+  BarChart3,
+  LogOut,
+  Boxes,
+  ShieldCheck,
 } from "lucide-react"
 import {
   getStoredProducts,
@@ -48,7 +49,9 @@ const PRESET_IMAGES = [
 ]
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"products" | "add" | "offers" | "orders" | "overview">("products")
+  const router = useRouter()
+  const [isAdminReady, setIsAdminReady] = useState(false)
+  const [activeTab, setActiveTab] = useState<"products" | "add" | "offers" | "orders" | "inventory" | "fulfillment" | "settings" | "overview">("products")
   const [productsList, setProductsList] = useState<Product[]>([])
   const [offerSlides, setOfferSlides] = useState<ShopOfferSlide[]>([])
   const [ordersList, setOrdersList] = useState<DjangoOrder[]>(MOCK_ORDERS)
@@ -58,7 +61,6 @@ export default function AdminPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [offerToDelete, setOfferToDelete] = useState<ShopOfferSlide | null>(null)
 
-  // Form State for Adding Product
   const [formData, setFormData] = useState({
     name: "",
     category: "Routers & Gateways",
@@ -82,8 +84,18 @@ export default function AdminPage() {
   })
   const [offerErrors, setOfferErrors] = useState<{ [key: string]: string }>({})
 
-  // Initialize and synchronize products from localStorage
   useEffect(() => {
+    if (typeof window === "undefined") return
+    const session = window.localStorage.getItem("netily_shop_admin_session")
+    if (session !== "authenticated") {
+      router.replace("/shop/admin/login?next=/shop/admin")
+      return
+    }
+    setIsAdminReady(true)
+  }, [router])
+
+  useEffect(() => {
+    if (!isAdminReady) return
     setProductsList(getStoredProducts())
     setOfferSlides(getStoredOfferSlides())
 
@@ -104,9 +116,8 @@ export default function AdminPage() {
       window.removeEventListener("storage", handleUpdate)
       window.removeEventListener("storage", handleOfferUpdate)
     }
-  }, [])
+  }, [isAdminReady])
 
-  // Filtered products list
   const filteredProducts = useMemo(() => {
     return productsList.filter((item) => {
       const matchesCat = selectedCategory === "All" || item.category === selectedCategory
@@ -121,13 +132,33 @@ export default function AdminPage() {
     })
   }, [productsList, searchQuery, selectedCategory])
 
-  // Overview metrics
   const totalProducts = productsList.length
   const inStockCount = productsList.filter((p) => p.inStock !== false).length
+  const outOfStockCount = totalProducts - inStockCount
   const totalOrders = ordersList.length
   const totalRevenue = ordersList.reduce((sum, ord) => sum + Number(ord.totalUsd), 0)
+  const pendingOrders = ordersList.filter((ord) => ord.status !== "DELIVERED").length
 
-  // Handlers
+  const adminSections = [
+    { id: "products", label: "Products", count: productsList.length, icon: Package, desc: "Catalog items" },
+    { id: "add", label: "Add Product", icon: Plus, desc: "Create listing" },
+    { id: "offers", label: "Hero Offers", count: offerSlides.length, icon: Sparkles, desc: "Homepage slider" },
+    { id: "orders", label: "Orders", count: ordersList.length, icon: ShoppingBag, desc: "Customer requests" },
+    { id: "inventory", label: "Inventory", count: outOfStockCount, icon: Boxes, desc: "Stock control" },
+    { id: "fulfillment", label: "Fulfillment", count: pendingOrders, icon: Truck, desc: "Dispatch work" },
+    { id: "settings", label: "Settings", icon: Settings, desc: "Shop controls" },
+    { id: "overview", label: "Overview", icon: BarChart3, desc: "Store health" },
+  ] as const
+
+  function handleAdminLogout() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("netily_shop_admin_session")
+      window.localStorage.removeItem("netily_shop_admin_email")
+    }
+    toast.success("Signed out of shop admin")
+    router.replace("/shop/admin/login")
+  }
+
   function handleRemoveProduct() {
     if (!productToDelete) return
     const id = productToDelete.id
@@ -237,7 +268,6 @@ export default function AdminPage() {
     setProductsList(getStoredProducts())
     toast.success(`"${created.name}" is now live in the shop!`)
 
-    // Reset form
     setFormData({
       name: "",
       category: "Routers & Gateways",
@@ -262,7 +292,6 @@ export default function AdminPage() {
       }
       return p
     })
-    // Save to storage
     if (typeof window !== "undefined") {
       window.localStorage.setItem("netily_shop_products_catalog", JSON.stringify(updated))
       window.dispatchEvent(new CustomEvent("netily_products_updated", { detail: updated }))
@@ -270,53 +299,81 @@ export default function AdminPage() {
     setProductsList(updated)
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Admin Tab Navigation */}
-      <div className="flex items-center justify-between gap-3 overflow-x-auto rounded-2xl border border-border bg-card p-2 no-scrollbar">
-        <div className="flex items-center gap-2">
-          {[
-            { id: "products", label: `Products (${productsList.length})` },
-            { id: "add", label: "Add Product" },
-            { id: "offers", label: `Offers (${offerSlides.length})` },
-            { id: "orders", label: `Orders (${ordersList.length})` },
-            { id: "overview", label: "Overview" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`min-h-10 whitespace-nowrap rounded-xl px-4 text-xs uppercase transition-all ${
-                activeTab === tab.id
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            title="Reset catalog back to initial default products"
-            className="flex min-h-10 items-center gap-1.5 rounded-full border border-border px-4 text-[11px] uppercase text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Reset Catalog
-          </button>
+  if (!isAdminReady) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-border bg-card p-8 text-center">
+        <div>
+          <ShieldCheck className="mx-auto mb-4 h-8 w-8 text-muted-foreground" />
+          <p className="font-serif text-xl">Checking shop admin access</p>
+          <p className="mt-2 text-xs uppercase tracking-wider text-muted-foreground">Redirecting to secure sign in when needed</p>
         </div>
       </div>
+    )
+  }
 
-      {/* ────────────────────────────────────────────────────────────────────── */}
-      {/* 1. ALL PRODUCTS TAB */}
-      {/* ────────────────────────────────────────────────────────────────────── */}
+  return (
+    <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="lg:sticky lg:top-28 lg:self-start">
+        <div className="rounded-2xl border border-border bg-card p-3">
+          <div className="mb-3 rounded-xl border border-border bg-muted/30 p-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Admin workspace</p>
+            <p className="mt-1 font-serif text-lg">Shop Control</p>
+            <p className="mt-1 text-xs text-muted-foreground">Catalog, orders, offers, stock, and fulfillment.</p>
+          </div>
+
+          <nav className="space-y-1">
+            {adminSections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => setActiveTab(section.id)}
+                className={`flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left transition-all ${
+                  activeTab === section.id
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <section.icon className="h-4 w-4 shrink-0 stroke-[1.6]" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.12em]">{section.label}</span>
+                  <span className={`block truncate text-[11px] ${activeTab === section.id ? "text-background/70" : "text-muted-foreground"}`}>
+                    {section.desc}
+                  </span>
+                </span>
+                {"count" in section && typeof section.count === "number" && (
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${activeTab === section.id ? "bg-background/15" : "bg-muted text-muted-foreground"}`}>
+                    {section.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex min-h-10 w-full items-center justify-between rounded-xl border border-border px-3 text-xs uppercase text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <span>Reset Catalog</span>
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={handleAdminLogout}
+              className="flex min-h-10 w-full items-center justify-between rounded-xl border border-border px-3 text-xs uppercase text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <span>Sign Out</span>
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <section className="min-w-0 space-y-8">
+
       {activeTab === "products" && (
         <div className="space-y-6">
-          {/* Action Bar */}
           <div className="flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center">
             <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Search Bar */}
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
@@ -328,7 +385,6 @@ export default function AdminPage() {
                 />
               </div>
 
-              {/* Category Filter */}
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -355,7 +411,6 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {/* Products Table */}
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
@@ -379,7 +434,7 @@ export default function AdminPage() {
                 <h3 className="font-serif text-lg">No Products Found</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                   {searchQuery || selectedCategory !== "All"
-                    ? "Try adjusting your search query or category filter."
+                    ? "Try changing the search term or selecting another category."
                     : "Your store catalog is currently empty. Click 'Add Product' to get started."}
                 </p>
                 {(searchQuery || selectedCategory !== "All") && (
@@ -412,7 +467,6 @@ export default function AdminPage() {
                       const isInStock = p.inStock !== false
                       return (
                         <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                          {/* Item Name + Thumbnail */}
                           <td className="py-3.5 px-4 flex items-center gap-3">
                             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
                               <Image
@@ -436,17 +490,14 @@ export default function AdminPage() {
                             </div>
                           </td>
 
-                          {/* Category */}
                           <td className="py-3.5 px-4 text-muted-foreground uppercase tracking-wider text-[11px]">
                             {p.category}
                           </td>
 
-                          {/* Brand */}
                           <td className="py-3.5 px-4 font-medium text-foreground">
                             {p.brand || "Netily Pro"}
                           </td>
 
-                          {/* Stock Status Toggle */}
                           <td className="py-3.5 px-4 text-center">
                             <button
                               onClick={() => handleToggleStock(p.id)}
@@ -461,12 +512,10 @@ export default function AdminPage() {
                             </button>
                           </td>
 
-                          {/* Price */}
                           <td className="py-3.5 px-4 text-right font-medium text-sm">
                             ${Number(p.price).toLocaleString()}
                           </td>
 
-                          {/* Actions */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Link
@@ -496,9 +545,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────────────────── */}
-      {/* 2. ADD PRODUCT TAB */}
-      {/* ────────────────────────────────────────────────────────────────────── */}
       {activeTab === "add" && (
         <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-border bg-card p-6 md:p-8">
           <div className="border-b border-border pb-4">
@@ -509,7 +555,6 @@ export default function AdminPage() {
           </div>
 
           <form onSubmit={handleCreateProduct} className="space-y-6">
-            {/* Name */}
             <div>
               <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
                 Product Name <span className="text-red-500">*</span>
@@ -528,7 +573,6 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* Category & Brand */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -563,7 +607,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Price & Stock */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -619,13 +662,11 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Product Image Selection */}
             <div className="space-y-3">
               <label className="block text-xs uppercase tracking-wider text-muted-foreground">
                 Product Image (Choose Preset or Custom URL)
               </label>
 
-              {/* Presets */}
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {PRESET_IMAGES.map((preset) => {
                   const isSelected = formData.image === preset.src && !formData.customImageUrl
@@ -652,7 +693,6 @@ export default function AdminPage() {
                 })}
               </div>
 
-              {/* Custom Image URL option */}
               <div className="pt-2">
                 <input
                   type="url"
@@ -664,7 +704,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Short Description */}
             <div>
               <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
                 Product Description
@@ -678,7 +717,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Warranty */}
             <div>
               <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
                 Warranty & Verification
@@ -692,7 +730,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Submit & Cancel Buttons */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
               <button
                 type="button"
@@ -713,9 +750,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────────────────── */}
-      {/* 3. ORDERS TAB */}
-      {/* ────────────────────────────────────────────────────────────────────── */}
       {activeTab === "offers" && (
         <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -741,7 +775,7 @@ export default function AdminPage() {
                     <h3 className="mt-1 text-base font-semibold leading-snug">{slide.title}</h3>
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{slide.description}</p>
                     <p className="mt-2 text-[11px] text-muted-foreground">
-                      CTA: <span className="text-foreground">{slide.ctaLabel}</span> · {slide.href}
+                      CTA: <span className="text-foreground">{slide.ctaLabel}</span> - {slide.href}
                     </p>
                   </div>
                   <button onClick={() => setOfferToDelete(slide)} className="justify-self-start rounded-full border border-red-500/30 p-2 text-red-600 transition hover:bg-red-500/10 md:justify-self-end" title="Remove offer slide">
@@ -902,12 +936,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────────────────── */}
-      {/* 4. OVERVIEW TAB */}
-      {/* ────────────────────────────────────────────────────────────────────── */}
       {activeTab === "overview" && (
         <div className="space-y-8">
-          {/* Key Metrics */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
@@ -950,7 +980,6 @@ export default function AdminPage() {
             ))}
           </div>
 
-          {/* Quick Actions & Low Stock */}
           <div className="grid lg:grid-cols-12 gap-8">
             <div className="space-y-4 rounded-2xl border border-border bg-card p-6 lg:col-span-8">
               <div className="flex items-center justify-between pb-4 border-b border-border">
@@ -1026,9 +1055,115 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────────────────── */}
-      {/* CONFIRMATION MODAL: REMOVE PRODUCT */}
-      {/* ────────────────────────────────────────────────────────────────────── */}
+      {activeTab === "inventory" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { label: "In stock", value: inStockCount, sub: "Available for checkout" },
+              { label: "Out of stock", value: outOfStockCount, sub: "Needs restock action" },
+              { label: "Categories", value: categories.filter((c) => c !== "All").length, sub: "Configured catalog groups" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-border bg-card p-5">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{item.label}</p>
+                <p className="mt-2 font-serif text-3xl">{item.value}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{item.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="mb-5 flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="font-serif text-xl">Inventory Control</h2>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Track stock availability and highlight items that need restocking.</p>
+              </div>
+              <button onClick={() => setActiveTab("products")} className="rounded-full border border-border px-4 py-2 text-xs uppercase hover:bg-muted">
+                Update Stock
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              {productsList.slice(0, 8).map((product) => (
+                <div key={product.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-border bg-muted">
+                      <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                    </div>
+                    <div>
+                      <p className="font-serif text-sm">{product.name}</p>
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{product.category}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleToggleStock(product.id)}
+                    className={`rounded-full border px-3 py-1.5 text-[10px] uppercase ${
+                      product.inStock !== false
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
+                        : "border-red-500/40 bg-red-500/10 text-red-600"
+                    }`}
+                  >
+                    {product.inStock !== false ? "In Stock" : "Out of Stock"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "fulfillment" && (
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 border-b border-border pb-4">
+            <h2 className="font-serif text-xl">Fulfillment Queue</h2>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Dispatch, tracking, delivery, and customer updates for hardware orders.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {["Pick & pack", "Carrier booking", "Delivered"].map((stage) => (
+              <div key={stage} className="rounded-2xl border border-border bg-muted/10 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider">{stage}</p>
+                <div className="mt-4 space-y-3">
+                  {ordersList
+                    .filter((order) =>
+                      stage === "Pick & pack"
+                        ? order.status === "PENDING" || order.status === "PROCESSING"
+                        : stage === "Carrier booking"
+                        ? order.status === "DISPATCHED"
+                        : order.status === "DELIVERED"
+                    )
+                    .slice(0, 4)
+                    .map((order) => (
+                      <div key={order.id} className="rounded-xl border border-border bg-card p-3">
+                        <p className="font-mono text-xs font-semibold">{order.orderNumber}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">{order.shippingAddress}</p>
+                        <p className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">{order.paymentMethod}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "settings" && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {[
+            { title: "Storefront", body: "Configure hero offers, catalog defaults, featured categories, and homepage publishing rules." },
+            { title: "Checkout", body: "Define payment methods, quote expiry, tax treatment, and delivery regions." },
+            { title: "Admin Access", body: "Control shop team roles, session expiry, permissions, and audit trails." },
+            { title: "Notifications", body: "Prepare email, SMS, and internal alerts for order confirmation, dispatch, delivery, and restock events." },
+          ].map((item) => (
+            <div key={item.title} className="rounded-2xl border border-border bg-card p-6">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Shop settings</p>
+              <h2 className="mt-2 font-serif text-xl">{item.title}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      </section>
+
       {productToDelete && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">
@@ -1057,9 +1192,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────────────────── */}
-      {/* CONFIRMATION MODAL: RESET CATALOG */}
-      {/* ────────────────────────────────────────────────────────────────────── */}
       {offerToDelete && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">

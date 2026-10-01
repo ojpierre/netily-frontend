@@ -177,48 +177,29 @@ export function Navigation() {
                       transition={{ duration: 0.2 }}
                       className="absolute right-0 top-full mt-2 w-52 bg-background border border-border shadow-xl p-2 z-50"
                     >
-                      <div className="px-3 py-2 border-b border-border/60 mb-1">
-                        <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Signed in as</p>
-                        <p className="text-sm font-semibold truncate">ISP Engineer</p>
-                      </div>
                       <Link
-                        href="/shop/account/profile"
+                        href="/shop/login"
                         className="block px-3 py-2 text-xs uppercase tracking-[0.15em] hover:bg-muted transition-colors"
                       >
-                        My Account
+                        Customer Login
                       </Link>
                       <Link
-                        href="/shop/account/orders"
+                        href="/shop/register"
                         className="block px-3 py-2 text-xs uppercase tracking-[0.15em] hover:bg-muted transition-colors"
                       >
-                        Orders & Invoices
+                        Register
                       </Link>
                       <Link
-                        href="/shop/account/addresses"
-                        className="block px-3 py-2 text-xs uppercase tracking-[0.15em] hover:bg-muted transition-colors"
-                      >
-                        NOC & Sites
-                      </Link>
-                      <Link
-                        href="/shop/admin"
+                        href="/shop/admin/login"
                         className="block px-3 py-2 text-xs uppercase tracking-[0.15em] text-foreground font-semibold hover:bg-muted transition-colors"
                       >
                         Admin Console
                       </Link>
-                      <div className="border-t border-border/60 my-1 pt-1">
-                        <Link
-                          href="/shop/login"
-                          className="block px-3 py-2 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          Switch User / Demo
-                        </Link>
-                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              {/* Shopping Bag Button */}
               <button
                 onClick={() => setIsCartOpen(true)}
                 aria-label="Shopping cart"
@@ -279,22 +260,13 @@ export function Navigation() {
                 ))}
                 <div className="border-t border-border pt-6 mt-2">
                   <p className="text-xs text-muted-foreground tracking-[0.15em] uppercase mb-4">Account</p>
-                  <Link
-                    href="/shop/account/profile"
-                    className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground/60 hover:text-foreground mb-3"
-                  >
-                    Profile & NOC
+                  <Link href="/shop/login" className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground/60 hover:text-foreground mb-3">
+                    Customer Login
                   </Link>
-                  <Link
-                    href="/shop/account/orders"
-                    className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground/60 hover:text-foreground mb-3"
-                  >
-                    Orders & Invoices
+                  <Link href="/shop/register" className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground/60 hover:text-foreground mb-3">
+                    Register
                   </Link>
-                  <Link
-                    href="/shop/admin"
-                    className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground font-semibold"
-                  >
+                  <Link href="/shop/admin/login" className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground font-semibold">
                     Admin Console
                   </Link>
                 </div>

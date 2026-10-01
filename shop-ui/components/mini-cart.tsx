@@ -150,7 +150,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                   <span className="font-serif text-lg">${total.toLocaleString()} USD</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Shipping and taxes calculated at checkout</p>
-                <Link href="/shop/checkout" onClick={onClose}>
+                <Link href="/shop/login?next=/shop/checkout" onClick={onClose}>
                   <Button className="w-full rounded-2xl py-6 text-sm uppercase">
                     Proceed to Checkout
                   </Button>

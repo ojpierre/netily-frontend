@@ -9,7 +9,7 @@ const accountLinks = [
   { href: "/shop/account/orders", label: "Orders & Invoices", icon: Package },
   { href: "/shop/account/addresses", label: "Sites & Delivery", icon: MapPin },
   { href: "/shop/account/settings", label: "Preferences", icon: Settings },
-  { href: "/shop/admin", label: "Admin Console", icon: Shield, badge: "Admin" },
+  { href: "/shop/admin/login", label: "Admin Console", icon: Shield, badge: "Admin" },
 ]
 
 export function AccountSidebar() {

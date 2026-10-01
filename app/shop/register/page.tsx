@@ -6,13 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/shop-ui/components/ui/button"
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/shop-ui/components/ui/form"
 import { Label } from "@/shop-ui/components/ui/label"
@@ -55,12 +53,15 @@ export default function RegisterPage() {
           phone: "+254 700 000 000",
         })
       )
+      localStorage.setItem("netily_shop_customer_session", "authenticated")
+      localStorage.setItem("netily_shop_customer_email", values.email)
     }
 
     setTimeout(() => {
+      const params = new URLSearchParams(window.location.search)
       setIsLoading(false)
       toast.success("Account created successfully!")
-      router.push("/shop/account/profile")
+      router.push(params.get("next") || "/shop/account/profile")
     }, 600)
   }
 
