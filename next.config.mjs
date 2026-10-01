@@ -72,8 +72,6 @@ const nextConfig = {
     ]
   },
 
-  turbopack: {},
-
   async headers() {
     return [
       ...[

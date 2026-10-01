@@ -15,7 +15,7 @@ COPY package.json package-lock.json ./
 
 # Install with npm — BuildKit cache mount keeps npm cache between builds
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --legacy-peer-deps
+    npm ci --legacy-peer-deps
 
 # ── Stage 2: Build ─────────────────────────────────────────────
 FROM node:20-alpine AS builder
