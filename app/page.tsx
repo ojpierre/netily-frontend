@@ -4,11 +4,11 @@ import { blogPosts } from "@/lib/blog-data"
 import { HomepagePreloader } from "@/components/homepage-preloader"
 
 const homepageSeoDescription =
-  "Internetily is a Kenya-first ISP billing system for M-Pesa STK Push, MikroTik PPPoE, hotspot vouchers, WiFi billing, invoices, SMS reminders, and customer self-service."
+  "Internetily helps ISPs manage payments, MikroTik PPPoE, hotspot vouchers, WiFi billing, invoices, SMS reminders, customer self-service, and renewals."
 
 // Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
-  title: "ISP Billing System Kenya | M-Pesa, MikroTik & Hotspot Billing | Internetily",
+  title: "ISP Billing System | MikroTik, Hotspot & WiFi Billing | Internetily",
   description: homepageSeoDescription,
   keywords: [
     "isp billing system", "isp billing system in kenya", "hotspot billing software kenya",
@@ -270,7 +270,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "ISP Billing System Kenya | Internetily",
+    title: "ISP Billing System for ISPs | Internetily",
     description: homepageSeoDescription,
     url: "https://netily.co.ke",
     images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily, formerly Netily - ISP Billing Software Kenya" }],
@@ -294,7 +294,7 @@ const softwareSchema = {
   operatingSystem: "Web",
   url: "https://netily.co.ke",
   description:
-    "Internetily, formerly Netily, is a Kenya-first ISP billing system for internet providers, WISPs, hotspot operators, estates, hotels, and campus WiFi teams. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot voucher billing, WiFi billing, invoices, SMS reminders, and customer self-service.",
+    "Internetily, formerly Netily, is an ISP billing system for internet providers, WISPs, hotspot operators, estates, hotels, and campus WiFi teams. It automates payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot voucher billing, WiFi billing, invoices, SMS reminders, and customer self-service.",
   publisher: {
     "@type": "Organization",
     "@id": "https://netily.co.ke/#organization",

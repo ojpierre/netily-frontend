@@ -76,11 +76,11 @@ const fontVariables = [
 
 export const metadata: Metadata = {
   title: {
-    default: "ISP Billing System Kenya | M-Pesa & MikroTik Billing | Internetily",
+    default: "ISP Billing System | MikroTik, Hotspot & WiFi Billing | Internetily",
     template: "%s | Internetily",
   },
   description:
-    "Internetily is a Kenya-first ISP billing system for M-Pesa payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, customer access, and renewals.",
+    "Internetily helps ISPs manage payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, customer access, and renewals.",
   keywords: [
     // — Core product —
     "isp billing system",
@@ -400,9 +400,9 @@ export const metadata: Metadata = {
     locale: "en_KE",
     url: "https://netily.co.ke",
     siteName: "Internetily, formerly Netily",
-    title: "ISP Billing System Kenya | M-Pesa & MikroTik Billing | Internetily",
+    title: "ISP Billing System | MikroTik, Hotspot & WiFi Billing | Internetily",
     description:
-      "Internetily is a Kenya-first ISP billing system for M-Pesa payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and customer renewals.",
+      "Internetily helps ISPs manage payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and customer renewals.",
     images: [
       {
         url: "/og-image.svg",
@@ -414,7 +414,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ISP Billing System Kenya | Internetily",
+    title: "ISP Billing System for ISPs | Internetily",
     description:
       "Automate M-Pesa ISP billing, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and renewals with Internetily.",
     images: ["/og-image.svg"],

@@ -614,104 +614,6 @@ function ProductVideoSection({
   )
 }
 
-function KenyaBillingIntentSection({ onKenyaDemoLead }: { onKenyaDemoLead: () => void }) {
-  const workflows = [
-    {
-      title: "M-Pesa ISP billing",
-      copy: "Collect internet subscription payments through STK Push, reconcile receipts, and restore access without manual chasing.",
-      icon: Banknote,
-    },
-    {
-      title: "Hotspot billing software Kenya",
-      copy: "Sell vouchers and time-based packages through a branded captive portal for hotels, hostels, estates, campuses, and public WiFi.",
-      icon: Wifi,
-    },
-    {
-      title: "MikroTik PPPoE billing",
-      copy: "Connect PPPoE packages to router access, RADIUS, expiry rules, renewals, SMS reminders, and customer self-service.",
-      icon: Router,
-    },
-    {
-      title: "WiFi billing system Kenya",
-      copy: "Run billing for apartments, estates, schools, churches, cafes, and managed WiFi networks from one clean dashboard.",
-      icon: Smartphone,
-    },
-  ]
-  const buyerSearches = [
-    "wifi billing system Kenya price",
-    "free ISP billing software for MikroTik",
-    "FreeRADIUS billing system",
-    "PPPoE billing system",
-    "Centipid or ISPMan alternatives",
-    "FTTH and FTTX billing",
-  ]
-
-  return (
-    <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 py-20 md:py-28">
-      <Grain />
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.85fr_1.15fr] lg:px-16 lg:items-center">
-        <div>
-          <SectionLabel>Kenya ISP billing</SectionLabel>
-          <h2 className="mt-6 text-balance text-4xl font-normal leading-tight text-white md:text-5xl">
-            Looking for an ISP billing system in Kenya?
-          </h2>
-          <p className="mt-5 text-base leading-7 text-zinc-400">
-            Internetily helps Kenyan ISPs, WISPs, hotspot teams, estates, hotels, schools, and campus WiFi operators manage M-Pesa payments, MikroTik access, hotspot vouchers, invoices, renewals, and support without scattered admin work.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={onKenyaDemoLead}
-              className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
-            >
-              Book a Kenya demo
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <a
-              href="#pricing"
-              onClick={(event) => {
-                event.preventDefault()
-                document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })
-              }}
-              className="inline-flex min-h-12 items-center justify-center border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              View pricing
-            </a>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {workflows.map((item) => {
-            const Icon = item.icon
-            return (
-              <div key={item.title} className="border border-zinc-800 bg-zinc-900/80 p-5">
-                <div className="mb-5 flex h-11 w-11 items-center justify-center bg-amber-400 text-zinc-950">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-medium text-white">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.copy}</p>
-              </div>
-            )
-          })}
-          <div className="border border-amber-400/25 bg-amber-400/10 p-5 sm:col-span-2">
-            <h3 className="text-lg font-medium text-white">Comparing billing systems before you buy?</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-300">
-              If you are checking price, free tools, FreeRADIUS options, ISPMan, Centipid, MikroTik billing software, PPPoE billing, hotspot billing, or FTTH billing, use the demo to compare what is included and what your team would still need to manage manually.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {buyerSearches.map((search) => (
-                <span key={search} className="border border-white/10 bg-zinc-950/70 px-3 py-2 text-xs text-zinc-300">
-                  {search}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [countrySwitcherOpen, setCountrySwitcherOpen] = useState(false)
@@ -771,17 +673,6 @@ export function LandingPage() {
       lead_source: prev.lead_source || "Google Search",
       message:
         "Hi Internetily, I want to set up my own ISP. Please help me with hardware planning, Starlink/fiber/wireless backhaul, MikroTik routers, billing software, M-Pesa integration, customer portal, RADIUS, packages, staff roles, and full business operations setup.",
-    }))
-    window.setTimeout(() => scrollTo("contact"), 0)
-  }
-
-  const prefillKenyaBillingLead = () => {
-    setLeadSubmitted(false)
-    setLeadForm((prev) => ({
-      ...prev,
-      lead_source: prev.lead_source || "Google Search",
-      message:
-        "Hi Internetily, I am looking for an ISP billing system in Kenya. Please show me how M-Pesa billing, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, customer self-service, and renewals would work for my network.",
     }))
     window.setTimeout(() => scrollTo("contact"), 0)
   }
@@ -1076,8 +967,6 @@ export function LandingPage() {
         </section>
 
         <PaymentLogoStrip />
-
-        <KenyaBillingIntentSection onKenyaDemoLead={prefillKenyaBillingLead} />
 
         <RouterAndIspSetupSection onIspSetupLead={prefillIspSetupLead} />
 
@@ -1433,7 +1322,7 @@ export function LandingPage() {
               },
               {
                 q: "How should I compare Centipid, ISPMan, and other billing systems?",
-                a: "Compare payment automation, MikroTik support, RADIUS workflows, customer self-service, invoice handling, support, reporting, setup effort, and the real cost of maintaining the system. Internetily is positioned for Kenyan ISPs that want M-Pesa-first billing with guided onboarding.",
+                a: "Compare payment automation, MikroTik support, RADIUS workflows, customer self-service, invoice handling, support, reporting, setup effort, and the real cost of maintaining the system. Internetily is built for ISP teams that want guided onboarding and practical billing automation.",
               },
               {
                 q: "Does Internetily support M-Pesa STK Push?",
@@ -1532,10 +1421,10 @@ export function LandingPage() {
               <div>
                 <SectionLabel>Start</SectionLabel>
                 <h2 className="mt-6 text-balance text-4xl font-normal leading-tight md:text-6xl">
-                  <SplitWords text="Book a Kenya ISP billing demo" />
+                  <SplitWords text="Book an ISP billing demo" />
                 </h2>
                 <p className="mt-5 text-base leading-7 text-zinc-400">
-                  Share your network details and we will map the cleanest Internetily setup for M-Pesa billing, MikroTik PPPoE, hotspot vouchers, WiFi billing, invoices, reminders, and customer self-service.
+                  Share your network details and we will map the cleanest Internetily setup for payments, MikroTik PPPoE, hotspot vouchers, WiFi billing, invoices, reminders, and customer self-service.
                 </p>
                 <div className="mt-8 grid gap-3">
                   {[
@@ -1677,7 +1566,7 @@ export function LandingPage() {
                     disabled={leadSubmitting}
                     className="mt-5 flex h-12 w-full items-center justify-center gap-2 bg-white text-sm font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-60"
                   >
-                    {leadSubmitting ? "Sending..." : "Request Kenya demo"}
+                    {leadSubmitting ? "Sending..." : "Request demo"}
                     {!leadSubmitting && <Send className="h-4 w-4" />}
                   </button>
                   {leadSubmitError && (
@@ -1685,7 +1574,7 @@ export function LandingPage() {
                       {leadSubmitError}
                     </p>
                   )}
-                  <p className="mt-3 text-center text-xs text-zinc-500">Kenya demos cover M-Pesa, MikroTik, hotspot, WiFi billing, invoices, and renewals. No spam.</p>
+                  <p className="mt-3 text-center text-xs text-zinc-500">Demos cover payments, MikroTik, hotspot, WiFi billing, invoices, and renewals. No spam.</p>
                 </div>
               )}
             </div>
