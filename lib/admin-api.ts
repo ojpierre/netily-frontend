@@ -2085,8 +2085,86 @@ async activateService(
   }
 
   // ------------------------------------------
-  // CPE/TR-069 - /network/cpe/
+  // CPE/TR-069 - /tr069/
   // ------------------------------------------
+
+  async getTR069Devices(params?: Record<string, string | number | boolean | undefined>): Promise<PaginatedResponse<any>> {
+    const queryString = params ? '?' + new URLSearchParams(params as any).toString() : ''
+    return this.request<PaginatedResponse<any>>(`/tr069/devices/${queryString}`)
+  }
+
+  async getTR069Summary(): Promise<any> {
+    return this.request<any>('/tr069/devices/summary/')
+  }
+
+  async createTR069Device(data: Record<string, any>): Promise<any> {
+    return this.request<any>('/tr069/devices/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getTR069Device(id: number | string): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/`)
+  }
+
+  async updateTR069Device(id: number | string, data: Record<string, any>): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteTR069Device(id: number | string): Promise<void> {
+    await this.request(`/tr069/devices/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getTR069Credentials(id: number | string): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/credentials/`)
+  }
+
+  async rotateTR069Credentials(id: number | string): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/rotate_credentials/`, {
+      method: 'POST',
+    })
+  }
+
+  async getTR069Tasks(id: number | string): Promise<any[]> {
+    return this.request<any[]>(`/tr069/devices/${id}/tasks/`)
+  }
+
+  async refreshTR069Device(id: number | string): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/refresh/`, {
+      method: 'POST',
+    })
+  }
+
+  async rebootTR069Device(id: number | string): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/reboot/`, {
+      method: 'POST',
+    })
+  }
+
+  async factoryResetTR069Device(id: number | string): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/factory_reset/`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm: true }),
+    })
+  }
+
+  async setTR069Wifi(id: number | string, networks: Array<Record<string, any>>): Promise<any> {
+    return this.request<any>(`/tr069/devices/${id}/set_wifi/`, {
+      method: 'POST',
+      body: JSON.stringify({ networks }),
+    })
+  }
+
+  async getTR069Subscribers(search?: string): Promise<any[]> {
+    const queryString = search ? `?search=${encodeURIComponent(search)}` : ''
+    return this.request<any[]>(`/tr069/pppoe-subscribers/${queryString}`)
+  }
 
   async getCPEDevices(params?: Record<string, string>): Promise<PaginatedResponse<CPEDevice>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''

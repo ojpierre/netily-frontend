@@ -269,6 +269,13 @@ export const adminRouteAccessRules: RouteAccessRule[] = [
     actions: ["view", "add", "edit", "delete"],
   },
   {
+    pathPrefix: "/admin/tr069",
+    label: "TR-069 Device Management",
+    allowedRoles: NETWORK_ROLES,
+    allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
+    actions: ["view", "view_details", "add", "edit", "delete"],
+  },
+  {
     pathPrefix: "/admin/invoices",
     label: "Invoices",
     allowedRoles: FINANCE_ROLES,

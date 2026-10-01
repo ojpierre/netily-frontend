@@ -33,6 +33,7 @@ import {
   TrendingUp,
   Server,
   Box,
+  Router as RouterIcon,
   Globe,
   Truck,
   Warehouse,
@@ -206,6 +207,7 @@ const navigationSections: NavigationSection[] = [
     items: [
       { name: "OLT Management", href: "/admin/olt", icon: Server },
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
+      { name: "TR-069", href: "/admin/tr069", pathPrefix: "/admin/tr069", icon: RouterIcon },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
       { name: "AP Map", href: "/admin/access-points", icon: Radio },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },

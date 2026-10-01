@@ -3,8 +3,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react"
 import { adminApi } from "@/lib/admin-api"
 import Link from "next/link"
+import { toast } from "sonner"
 import {
   Radio,
+  Router,
   Plus,
   Edit,
   Trash2,
@@ -198,7 +200,9 @@ export default function ONUManagementPage() {
     const offline = onus.filter((o) => o.status === "offline").length
     const los = onus.filter((o) => o.status === "los" || o.status === "dying_gasp").length
     const unassigned = onus.filter((o) => !o.customer).length
-    const avgRxPower = onus.reduce((sum, o) => sum + (o.rx_power || 0), 0) / onus.length
+    const avgRxPower = onus.length
+      ? onus.reduce((sum, o) => sum + (o.rx_power || 0), 0) / onus.length
+      : 0
     
     return { 
       total: onus.length, 
@@ -237,8 +241,9 @@ export default function ONUManagementPage() {
   }
 
   const handleReboot = async (onu: ONU) => {
-    // TODO: Add ONU reboot API when available
-    console.error('ONU reboot API not yet available')
+    toast("Use TR-069 for remote reboots", {
+      description: `${onu.serial_number} can be rebooted from TR-069 after it has checked in.`,
+    })
   }
 
   const toggleRowSelection = (id: number) => {
@@ -266,6 +271,12 @@ export default function ONUManagementPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="default" asChild>
+            <Link href="/admin/tr069">
+              <Router className="mr-2 h-4 w-4" />
+              TR-069 devices
+            </Link>
+          </Button>
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -276,6 +287,25 @@ export default function ONUManagementPage() {
           </Button>
         </div>
       </div>
+
+      <Card className="overflow-hidden border-primary/20 bg-primary/5">
+        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Router className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Need WiFi changes, reboot, or ACS setup?</h2>
+              <p className="text-sm text-muted-foreground">
+                Use TR-069 for subscriber ONTs and routers that check in to acs.netily.co.ke. ONU Management remains focused on OLT registration, optical power, and fibre status.
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" asChild>
+            <Link href="/admin/tr069">Open TR-069</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
