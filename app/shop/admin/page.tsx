@@ -273,8 +273,8 @@ export default function AdminPage() {
   return (
     <div className="space-y-8">
       {/* Admin Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-border pb-1 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-8">
+      <div className="flex items-center justify-between gap-3 overflow-x-auto rounded-2xl border border-border bg-card p-2 no-scrollbar">
+        <div className="flex items-center gap-2">
           {[
             { id: "products", label: `Products (${productsList.length})` },
             { id: "add", label: "Add Product" },
@@ -285,10 +285,10 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`text-xs tracking-[0.2em] uppercase transition-all pb-3 whitespace-nowrap border-b-2 ${
+              className={`min-h-10 whitespace-nowrap rounded-xl px-4 text-xs uppercase transition-all ${
                 activeTab === tab.id
-                  ? "border-foreground text-foreground font-semibold"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -300,7 +300,7 @@ export default function AdminPage() {
           <button
             onClick={() => setShowResetConfirm(true)}
             title="Reset catalog back to initial default products"
-            className="text-[11px] text-muted-foreground hover:text-foreground uppercase tracking-wider flex items-center gap-1.5 pb-2 transition-colors"
+            className="flex min-h-10 items-center gap-1.5 rounded-full border border-border px-4 text-[11px] uppercase text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <RotateCcw className="h-3 w-3" />
             Reset Catalog
@@ -314,7 +314,7 @@ export default function AdminPage() {
       {activeTab === "products" && (
         <div className="space-y-6">
           {/* Action Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card border border-border p-4">
+          <div className="flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center">
             <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Search Bar */}
               <div className="relative flex-1">
@@ -324,7 +324,7 @@ export default function AdminPage() {
                   placeholder="Search products by title, category, or brand..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-muted/30 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
+                  className="w-full rounded-xl border border-border bg-muted/30 py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
                 />
               </div>
 
@@ -333,7 +333,7 @@ export default function AdminPage() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 aria-label="Filter products by category"
-                className="py-2 px-3 text-xs bg-muted/30 border border-border text-foreground cursor-pointer focus:outline-none"
+                className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-foreground cursor-pointer focus:outline-none"
               >
                 <option value="All">All Categories</option>
                 {categories
@@ -348,7 +348,7 @@ export default function AdminPage() {
 
             <button
               onClick={() => setActiveTab("add")}
-              className="bg-foreground text-background hover:bg-foreground/90 text-xs tracking-[0.15em] uppercase px-5 py-2.5 flex items-center justify-center gap-2 shrink-0 transition-colors"
+              className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-xs uppercase text-background transition-colors hover:bg-foreground/90"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Product
@@ -356,7 +356,7 @@ export default function AdminPage() {
           </div>
 
           {/* Products Table */}
-          <div className="border border-border bg-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
                 <h2 className="font-serif text-lg">Shop Catalog</h2>
@@ -414,7 +414,7 @@ export default function AdminPage() {
                         <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                           {/* Item Name + Thumbnail */}
                           <td className="py-3.5 px-4 flex items-center gap-3">
-                            <div className="w-12 h-12 bg-muted relative border border-border shrink-0">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
                               <Image
                                 src={p.image || "/placeholder.svg"}
                                 alt={p.name}
@@ -451,7 +451,7 @@ export default function AdminPage() {
                             <button
                               onClick={() => handleToggleStock(p.id)}
                               title="Click to toggle stock status"
-                              className={`text-[10px] uppercase tracking-wider px-2.5 py-1 border transition-colors ${
+                              className={`rounded-full border px-2.5 py-1 text-[10px] uppercase transition-colors ${
                                 isInStock
                                   ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                                   : "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400"
@@ -471,14 +471,14 @@ export default function AdminPage() {
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 href={`/shop/product/${p.id}`}
-                                className="p-1.5 border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                className="rounded-full border border-border p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                 title="View in Shop"
                               >
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </Link>
                               <button
                                 onClick={() => setProductToDelete(p)}
-                                className="p-1.5 border border-border text-red-600 hover:bg-red-500/10 hover:border-red-500/50 transition-colors"
+                                className="rounded-full border border-border p-1.5 text-red-600 transition-colors hover:border-red-500/50 hover:bg-red-500/10"
                                 title="Remove from Shop"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -500,7 +500,7 @@ export default function AdminPage() {
       {/* 2. ADD PRODUCT TAB */}
       {/* ────────────────────────────────────────────────────────────────────── */}
       {activeTab === "add" && (
-        <div className="max-w-3xl mx-auto border border-border bg-card p-6 md:p-8 space-y-6">
+        <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-border bg-card p-6 md:p-8">
           <div className="border-b border-border pb-4">
             <h2 className="font-serif text-2xl">Add New Product</h2>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
@@ -519,7 +519,7 @@ export default function AdminPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. MikroTik Cloud Router Switch CRS328-24P-4S+RM"
-                className={`w-full p-3 text-sm bg-muted/20 border ${
+                className={`w-full rounded-xl border bg-muted/20 p-3 text-sm ${
                   formErrors.name ? "border-red-500" : "border-border"
                 } text-foreground focus:outline-none focus:border-foreground`}
               />
@@ -537,7 +537,7 @@ export default function AdminPage() {
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full p-3 text-sm bg-muted/20 border border-border text-foreground cursor-pointer focus:outline-none focus:border-foreground"
+                  className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm text-foreground cursor-pointer focus:border-foreground focus:outline-none"
                 >
                   {categories
                     .filter((c) => c !== "All")
@@ -558,7 +558,7 @@ export default function AdminPage() {
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                   placeholder="e.g. MikroTik, Ubiquiti, Netily Pro"
-                  className="w-full p-3 text-sm bg-muted/20 border border-border text-foreground focus:outline-none focus:border-foreground"
+                  className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm text-foreground focus:border-foreground focus:outline-none"
                 />
               </div>
             </div>
@@ -580,7 +580,7 @@ export default function AdminPage() {
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     placeholder="395"
-                    className={`w-full pl-8 pr-3 py-3 text-sm bg-muted/20 border ${
+                    className={`w-full rounded-xl border bg-muted/20 py-3 pl-8 pr-3 text-sm ${
                       formErrors.price ? "border-red-500" : "border-border"
                     } text-foreground focus:outline-none focus:border-foreground`}
                   />
@@ -634,7 +634,7 @@ export default function AdminPage() {
                       key={preset.src}
                       type="button"
                       onClick={() => setFormData({ ...formData, image: preset.src, customImageUrl: "" })}
-                      className={`relative aspect-square border text-left p-1 transition-all group ${
+                      className={`group relative aspect-square overflow-hidden rounded-xl border p-1 text-left transition-all ${
                         isSelected ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/50"
                       }`}
                     >
@@ -659,7 +659,7 @@ export default function AdminPage() {
                   value={formData.customImageUrl}
                   onChange={(e) => setFormData({ ...formData, customImageUrl: e.target.value })}
                   placeholder="Or enter custom image URL (https://...)"
-                  className="w-full p-2.5 text-xs bg-muted/20 border border-border text-foreground focus:outline-none focus:border-foreground font-mono"
+                  className="w-full rounded-xl border border-border bg-muted/20 p-2.5 font-mono text-xs text-foreground focus:border-foreground focus:outline-none"
                 />
               </div>
             </div>
@@ -674,7 +674,7 @@ export default function AdminPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief summary of key specs, ports, and intended deployment..."
-                className="w-full p-3 text-sm bg-muted/20 border border-border text-foreground focus:outline-none focus:border-foreground"
+                className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm text-foreground focus:border-foreground focus:outline-none"
               />
             </div>
 
@@ -688,7 +688,7 @@ export default function AdminPage() {
                 value={formData.warranty}
                 onChange={(e) => setFormData({ ...formData, warranty: e.target.value })}
                 placeholder="e.g. 2-Year Official Netily Warranty"
-                className="w-full p-3 text-sm bg-muted/20 border border-border text-foreground focus:outline-none focus:border-foreground"
+                className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm text-foreground focus:border-foreground focus:outline-none"
               />
             </div>
 
@@ -697,13 +697,13 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("products")}
-                className="px-5 py-2.5 text-xs tracking-[0.15em] uppercase border border-border hover:bg-muted transition-colors"
+                className="rounded-full border border-border px-5 py-2.5 text-xs uppercase transition-colors hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="bg-foreground text-background hover:bg-foreground/90 px-6 py-2.5 text-xs tracking-[0.15em] uppercase transition-colors flex items-center gap-2"
+                className="flex items-center gap-2 rounded-full bg-foreground px-6 py-2.5 text-xs uppercase text-background transition-colors hover:bg-foreground/90"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Publish Product to Shop
@@ -718,13 +718,13 @@ export default function AdminPage() {
       {/* ────────────────────────────────────────────────────────────────────── */}
       {activeTab === "offers" && (
         <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
-          <div className="border border-border bg-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border p-4">
               <div>
                 <h2 className="font-serif text-lg">Homepage Offer Slider</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">Slides shown at the top of /shop and /shop/catalog.</p>
               </div>
-              <button onClick={handleResetOffers} className="flex items-center gap-2 border border-border px-3 py-2 text-[11px] uppercase tracking-wider hover:bg-muted">
+              <button onClick={handleResetOffers} className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-[11px] uppercase hover:bg-muted">
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset Offers
               </button>
@@ -733,7 +733,7 @@ export default function AdminPage() {
             <div className="divide-y divide-border">
               {offerSlides.map((slide) => (
                 <div key={slide.id} className="grid gap-4 p-4 md:grid-cols-[160px_1fr_auto] md:items-center">
-                  <div className="relative aspect-[16/10] overflow-hidden border border-border bg-muted">
+                  <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-border bg-muted">
                     <Image src={slide.image || "/placeholder.svg"} alt={slide.title} fill className="object-cover" />
                   </div>
                   <div className="min-w-0">
@@ -744,7 +744,7 @@ export default function AdminPage() {
                       CTA: <span className="text-foreground">{slide.ctaLabel}</span> · {slide.href}
                     </p>
                   </div>
-                  <button onClick={() => setOfferToDelete(slide)} className="justify-self-start border border-red-500/30 p-2 text-red-600 transition hover:bg-red-500/10 md:justify-self-end" title="Remove offer slide">
+                  <button onClick={() => setOfferToDelete(slide)} className="justify-self-start rounded-full border border-red-500/30 p-2 text-red-600 transition hover:bg-red-500/10 md:justify-self-end" title="Remove offer slide">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -752,7 +752,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <form onSubmit={handleCreateOffer} className="border border-border bg-card p-5">
+          <form onSubmit={handleCreateOffer} className="rounded-2xl border border-border bg-card p-5">
             <div className="mb-5">
               <h3 className="font-serif text-lg">Add Offer Artwork</h3>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">Use a strong artwork image, short headline, and a CTA pointing to a category or product.</p>
@@ -762,45 +762,45 @@ export default function AdminPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Eyebrow</label>
-                  <input value={offerForm.eyebrow} onChange={(e) => setOfferForm({ ...offerForm, eyebrow: e.target.value })} placeholder="FTTH rollout bundle" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                  <input value={offerForm.eyebrow} onChange={(e) => setOfferForm({ ...offerForm, eyebrow: e.target.value })} placeholder="FTTH rollout bundle" className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Badge</label>
-                  <input value={offerForm.badge} onChange={(e) => setOfferForm({ ...offerForm, badge: e.target.value })} placeholder="Fiber offers" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                  <input value={offerForm.badge} onChange={(e) => setOfferForm({ ...offerForm, badge: e.target.value })} placeholder="Fiber offers" className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                 </div>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Headline</label>
-                <input value={offerForm.title} onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })} placeholder="GPON OLTs, ONTs, drop cable, and test tools..." className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                <input value={offerForm.title} onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })} placeholder="GPON OLTs, ONTs, drop cable, and test tools..." className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                 {offerErrors.title && <p className="mt-1 text-[11px] text-red-600">{offerErrors.title}</p>}
               </div>
 
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Description</label>
-                <textarea rows={3} value={offerForm.description} onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })} placeholder="Describe the offer in one clear sentence..." className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                <textarea rows={3} value={offerForm.description} onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })} placeholder="Describe the offer in one clear sentence..." className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                 {offerErrors.description && <p className="mt-1 text-[11px] text-red-600">{offerErrors.description}</p>}
               </div>
 
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Artwork URL / Path</label>
-                <input value={offerForm.image} onChange={(e) => setOfferForm({ ...offerForm, image: e.target.value })} placeholder="/shop-assets/shop_hero.png" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                <input value={offerForm.image} onChange={(e) => setOfferForm({ ...offerForm, image: e.target.value })} placeholder="/shop-assets/shop_hero.png" className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                 {offerErrors.image && <p className="mt-1 text-[11px] text-red-600">{offerErrors.image}</p>}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">CTA Label</label>
-                  <input value={offerForm.ctaLabel} onChange={(e) => setOfferForm({ ...offerForm, ctaLabel: e.target.value })} placeholder="Shop Fiber Gear" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                  <input value={offerForm.ctaLabel} onChange={(e) => setOfferForm({ ...offerForm, ctaLabel: e.target.value })} placeholder="Shop Fiber Gear" className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">CTA Link</label>
-                  <input value={offerForm.href} onChange={(e) => setOfferForm({ ...offerForm, href: e.target.value })} placeholder="/shop/catalog?cat=Fiber+Optics+%26+OLT" className="w-full border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
+                  <input value={offerForm.href} onChange={(e) => setOfferForm({ ...offerForm, href: e.target.value })} placeholder="/shop/catalog?cat=Fiber+Optics+%26+OLT" className="w-full rounded-xl border border-border bg-muted/20 p-3 text-sm outline-none focus:border-blue-600" />
                   {offerErrors.href && <p className="mt-1 text-[11px] text-red-600">{offerErrors.href}</p>}
                 </div>
               </div>
 
-              <button type="submit" className="flex w-full items-center justify-center gap-2 bg-blue-600 px-5 py-3 text-xs uppercase tracking-[0.15em] text-white transition hover:bg-blue-700">
+              <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-xs uppercase text-white transition hover:bg-blue-700">
                 <Plus className="h-3.5 w-3.5" />
                 Publish Offer Slide
               </button>
@@ -810,7 +810,7 @@ export default function AdminPage() {
       )}
 
       {activeTab === "orders" && (
-        <div className="border border-border bg-card p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
             <div>
               <h2 className="font-serif text-xl">Customer Orders ({ordersList.length})</h2>
@@ -820,7 +820,7 @@ export default function AdminPage() {
             </div>
             <button
               onClick={() => toast.success("Refreshed orders list")}
-              className="text-xs uppercase tracking-wider border border-border px-3.5 py-1.5 hover:bg-muted"
+              className="rounded-full border border-border px-3.5 py-1.5 text-xs uppercase hover:bg-muted"
             >
               Refresh
             </button>
@@ -830,7 +830,7 @@ export default function AdminPage() {
             {ordersList.map((ord) => (
               <div
                 key={ord.id}
-                className="p-5 border border-border bg-muted/10 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-muted/10 p-5 md:flex-row md:items-center"
               >
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
@@ -838,7 +838,7 @@ export default function AdminPage() {
                       Order {ord.orderNumber}
                     </span>
                     <span
-                      className={`text-[10px] uppercase tracking-wider px-2 py-0.5 border ${
+                      className={`rounded-full border px-2 py-0.5 text-[10px] uppercase ${
                         ord.status === "DELIVERED"
                           ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                           : ord.status === "DISPATCHED"
@@ -891,7 +891,7 @@ export default function AdminPage() {
                       )
                       toast.success(`Updated order ${ord.orderNumber} to ${nextStatus}`)
                     }}
-                    className="text-xs tracking-wider uppercase border border-border px-3.5 py-1.5 hover:bg-muted"
+                    className="rounded-full border border-border px-3.5 py-1.5 text-xs uppercase hover:bg-muted"
                   >
                     Update Status
                   </button>
@@ -935,7 +935,7 @@ export default function AdminPage() {
                 icon: DollarSign,
               },
             ].map((stat, i) => (
-              <div key={i} className="border border-border bg-card p-6">
+              <div key={i} className="rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     {stat.title}
@@ -952,7 +952,7 @@ export default function AdminPage() {
 
           {/* Quick Actions & Low Stock */}
           <div className="grid lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-8 border border-border bg-card p-6 space-y-4">
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-6 lg:col-span-8">
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <h3 className="font-serif text-xl">Recent Store Orders</h3>
                 <button
@@ -978,7 +978,7 @@ export default function AdminPage() {
                       <tr key={ord.id} className="hover:bg-muted/20">
                         <td className="py-3 px-3 font-mono font-medium">{ord.orderNumber}</td>
                         <td className="py-3 px-3">
-                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-border bg-muted">
+                          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] uppercase">
                             {ord.status}
                           </span>
                         </td>
@@ -996,25 +996,25 @@ export default function AdminPage() {
             </div>
 
             <div className="lg:col-span-4 space-y-6">
-              <div className="border border-border bg-card p-6 space-y-4">
+              <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
                 <h4 className="font-serif text-lg">Quick Tasks</h4>
                 <div className="space-y-2">
                   <button
                     onClick={() => setActiveTab("add")}
-                    className="w-full text-left py-3 px-4 text-xs tracking-wider uppercase border border-border hover:bg-muted flex items-center justify-between transition-colors"
+                    className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-xs uppercase transition-colors hover:bg-muted"
                   >
                     <span>Add New Item</span>
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => setActiveTab("products")}
-                    className="w-full text-left py-3 px-4 text-xs tracking-wider uppercase border border-border hover:bg-muted flex items-center justify-between transition-colors"
+                    className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-xs uppercase transition-colors hover:bg-muted"
                   >
                     <span>Manage Catalog</span>
                     <Package className="h-3.5 w-3.5" />
                   </button>
                   <Link href="/shop/catalog" className="block">
-                    <button className="w-full text-left py-3 px-4 text-xs tracking-wider uppercase border border-border hover:bg-muted flex items-center justify-between transition-colors">
+                    <button className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-xs uppercase transition-colors hover:bg-muted">
                       <span>View Live Shop</span>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </button>
@@ -1031,7 +1031,7 @@ export default function AdminPage() {
       {/* ────────────────────────────────────────────────────────────────────── */}
       {productToDelete && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border p-6 max-w-md w-full space-y-4 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">
             <div className="flex items-center gap-3 text-red-600">
               <AlertTriangle className="h-5 w-5" />
               <h3 className="font-serif text-lg text-foreground">Remove Product</h3>
@@ -1042,13 +1042,13 @@ export default function AdminPage() {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setProductToDelete(null)}
-                className="px-4 py-2 text-xs uppercase tracking-wider border border-border hover:bg-muted transition-colors"
+                className="rounded-full border border-border px-4 py-2 text-xs uppercase transition-colors hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRemoveProduct}
-                className="px-4 py-2 text-xs uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors"
+                className="rounded-full bg-red-600 px-4 py-2 text-xs uppercase text-white transition-colors hover:bg-red-700"
               >
                 Yes, Remove
               </button>
@@ -1062,7 +1062,7 @@ export default function AdminPage() {
       {/* ────────────────────────────────────────────────────────────────────── */}
       {offerToDelete && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border p-6 max-w-md w-full space-y-4 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">
             <div className="flex items-center gap-3 text-red-600">
               <AlertTriangle className="h-5 w-5" />
               <h3 className="font-serif text-lg text-foreground">Remove Offer Slide</h3>
@@ -1071,10 +1071,10 @@ export default function AdminPage() {
               Remove <strong className="text-foreground">"{offerToDelete.badge || offerToDelete.eyebrow}"</strong> from the shop hero slider?
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button onClick={() => setOfferToDelete(null)} className="px-4 py-2 text-xs uppercase tracking-wider border border-border hover:bg-muted transition-colors">
+              <button onClick={() => setOfferToDelete(null)} className="rounded-full border border-border px-4 py-2 text-xs uppercase transition-colors hover:bg-muted">
                 Cancel
               </button>
-              <button onClick={handleRemoveOffer} className="px-4 py-2 text-xs uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors">
+              <button onClick={handleRemoveOffer} className="rounded-full bg-red-600 px-4 py-2 text-xs uppercase text-white transition-colors hover:bg-red-700">
                 Yes, Remove
               </button>
             </div>
@@ -1084,7 +1084,7 @@ export default function AdminPage() {
 
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border p-6 max-w-md w-full space-y-4 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">
             <div className="flex items-center gap-3">
               <RotateCcw className="h-5 w-5" />
               <h3 className="font-serif text-lg">Reset Store Catalog</h3>
@@ -1095,13 +1095,13 @@ export default function AdminPage() {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 text-xs uppercase tracking-wider border border-border hover:bg-muted transition-colors"
+                className="rounded-full border border-border px-4 py-2 text-xs uppercase transition-colors hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={handleResetCatalog}
-                className="px-4 py-2 text-xs uppercase tracking-wider bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                className="rounded-full bg-foreground px-4 py-2 text-xs uppercase text-background transition-colors hover:bg-foreground/90"
               >
                 Reset Catalog
               </button>

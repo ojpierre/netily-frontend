@@ -101,7 +101,7 @@ export function ShopCatalogExperience() {
 
   return (
     <>
-      <section className="relative flex min-h-screen items-end overflow-hidden bg-foreground text-white">
+      <section className="relative flex min-h-[58vh] items-end overflow-hidden bg-foreground text-white md:min-h-[54vh] lg:min-h-[50vh]">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentOffer?.id || "shop-offer"}
@@ -126,7 +126,7 @@ export function ShopCatalogExperience() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-end px-6 pb-28 pt-32 lg:px-8 lg:pb-36">
+        <div className="relative z-10 mx-auto flex min-h-[58vh] w-full max-w-7xl items-end px-6 pb-16 pt-28 md:min-h-[54vh] lg:min-h-[50vh] lg:px-8 lg:pb-20">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentOffer?.id || "shop-copy"}
@@ -134,20 +134,12 @@ export function ShopCatalogExperience() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -18 }}
               transition={{ duration: 0.75, delay: 0.15, ease: "easeOut" }}
-              className="max-w-3xl"
+              className="max-w-2xl"
             >
-              <span className="mb-5 inline-flex rounded-full border border-white/18 bg-white/12 px-4 py-2 text-[11px] font-semibold uppercase text-white/78 backdrop-blur">
-                {currentOffer?.badge || "Internetily shop"}
-              </span>
-              <p className="mb-5 text-xs font-semibold uppercase text-[#8ec5ff]">{currentOffer?.eyebrow}</p>
-              <h1 className="max-w-4xl whitespace-pre-line font-serif text-5xl leading-[1.05] text-white md:text-6xl lg:text-8xl">
+              <h1 className="max-w-3xl whitespace-pre-line font-serif text-4xl leading-[1.05] text-white md:text-5xl lg:text-6xl">
                 {currentOffer?.title || "ISP hardware ready for the field"}
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-8 text-white/80 lg:text-xl">
-                {currentOffer?.description ||
-                  "Shop routers, fiber tools, wireless backhaul, PoE switches, and deployment gear curated for growing network operators."}
-              </p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={currentOffer?.href || "/shop/catalog"}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-sm font-semibold uppercase text-foreground transition hover:bg-white/90"
@@ -167,7 +159,7 @@ export function ShopCatalogExperience() {
         </div>
 
         {offers.length > 1 && (
-          <div className="absolute bottom-8 right-6 z-20 flex items-center gap-5 lg:right-20">
+          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-4 lg:right-20">
             <div className="flex items-center gap-2">
               {offers.map((offer, index) => (
                 <button
@@ -206,18 +198,6 @@ export function ShopCatalogExperience() {
           </div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1 }}
-          className="pointer-events-none absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 md:block"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-            className="h-12 w-px bg-white/50"
-          />
-        </motion.div>
       </section>
 
       <section id="catalog" className="bg-background py-10 md:py-14">

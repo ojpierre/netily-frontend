@@ -43,9 +43,9 @@ export function PremiumFooter() {
               <Image
                 src="/internetily-white-logo-320.webp"
                 alt="Internetily Shop"
-                width={170}
-                height={52}
-                className="h-11 w-auto object-contain"
+                width={510}
+                height={156}
+                className="h-32 w-auto object-contain"
               />
             </Link>
             <h3 className="mb-4 text-xl font-semibold">Network hardware, sourced with care.</h3>
@@ -80,9 +80,9 @@ export function PremiumFooter() {
               <Image
                 src="/internetily-white-logo-320.webp"
                 alt="Internetily Shop"
-                width={140}
-                height={42}
-                className="h-9 w-auto object-contain"
+                width={420}
+                height={126}
+                className="h-28 w-auto object-contain"
               />
             </Link>
             <div className="flex items-center gap-4">
