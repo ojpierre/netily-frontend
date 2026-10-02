@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useRef } from "react"
+import React, { useState, useEffect, useMemo, useRef, useDeferredValue } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -920,9 +920,47 @@ export default function UsersPage() {
     }
   }, [statusFilter])
 
+  // ── Hotspot search (client-side, phone-format tolerant) ──
+  const [hotspotSearch, setHotspotSearch] = useState("")
+  const deferredHotspotSearch = useDeferredValue(hotspotSearch)
+
+  const filteredHotspot = useMemo(() => {
+    const q = deferredHotspotSearch.trim().toLowerCase()
+    const qDigits = q.replace(/\D/g, "")
+    // 0712345678 / +254712345678 / 712345678 → 712345678
+    const qNorm = qDigits.replace(/^(254|0)/, "")
+    const isNumeric = qDigits.length > 0 && qDigits.length >= q.replace(/[\s+\-()]/g, "").length
+
+    return activeSubscriptions.hotspot.filter((item) => {
+      const isActive =
+        item.is_active_sub ??
+        (item.subscription_status === "active" &&
+          item.expiry_date &&
+          new Date(item.expiry_date) > new Date())
+      if (hotspotSubFilter === "active" ? !isActive : isActive) return false
+      if (!q) return true
+
+      if (isNumeric) {
+        const phoneDigits = (item.phone || "").replace(/\D/g, "")
+        return (
+          phoneDigits.includes(qDigits) ||
+          (qNorm.length > 0 && phoneDigits.includes(qNorm))
+        )
+      }
+
+      return (
+        (item.canonical_username || "").toLowerCase().includes(q) ||
+        (item.username || "").toLowerCase().includes(q) ||
+        (item.plan_name || "").toLowerCase().includes(q) ||
+        (item.router || "").toLowerCase().includes(q) ||
+        (item.mac_address || "").toLowerCase().includes(q)
+      )
+    })
+  }, [activeSubscriptions.hotspot, hotspotSubFilter, deferredHotspotSearch])
+
   useEffect(() => {
     setHotspotPage(1)
-  }, [hotspotSubFilter])
+  }, [hotspotSubFilter, deferredHotspotSearch])
 
   // Trigger it when the list changes. This also covers infinite scroll, because only new usernames are fetched:
   useEffect(() => {
@@ -1204,19 +1242,15 @@ export default function UsersPage() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return
-        setHotspotPage(p => {
-          const filtered = activeSubscriptions.hotspot.filter(item => {
-            const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
-            return hotspotSubFilter === "active" ? isActive : !isActive
-          })
-          return p * hotspotPageSize >= filtered.length ? p : p + 1
-        })
+        setHotspotPage((p) =>
+          p * hotspotPageSize >= filteredHotspot.length ? p : p + 1
+        )
       },
       { threshold: 0.1 }
     )
     observer.observe(target)
     return () => observer.disconnect()
-  }, [activeTab, activeSubscriptions.hotspot, hotspotSubFilter])
+  }, [activeTab, filteredHotspot.length])
 
   // ============================================================
   // FIX 5: Ensure online session data is available for Hotspot tab
@@ -1229,19 +1263,6 @@ export default function UsersPage() {
       loadOnlineSessions(1, false)
     }
   }, [activeTab])
-
-  const filteredHotspot = useMemo(
-    () =>
-      activeSubscriptions.hotspot.filter((item) => {
-        const isActive =
-          item.is_active_sub ??
-          (item.subscription_status === 'active' &&
-            item.expiry_date &&
-            new Date(item.expiry_date) > new Date())
-        return hotspotSubFilter === "active" ? isActive : !isActive
-      }),
-    [activeSubscriptions.hotspot, hotspotSubFilter]
-  )
 
   useEffect(() => {
     if (activeTab !== "hotspot") return
@@ -2990,6 +3011,7 @@ export default function UsersPage() {
                 setStatusFilter("all")
                 setHotspotSubFilter("active")
                 setHotspotPage(1)
+                setHotspotSearch("")   // ← add
                 // The new useEffect will load onlineSessions if needed
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
@@ -3042,6 +3064,7 @@ export default function UsersPage() {
                 if (value === "hotspot") {
                   setHotspotSubFilter("active")
                   setHotspotPage(1)
+                  setHotspotSearch("")   // ← add
                 }
                 if (value === "ip-binding" && ipBindings.length === 0) {
                   loadIPBindings()
@@ -3667,13 +3690,39 @@ export default function UsersPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-foreground">
                     <Smartphone className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                    Hotspot Clients ({activeSubscriptions.hotspot?.length || 0})
+                    Hotspot Clients ({filteredHotspot.length}
+                    {hotspotSearch.trim() ? ` of ${activeSubscriptions.hotspot?.length || 0}` : ""})
                   </CardTitle>
-                  <CardDescription className="dark:text-slate-400">All hotspot clients — active and expired subscriptions</CardDescription>
+                  <CardDescription className="dark:text-slate-400">
+                    All hotspot clients — active and expired subscriptions
+                  </CardDescription>
                 </div>
-                <Button variant="outline" size="icon" onClick={loadActiveSubscriptions} disabled={hotspotLoading}>
-                  <RefreshCw className={`w-4 h-4 ${hotspotLoading ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full md:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                    <Input
+                      placeholder="Search phone, access code, plan, MAC..."
+                      value={hotspotSearch}
+                      onChange={(e) => setHotspotSearch(e.target.value)}
+                      className="pl-9 pr-8 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
+                      autoComplete="off"
+                      inputMode="search"
+                    />
+                    {hotspotSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setHotspotSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        aria-label="Clear search"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <Button variant="outline" size="icon" onClick={loadActiveSubscriptions} disabled={hotspotLoading}>
+                    <RefreshCw className={`w-4 h-4 ${hotspotLoading ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -3820,21 +3869,20 @@ export default function UsersPage() {
                   </div>
 
                   <div ref={hotspotObserverTarget} className="flex items-center justify-center py-6">
-                    {(() => {
-                      const filtered = activeSubscriptions.hotspot.filter(item => {
-                        const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
-                        return hotspotSubFilter === "active" ? isActive : !isActive
-                      })
-                      const shown = Math.min(hotspotPage * hotspotPageSize, filtered.length)
-                      return shown < filtered.length ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Loading more clients...
-                        </div>
-                      ) : filtered.length > 0 ? (
-                        <p className="text-xs text-slate-400">You've reached the end</p>
-                      ) : null
-                    })()}
+                    {filteredHotspot.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {hotspotSearch.trim()
+                          ? `No ${hotspotSubFilter} clients match "${hotspotSearch.trim()}"`
+                          : `No ${hotspotSubFilter} clients`}
+                      </p>
+                    ) : hotspotPage * hotspotPageSize < filteredHotspot.length ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading more clients...
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400">You've reached the end</p>
+                    )}
                   </div>
                 </>
               )}
