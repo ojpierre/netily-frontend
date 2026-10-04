@@ -9,10 +9,12 @@ import {
   ArrowRight,
   Banknote,
   BarChart3,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
+  GraduationCap,
   Menu,
   Router,
   Send,
@@ -24,6 +26,7 @@ import {
 } from "lucide-react"
 
 import { ThemeToggle } from "@/components/theme-toggle"
+import { academyCourses } from "@/lib/academy-data"
 import { blogPosts } from "@/lib/blog-data"
 import { caseStudies } from "@/lib/case-studies"
 import { submitLead } from "@/lib/api"
@@ -62,6 +65,25 @@ const navItems = [
   { label: "Features", id: "features" },
   { label: "Pricing", id: "pricing" },
   { label: "FAQ", id: "faqs" },
+]
+
+const megaMenuGroups = [
+  {
+    title: "Learn",
+    links: [
+      { label: "Internetily Academy", href: "/academy", description: "Practical ISP, WISP, MikroTik, and hotspot courses." },
+      { label: "Academy courses", href: "/academy/courses", description: "Browse the full course catalog." },
+      { label: "ISP guides", href: "/blog", description: "Plain-English playbooks for operators." },
+    ],
+  },
+  {
+    title: "Proof",
+    links: [
+      { label: "Case studies", href: "/case-studies", description: "Example ISP outcomes and workflow stories." },
+      { label: "Testimonials", href: "#testimonials", description: "Hear what operator teams care about." },
+      { label: "Demo workspace", href: "https://demo.netily.co.ke/admin/login", description: "Walk through the dashboard experience." },
+    ],
+  },
 ]
 
 const heroPhrases = [
@@ -337,19 +359,19 @@ function HomepageMetricsSection() {
     {
       value: "500+",
       label: "ISPs onboarded",
-      meta: "operator 01",
+      meta: "operator teams",
       className: "bg-foreground text-background",
     },
     {
       value: "50k+",
       label: "active subscribers",
-      meta: "reach 02",
+      meta: "subscriber reach",
       className: "bg-primary text-primary-foreground",
     },
     {
       value: "24h",
       label: "typical setup window",
-      meta: "speed 03",
+      meta: "go-live rhythm",
       className: "bg-accent text-accent-foreground",
     },
   ]
@@ -374,7 +396,7 @@ function HomepageMetricsSection() {
               <div className={`${metric.className} relative flex h-44 flex-col justify-between p-7 md:h-52 lg:h-64 lg:p-8`}>
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-xs lowercase opacity-75">{metric.meta}</span>
-                  <span className="text-xs opacity-75">metric {String(index + 1).padStart(2, "0")}</span>
+                  <span className="text-xs opacity-75">{index === 0 ? "adoption" : index === 1 ? "scale" : "setup"}</span>
                 </div>
                 <div className="flex items-end gap-2">
                   <span className="text-[4.8rem] font-light leading-none tracking-tight md:text-[6rem] lg:text-[7rem]">
@@ -534,6 +556,66 @@ function CaseStudiesSection() {
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </span>
               </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function AcademySection() {
+  return (
+    <section id="academy" className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
+      <Grain />
+      <div className="absolute inset-0 opacity-35">
+        <NetworkPattern />
+      </div>
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:px-16 lg:items-end">
+        <div>
+          <SectionLabel>Internetily Academy</SectionLabel>
+          <h2 className="mt-6 text-balance text-4xl font-normal leading-tight text-white md:text-6xl">
+            Practical courses for people building and running internet networks.
+          </h2>
+          <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-400">
+            Learn the daily work behind ISP operations: networking basics, WISP planning,
+            billing, support, market surveys, and growth. The lessons are simple, direct, and built
+            for owners, technicians, and support teams.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/academy" className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-6 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200">
+              Explore Academy
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/academy/courses" className="inline-flex min-h-12 items-center justify-center gap-2 border border-white/20 px-6 text-sm font-semibold text-white transition hover:bg-white/10">
+              View courses
+              <BookOpen className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {academyCourses.slice(0, 4).map((course) => (
+            <Link
+              key={course.slug}
+              href={`/academy/courses/${course.slug}`}
+              className="group border border-zinc-800 bg-zinc-900/85 p-5 transition hover:border-amber-400"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <GraduationCap className="h-6 w-6 text-amber-300" />
+                <span className="border border-zinc-700 px-2 py-1 text-xs text-zinc-400">{course.status}</span>
+              </div>
+              <p className="mt-6 text-xs uppercase tracking-[0.18em] text-zinc-500">{course.category}</p>
+              <h3 className="mt-3 text-xl font-medium leading-tight text-white">{course.title}</h3>
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-400">{course.summary}</p>
+              <div className="mt-5 flex items-center justify-between gap-3 text-sm">
+                <span className="font-semibold text-white">{course.price}</span>
+                <span className="text-zinc-500">{course.duration}</span>
+              </div>
+              <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-amber-300">
+                See course
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              </span>
             </Link>
           ))}
         </div>
@@ -751,19 +833,17 @@ function RouterAndIspSetupSection({ onIspSetupLead }: { onIspSetupLead: () => vo
             </p>
           </div>
           <div className="border border-zinc-700 bg-zinc-900/70 p-6">
-            <p className="text-sm font-medium text-white">Search intent Internetily supports</p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <p className="text-sm font-medium text-white">What this means in daily operations</p>
+            <div className="mt-5 grid gap-3">
               {[
-                "MikroTik ISP billing",
-                "Starlink ISP setup Kenya",
-                "FreeRADIUS billing system",
-                "WISP backhaul operations",
-                "Hotspot billing with M-Pesa",
-                "PPPoE subscriber management",
-              ].map((term) => (
-                <span key={term} className="border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
-                  {term}
-                </span>
+                ["Router-aware billing", "Plans, payments, access states, and subscriber records stay aligned."],
+                ["Cleaner field support", "Technicians can understand customer context before touching router work."],
+                ["Growth without extra admin", "New sites, hotspots, estates, and WISP expansions plug into one operating flow."],
+              ].map(([title, body]) => (
+                <div key={title} className="border border-zinc-800 bg-zinc-950 p-4">
+                  <p className="text-sm font-medium text-white">{title}</p>
+                  <p className="mt-2 text-xs leading-5 text-zinc-500">{body}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -889,6 +969,7 @@ function ProductVideoSection({
 export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [countrySwitcherOpen, setCountrySwitcherOpen] = useState(false)
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false)
   const [leadForm, setLeadForm] = useState({
     name: "",
     email: "",
@@ -935,6 +1016,7 @@ export function LandingPage() {
 
   const scrollTo = (id: string) => {
     setMobileMenuOpen(false)
+    setMegaMenuOpen(false)
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
   }
 
@@ -1025,6 +1107,57 @@ export function LandingPage() {
             <Link href="/blog" className="inline-flex min-h-12 items-center px-2 transition-colors hover:text-white">
               Blog
             </Link>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMegaMenuOpen((open) => !open)}
+                className="inline-flex min-h-12 items-center gap-2 px-2 transition-colors hover:text-white"
+                aria-expanded={megaMenuOpen}
+              >
+                Learn
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${megaMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+              {megaMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMegaMenuOpen(false)} />
+                  <div className="absolute left-1/2 top-full z-50 mt-3 grid w-[560px] -translate-x-1/2 grid-cols-2 gap-3 border border-zinc-700 bg-zinc-950 p-4 shadow-2xl">
+                    {megaMenuGroups.map((group) => (
+                      <div key={group.title}>
+                        <p className="px-3 pb-2 text-xs uppercase tracking-[0.22em] text-zinc-500">{group.title}</p>
+                        <div className="grid gap-1">
+                          {group.links.map((link) =>
+                            link.href.startsWith("#") ? (
+                              <a
+                                key={link.href}
+                                href={link.href}
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  scrollTo(link.href.slice(1))
+                                }}
+                                className="block border border-transparent p-3 transition hover:border-zinc-700 hover:bg-zinc-900"
+                              >
+                                <span className="block text-sm font-medium text-white">{link.label}</span>
+                                <span className="mt-1 block text-xs leading-5 text-zinc-500">{link.description}</span>
+                              </a>
+                            ) : (
+                              <Link
+                                key={link.href}
+                                href={link.href}
+                                onClick={() => setMegaMenuOpen(false)}
+                                className="block border border-transparent p-3 transition hover:border-zinc-700 hover:bg-zinc-900"
+                              >
+                                <span className="block text-sm font-medium text-white">{link.label}</span>
+                                <span className="mt-1 block text-xs leading-5 text-zinc-500">{link.description}</span>
+                              </Link>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <Link href="/docs" className="inline-flex min-h-12 items-center px-2 transition-colors hover:text-white">
               Docs
             </Link>
@@ -1111,8 +1244,11 @@ export function LandingPage() {
                   {item.label}
                 </a>
               ))}
+              <Link href="/academy" className="inline-flex min-h-12 items-center">Academy</Link>
+              <Link href="/academy/courses" className="inline-flex min-h-12 items-center">Academy courses</Link>
               <Link href="/blog" className="inline-flex min-h-12 items-center">Blog</Link>
               <Link href="/docs" className="inline-flex min-h-12 items-center">Docs</Link>
+              <Link href="/case-studies" className="inline-flex min-h-12 items-center">Case studies</Link>
               <a href="https://demo.netily.co.ke/admin/login" className="inline-flex min-h-12 items-center">View demo workspace</a>
               <a
                 href="#contact"
@@ -1204,6 +1340,8 @@ export function LandingPage() {
         <TestimonialsSection />
 
         <CaseStudiesSection />
+
+        <AcademySection />
 
         <PaymentLogoStrip />
 

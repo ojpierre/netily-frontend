@@ -1,5 +1,6 @@
 import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
+import { academyCourses } from "@/lib/academy-data"
 import { blogPosts } from "@/lib/blog-data"
 import { caseStudies } from "@/lib/case-studies"
 import { HomepagePreloader } from "@/components/homepage-preloader"
@@ -33,6 +34,9 @@ export const metadata: Metadata = {
     "ISP billing software Uganda", "ISP billing software Tanzania", "ISP billing software South Africa",
     "ISP marketing ideas", "WISP business growth", "local ISP lead generation",
     "internet service advertising", "ISP customer retention", "ISP support automation",
+    "ISP academy", "ISP training", "WISP training", "MikroTik training",
+    "hotspot billing course", "ISP operations course", "start ISP course",
+    "ISP market survey course", "broadband operator training",
     // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
     "isp billing software",
     "isp billing software nigeria",
@@ -1122,6 +1126,29 @@ export default function Page() {
       about: study.keywords.map((name) => ({ "@type": "Thing", name })),
     })),
   }
+  const academyCollectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Internetily Academy",
+    description:
+      "Practical ISP, WISP, MikroTik, hotspot, billing, support, and growth courses for broadband operators and teams.",
+    url: "https://netily.co.ke/academy",
+    hasPart: academyCourses.map((course) => ({
+      "@type": "Course",
+      name: course.title,
+      description: course.summary,
+      url: `https://netily.co.ke/academy/courses/${course.slug}`,
+      provider: { "@type": "Organization", name: "Internetily Academy" },
+      educationalLevel: course.level,
+      teaches: course.lessons,
+      offers: {
+        "@type": "Offer",
+        price: course.price.replace(/[^0-9.]/g, ""),
+        priceCurrency: course.price.startsWith("KES") ? "KES" : "USD",
+        availability: "https://schema.org/InStock",
+      },
+    })),
+  }
 
   return (
     <>
@@ -1157,6 +1184,10 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(caseStudyCollectionSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(academyCollectionSchema) }}
       />
       <script
         type="application/ld+json"

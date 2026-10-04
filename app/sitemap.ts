@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { academyCourses } from "@/lib/academy-data"
 import { blogPosts } from "@/lib/blog-data"
 import { caseStudies } from "@/lib/case-studies"
 import { publicAlternativePages } from "@/lib/alternatives-data"
@@ -56,6 +57,39 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.83,
   }))
 
+  const academyEntries: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE}/academy`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.88,
+    },
+    {
+      url: `${BASE}/academy/courses`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.86,
+    },
+    {
+      url: `${BASE}/academy/enrollment`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.78,
+    },
+    {
+      url: `${BASE}/academy/become-an-instructor`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...academyCourses.map((course) => ({
+      url: `${BASE}/academy/courses/${course.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.82,
+    })),
+  ]
+
   return [
     {
       url: BASE,
@@ -91,6 +125,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...alternativeEntries,
     ...solutionEntries,
     ...caseStudyEntries,
+    ...academyEntries,
     {
       url: `${BASE}/affiliate`,
       lastModified: new Date(),
