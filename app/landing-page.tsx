@@ -13,7 +13,6 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
-  Megaphone,
   Menu,
   Router,
   Send,
@@ -267,6 +266,130 @@ function MiniDashboard() {
         ))}
       </div>
     </div>
+  )
+}
+
+function NetworkPattern() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-45">
+      <motion.svg
+        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 1200 520"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="network-line" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.08" />
+            <stop offset="50%" stopColor="currentColor" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.04" />
+          </linearGradient>
+        </defs>
+        {[
+          "M40 420 C220 260 330 360 480 210 S790 120 1160 260",
+          "M80 130 C250 90 360 210 520 165 S780 250 1120 90",
+          "M150 490 C330 330 490 450 670 300 S930 185 1190 380",
+        ].map((path, index) => (
+          <motion.path
+            key={path}
+            d={path}
+            fill="none"
+            stroke="url(#network-line)"
+            strokeWidth="1.4"
+            strokeDasharray="10 18"
+            initial={false}
+            animate={{ strokeDashoffset: [0, -56] }}
+            transition={{ duration: 12 + index * 4, repeat: Infinity, ease: "linear" }}
+          />
+        ))}
+        {[
+          [90, 405],
+          [245, 275],
+          [410, 330],
+          [560, 185],
+          [735, 245],
+          [930, 150],
+          [1105, 265],
+          [180, 115],
+          [505, 155],
+          [820, 250],
+          [1025, 95],
+        ].map(([cx, cy], index) => (
+          <motion.circle
+            key={`${cx}-${cy}`}
+            cx={cx}
+            cy={cy}
+            r={index % 3 === 0 ? 5 : 3.5}
+            fill="currentColor"
+            initial={false}
+            animate={{ opacity: [0.18, 0.75, 0.18], scale: [0.9, 1.24, 0.9] }}
+            transition={{ duration: 3.4 + index * 0.25, repeat: Infinity, ease: "easeInOut" }}
+          />
+        ))}
+      </motion.svg>
+    </div>
+  )
+}
+
+function HomepageMetricsSection() {
+  const metrics = [
+    {
+      value: "500+",
+      label: "ISPs onboarded",
+      meta: "operator 01",
+      className: "bg-foreground text-background",
+    },
+    {
+      value: "50k+",
+      label: "active subscribers",
+      meta: "reach 02",
+      className: "bg-primary text-primary-foreground",
+    },
+    {
+      value: "24h",
+      label: "typical setup window",
+      meta: "speed 03",
+      className: "bg-accent text-accent-foreground",
+    },
+  ]
+
+  return (
+    <section className="relative overflow-hidden border-b border-border bg-background py-16 text-foreground md:py-24">
+      <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <div className="grid overflow-hidden border border-border bg-card shadow-2xl shadow-black/5 lg:grid-cols-[1.05fr_repeat(3,1fr)]">
+          <div className="relative flex min-h-72 flex-col justify-end border-b border-border bg-muted/45 p-7 lg:border-b-0 lg:border-r lg:p-9">
+            <div className="absolute left-4 top-0 h-full w-px bg-border" />
+            <div className="absolute right-4 top-0 h-full w-px bg-border" />
+            <p className="max-w-xs text-3xl font-medium leading-[0.95] tracking-tight md:text-4xl">
+              ISP operations in motion
+            </p>
+            <p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">
+              Live operating signals from billing, subscribers, and onboarding workflows.
+            </p>
+          </div>
+
+          {metrics.map((metric, index) => (
+            <article key={metric.label} className="relative min-h-72 border-b border-border bg-background lg:border-b-0 lg:border-r last:lg:border-r-0">
+              <div className={`${metric.className} relative flex h-44 flex-col justify-between p-7 md:h-52 lg:h-64 lg:p-8`}>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-xs lowercase opacity-75">{metric.meta}</span>
+                  <span className="text-xs opacity-75">metric {String(index + 1).padStart(2, "0")}</span>
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-[4.8rem] font-light leading-none tracking-tight md:text-[6rem] lg:text-[7rem]">
+                    {metric.value}
+                  </span>
+                </div>
+                <div className="absolute -bottom-8 left-0 h-8 w-8 bg-inherit [clip-path:polygon(0_0,100%_0,100%_100%)]" />
+              </div>
+              <div className="flex min-h-28 items-end p-7 lg:p-8">
+                <p className="max-w-36 text-sm lowercase leading-5 text-muted-foreground">/{metric.label}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -727,29 +850,6 @@ export function LandingPage() {
         }`}
         data-scrolled={isHeaderScrolled ? "true" : "false"}
       >
-        <div
-          className={`public-announcement mx-auto flex max-w-7xl items-center justify-between gap-4 border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-white backdrop-blur transition-all duration-500 ${
-            isHeaderScrolled ? "mb-0 max-h-0 -translate-y-3 overflow-hidden border-transparent py-0 opacity-0" : "mb-4 max-h-16 opacity-100"
-          }`}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <Megaphone className="h-4 w-4 shrink-0 text-white" />
-            <p className="truncate text-white">
-              <strong className="font-semibold text-white">Netily is also Internetily.</strong>{" "}
-              Same trusted ISP automation core, same search identity, sharper brand, broader operating vision.
-            </p>
-          </div>
-          <a
-            href="#contact"
-            onClick={(event) => {
-              event.preventDefault()
-              scrollTo("contact")
-            }}
-            className="hidden shrink-0 text-white hover:text-white/80 sm:inline"
-          >
-            Talk to us
-          </a>
-        </div>
         <nav
           className={`public-nav mx-auto flex items-center justify-between transition-all duration-500 ${
             isHeaderScrolled ? "max-w-none rounded-none border-x-0 border-t-0 px-6 md:px-12 lg:px-16" : "max-w-7xl"
@@ -917,9 +1017,6 @@ export function LandingPage() {
 
           <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col justify-end px-6 pb-14 pt-44 md:px-12 lg:px-16">
             <div className="max-w-5xl">
-              <div className="mb-5 w-fit border border-white/20 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.24em] text-white/65 backdrop-blur">
-                ISP operations for Kenya, Africa, and global WISPs
-              </div>
               <h1 className="max-w-4xl text-balance text-3xl font-normal tracking-tight text-white md:text-5xl lg:text-6xl">
                 Internetily runs <RotatingHeroText /> for growing ISPs.
               </h1>
@@ -950,21 +1047,10 @@ export function LandingPage() {
                 </a>
               </div>
             </div>
-
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {[
-                ["500+", "ISPs onboarded"],
-                ["50,000+", "Active subscribers"],
-                ["24 hrs", "Typical setup window"],
-              ].map(([value, label]) => (
-                <div key={label} className="border border-white/15 bg-white/[0.04] p-5 backdrop-blur">
-                  <p className="text-3xl font-medium text-white">{value}</p>
-                  <p className="mt-1 text-sm text-white/55">{label}</p>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
+
+        <HomepageMetricsSection />
 
         <PaymentLogoStrip />
 
@@ -972,6 +1058,7 @@ export function LandingPage() {
 
         <section id="problem" className="relative border-b border-zinc-800 bg-zinc-900 py-24 md:py-32">
           <Grain />
+          <NetworkPattern />
           <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
             <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
               <SectionLabel>The Problem</SectionLabel>
@@ -1668,7 +1755,7 @@ export function LandingPage() {
                 />
               </div>
               <p className="mt-5 text-sm leading-6 text-zinc-500">
-                Netily is also Internetily: modern ISP billing and management for payment, router, customer, and revenue operations.
+                Modern ISP billing and management for payment, router, customer, and revenue operations.
               </p>
             </div>
             <div>
