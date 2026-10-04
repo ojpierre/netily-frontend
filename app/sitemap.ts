@@ -71,12 +71,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.86,
     },
     {
-      url: `${BASE}/academy/enrollment`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.78,
-    },
-    {
       url: `${BASE}/academy/become-an-instructor`,
       lastModified: new Date(),
       changeFrequency: "monthly",

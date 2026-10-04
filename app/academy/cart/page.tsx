@@ -3,19 +3,14 @@ import { AcademyFooter, AcademyHeader } from "../academy-components"
 import { AcademyCartPage } from "../cart-content"
 
 export const metadata: Metadata = {
-  title: "Course Enrollment | Internetily Academy",
+  title: "Your Course Cart | Internetily Academy",
   robots: { index: false, follow: true }
 }
-export default async function EnrollmentPage({
-  searchParams
-}: {
-  searchParams: Promise<{ course?: string }>
-}) {
-  const { course } = await searchParams
+export default function CartPage() {
   return (
     <main className="academy-shell">
       <AcademyHeader />
-      <AcademyCartPage selectedCourse={course} />
+      <AcademyCartPage />
       <AcademyFooter />
     </main>
   )

@@ -27,8 +27,8 @@ export const academyCourses: AcademyCourse[] = [
     level: "Beginner",
     duration: "42 min",
     price: "KES 2,500",
-    rating: "4.9",
-    ratingsCount: 34,
+    rating: "",
+    ratingsCount: 0,
     summary:
       "Learn the language of real ISP networks: routers, clients, IP addresses, access points, PPPoE, hotspot access, and basic troubleshooting.",
     outcome: "You will understand how customer access moves from the router to billing, support, and daily operations.",
@@ -40,7 +40,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["New ISP owners", "Support teams", "Technicians in training"],
     status: "Popular",
-    image: "/academy/internetily-academy-training.png",
+    image: "/academy/internetily-academy-training.webp",
     imageAlt: "Instructor teaching networking fundamentals with routers and dashboards",
     seoTitle: "Networking Fundamentals for ISP Teams | Internetily Academy",
     seoDescription:
@@ -54,8 +54,8 @@ export const academyCourses: AcademyCourse[] = [
     level: "Intermediate",
     duration: "55 min",
     price: "KES 3,500",
-    rating: "4.8",
-    ratingsCount: 21,
+    rating: "",
+    ratingsCount: 0,
     summary:
       "Plan cleaner upstream links, failover paths, wireless backhaul, Starlink backup, tower sites, and customer expansion without overbuilding too early.",
     outcome: "You will know how to ask better questions before buying backhaul, radios, towers, or customer access equipment.",
@@ -67,7 +67,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["WISP operators", "Network planners", "Field technicians"],
     status: "New",
-    image: "/academy/internetily-academy-training.png",
+    image: "/academy/internetily-academy-training.webp",
     imageAlt: "Network training workspace for upstream and backhaul planning",
     seoTitle: "Upstream and Backhaul Planning Course | Internetily Academy",
     seoDescription:
@@ -81,8 +81,8 @@ export const academyCourses: AcademyCourse[] = [
     level: "Beginner",
     duration: "48 min",
     price: "KES 3,000",
-    rating: "4.9",
-    ratingsCount: 29,
+    rating: "",
+    ratingsCount: 0,
     summary:
       "Build a daily operating rhythm for plans, invoices, renewals, support tickets, customer records, staff roles, and payment follow-up.",
     outcome: "You will leave with a simple operating checklist your team can follow every day.",
@@ -94,7 +94,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["ISP owners", "Billing teams", "Support managers"],
     status: "Popular",
-    image: "/academy/internetily-academy-training.png",
+    image: "/academy/internetily-academy-training.webp",
     imageAlt: "ISP operations training for billing and support teams",
     seoTitle: "ISP Operations, Billing, and Support Course | Internetily Academy",
     seoDescription:
@@ -108,8 +108,8 @@ export const academyCourses: AcademyCourse[] = [
     level: "Beginner",
     duration: "38 min",
     price: "KES 2,500",
-    rating: "4.8",
-    ratingsCount: 18,
+    rating: "",
+    ratingsCount: 0,
     summary:
       "Learn how to validate an area, price packages, talk to estates, run local campaigns, and convert enquiries into paying subscribers.",
     outcome: "You will have a straightforward market survey and lead follow-up plan for your target area.",
@@ -121,7 +121,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["New ISP founders", "Sales teams", "Growth-focused operators"],
     status: "Open",
-    image: "/academy/internetily-academy-training.png",
+    image: "/academy/internetily-academy-training.webp",
     imageAlt: "ISP growth training with learners reviewing market and customer data",
     seoTitle: "Market Survey and ISP Growth Course | Internetily Academy",
     seoDescription:

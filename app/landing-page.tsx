@@ -14,7 +14,6 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
-  GraduationCap,
   Menu,
   Router,
   Send,
@@ -26,7 +25,6 @@ import {
 } from "lucide-react"
 
 import { ThemeToggle } from "@/components/theme-toggle"
-import { academyCourses } from "@/lib/academy-data"
 import { blogPosts } from "@/lib/blog-data"
 import { caseStudies } from "@/lib/case-studies"
 import { submitLead } from "@/lib/api"
@@ -571,18 +569,22 @@ function AcademySection() {
       <div className="absolute inset-0 opacity-35">
         <NetworkPattern />
       </div>
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:px-16 lg:items-end">
-        <div>
-          <SectionLabel>Internetily Academy</SectionLabel>
-          <h2 className="mt-6 text-balance text-4xl font-normal leading-tight text-white md:text-6xl">
-            Practical courses for people building and running internet networks.
-          </h2>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-400">
-            Learn the daily work behind ISP operations: networking basics, WISP planning,
-            billing, support, market surveys, and growth. The lessons are simple, direct, and built
-            for owners, technicians, and support teams.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <div className="relative mb-10 aspect-[4/3] overflow-hidden sm:aspect-[16/9]">
+          <Image src="/academy/african-networking-learners.webp" alt="African learners practicing router and switch connections with an instructor in a networking lab" fill sizes="(max-width: 1280px) 100vw, 1152px" className="object-cover" />
+        </div>
+        <div className="grid gap-8">
+          <div className="max-w-4xl">
+            <SectionLabel>Internetily Academy</SectionLabel>
+            <h2 className="mt-6 text-balance text-4xl font-normal leading-tight text-white md:text-6xl">
+              Learn the skills behind a better network.
+            </h2>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-400">
+              Get hands-on with networking, plan your next rollout, and make everyday ISP work easier.
+              Practical learning for new owners, technicians, and growing teams.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Link href="/academy" className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-6 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200">
               Explore Academy
               <ArrowRight className="h-4 w-4" />
@@ -592,32 +594,6 @@ function AcademySection() {
               <BookOpen className="h-4 w-4" />
             </Link>
           </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {academyCourses.slice(0, 4).map((course) => (
-            <Link
-              key={course.slug}
-              href={`/academy/courses/${course.slug}`}
-              className="group border border-zinc-800 bg-zinc-900/85 p-5 transition hover:border-amber-400"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <GraduationCap className="h-6 w-6 text-amber-300" />
-                <span className="border border-zinc-700 px-2 py-1 text-xs text-zinc-400">{course.status}</span>
-              </div>
-              <p className="mt-6 text-xs uppercase tracking-[0.18em] text-zinc-500">{course.category}</p>
-              <h3 className="mt-3 text-xl font-medium leading-tight text-white">{course.title}</h3>
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-400">{course.summary}</p>
-              <div className="mt-5 flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-white">{course.price}</span>
-                <span className="text-zinc-500">{course.duration}</span>
-              </div>
-              <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-amber-300">
-                See course
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-              </span>
-            </Link>
-          ))}
         </div>
       </div>
     </section>
@@ -1337,12 +1313,6 @@ export function LandingPage() {
 
         <HomepageMetricsSection />
 
-        <TestimonialsSection />
-
-        <CaseStudiesSection />
-
-        <AcademySection />
-
         <PaymentLogoStrip />
 
         <RouterAndIspSetupSection onIspSetupLead={prefillIspSetupLead} />
@@ -1664,6 +1634,12 @@ export function LandingPage() {
             </div>
           </div>
         </section>
+
+        <AcademySection />
+
+        <CaseStudiesSection />
+
+        <TestimonialsSection />
 
         <section id="faqs" className="border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
           <div className="mx-auto max-w-4xl px-6 md:px-12">

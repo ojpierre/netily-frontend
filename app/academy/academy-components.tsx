@@ -1,56 +1,136 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
-import { academyCourses } from "@/lib/academy-data"
+import { usePathname } from "next/navigation"
+import { ShoppingCart } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { academyCourses, type AcademyCourse } from "@/lib/academy-data"
+import { AddCourseButton, useAcademyCart } from "./academy-cart"
 
 export function AcademyHeader() {
+  const pathname = usePathname()
+  const { courses, ready } = useAcademyCart()
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/88 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 md:px-12 lg:px-16">
-        <Link href="/" className="inline-flex items-center gap-3">
-          <Image src="/internetily-white-logo-320.webp" alt="Internetily" width={150} height={52} className="h-10 w-auto object-contain" />
-          <span className="hidden border-l border-white/15 pl-3 text-sm font-medium text-zinc-300 sm:inline">Academy</span>
+    <header className="academy-nav" aria-busy={!ready}>
+      <div className="academy-container academy-nav-inner">
+        <Link
+          href="/academy"
+          className="inline-flex min-h-12 items-center gap-3"
+          aria-label="Internetily Academy home"
+        >
+          <Image
+            src="/internetily-logo-320.webp"
+            alt="Internetily"
+            width={160}
+            height={54}
+            className="h-10 w-auto object-contain dark:hidden"
+          />
+          <Image
+            src="/internetily-white-logo-320.webp"
+            alt="Internetily"
+            width={160}
+            height={54}
+            className="hidden h-10 w-auto object-contain dark:block"
+          />
+          <span className="border-l pl-3 text-sm academy-muted">Academy</span>
         </Link>
-        <nav className="hidden items-center gap-2 text-sm text-zinc-300 md:flex">
-          <Link href="/academy" className="inline-flex min-h-12 items-center px-3 hover:text-white">Home</Link>
-          <Link href="/academy/courses" className="inline-flex min-h-12 items-center px-3 hover:text-white">Courses</Link>
-          <Link href="/academy/enrollment" className="inline-flex min-h-12 items-center px-3 hover:text-white">Enrollment</Link>
-          <Link href="/academy/become-an-instructor" className="inline-flex min-h-12 items-center bg-white px-4 text-zinc-950 hover:bg-zinc-200">Become an instructor</Link>
+        <nav className="academy-nav-links" aria-label="Academy">
+          <Link
+            href="/academy"
+            aria-current={pathname === "/academy" ? "page" : undefined}
+          >
+            Home
+          </Link>
+          <Link
+            href="/academy/courses"
+            aria-current={
+              pathname.startsWith("/academy/courses") ? "page" : undefined
+            }
+          >
+            Courses
+          </Link>
+          <Link
+            href="/academy/cart"
+            aria-current={pathname === "/academy/cart" ? "page" : undefined}
+            aria-label={`Cart, ${courses.length} courses`}
+          >
+            <ShoppingCart size={17} />
+            Cart
+            {courses.length > 0 && (
+              <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">
+                {courses.length}
+              </span>
+            )}
+          </Link>
+          <ThemeToggle className="min-h-12 min-w-12" />
         </nav>
-        <Link href="/academy/courses" className="inline-flex min-h-12 items-center bg-white px-4 text-sm font-semibold text-zinc-950 md:hidden">
-          Courses
-        </Link>
       </div>
     </header>
   )
 }
 
-export function CourseGrid() {
+export function AcademyFooter() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-      {academyCourses.map((course) => (
-        <article key={course.slug} className="flex h-full flex-col overflow-hidden border border-zinc-800 bg-zinc-900">
-          <Link href={`/academy/courses/${course.slug}`} className="relative block aspect-[16/10] overflow-hidden border-b border-zinc-800">
-            <Image src={course.image} alt={course.imageAlt} fill sizes="(max-width: 1280px) 50vw, 25vw" className="object-cover opacity-75 transition hover:scale-105 hover:opacity-100" />
-            <span className="absolute left-3 top-3 bg-zinc-950/80 px-3 py-1.5 text-xs font-medium text-amber-200 backdrop-blur">{course.status}</span>
+    <footer className="academy-footer">
+      <div className="academy-container flex flex-wrap items-center justify-between gap-4">
+        <p>Internetily Academy</p>
+        <nav className="flex flex-wrap gap-4" aria-label="Academy footer">
+          <Link href="/">Internetily</Link>
+          <Link href="/academy/become-an-instructor">Become an instructor</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <a href="mailto:netilysupport@gmail.com">Get help</a>
+        </nav>
+      </div>
+    </footer>
+  )
+}
+
+export function CourseGrid({
+  courses = academyCourses
+}: {
+  courses?: AcademyCourse[]
+}) {
+  return (
+    <div className="academy-card-grid">
+      {courses.map((course) => (
+        <article key={course.slug} className="academy-course-card">
+          <Link
+            href={`/academy/courses/${course.slug}`}
+            className="academy-thumbnail"
+          >
+            <Image
+              src={course.image}
+              alt={course.imageAlt}
+              fill
+              sizes="(max-width: 420px) 100vw, (max-width: 1100px) 50vw, 25vw"
+              className="object-cover"
+            />
           </Link>
-          <div className="flex flex-1 flex-col p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{course.category}</p>
-            <h3 className="mt-3 text-xl font-medium leading-tight">{course.title}</h3>
-            <p className="mt-3 line-clamp-3 text-sm leading-6 text-zinc-400">{course.summary}</p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-400">
-              <span className="border border-zinc-700 px-2 py-1">{course.level}</span>
-              <span className="border border-zinc-700 px-2 py-1">{course.duration}</span>
-              <span className="border border-zinc-700 px-2 py-1">Rating {course.rating}</span>
-            </div>
-            <div className="mt-5 flex items-center justify-between gap-3">
-              <span className="font-semibold text-white">{course.price}</span>
-              <span className="text-xs text-zinc-500">{course.ratingsCount} ratings</span>
-            </div>
-            <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
-              <Link href={`/academy/enrollment?course=${course.slug}`} className="inline-flex min-h-11 items-center justify-center bg-white px-3 text-xs font-semibold text-zinc-950 transition hover:bg-zinc-200">
-                Add to cart
+          <div className="academy-card-body">
+            <p className="academy-link text-xs">{course.category}</p>
+            <h3 className="mt-2 text-lg font-semibold leading-snug">
+              <Link href={`/academy/courses/${course.slug}`}>
+                {course.title}
               </Link>
-              <Link href={`/academy/courses/${course.slug}`} className="inline-flex min-h-11 items-center justify-center border border-zinc-700 px-3 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800">
+            </h3>
+            <p className="academy-muted mt-3 line-clamp-2 text-sm leading-6">
+              {course.summary}
+            </p>
+            <p className="academy-muted mt-3 text-xs">Internetily Academy</p>
+            <div className="academy-course-meta">
+              <span>{course.level}</span>
+              <span>{course.duration}</span>
+              <span>Self-paced</span>
+            </div>
+            <p className="mt-5 font-semibold">{course.price}</p>
+            <div className="mt-auto grid gap-2 pt-4">
+              <AddCourseButton slug={course.slug} />
+              <Link
+                href={`/academy/courses/${course.slug}`}
+                className="academy-button secondary"
+              >
                 View details
               </Link>
             </div>

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Internetily Academy | Practical ISP Training",
     description: "Practical ISP, WISP, MikroTik, hotspot, billing, support, and growth courses for broadband teams.",
     url: "https://netily.co.ke/academy",
-    images: [{ url: "/academy/internetily-academy-training.png", width: 1536, height: 864, alt: "Internetily Academy training workspace" }],
+    images: [{ url: "/academy/internetily-academy-training.webp", alt: "Internetily Academy training workspace" }],
   },
 }
 
@@ -62,7 +62,7 @@ export default function AcademyPage() {
 
       <section className="relative overflow-hidden border-b border-zinc-800">
         <Image
-          src="/academy/internetily-academy-training.png"
+          src="/academy/internetily-academy-training.webp"
           alt="Internetily Academy networking training workspace"
           fill
           priority

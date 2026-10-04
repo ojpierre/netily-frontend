@@ -1,0 +1,521 @@
+<html lang="en" class="dark"><head>
+        <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+<title>
+    Learn practical networking skills - Centipid Academy
+</title>
+<meta name="description" content="Centipid Academy helps beginners learn practical networking, troubleshooting, and infrastructure skills through structured digital training.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://centipidacademy.com">
+
+<meta property="og:site_name" content="Centipid Academy">
+<meta property="og:title" content="Learn practical networking skills - Centipid Academy">
+<meta property="og:description" content="Centipid Academy helps beginners learn practical networking, troubleshooting, and infrastructure skills through structured digital training.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://centipidacademy.com">
+<meta property="og:image" content="https://centipidacademy.com/images/centipid-academy-logo.png">
+<meta property="og:image:secure_url" content="https://centipidacademy.com/images/centipid-academy-logo.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="3341">
+<meta property="og:image:height" content="856">
+<meta property="og:image:alt" content="Centipid Academy logo">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Learn practical networking skills - Centipid Academy">
+<meta name="twitter:description" content="Centipid Academy helps beginners learn practical networking, troubleshooting, and infrastructure skills through structured digital training.">
+<meta name="twitter:image" content="https://centipidacademy.com/images/centipid-academy-logo.png">
+<meta name="twitter:image:alt" content="Centipid Academy logo">
+
+<link rel="icon" href="https://platform.centipidbilling.com/images/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet">
+
+<link rel="preload" as="style" href="https://centipidacademy.com/build/assets/app-AE6iy_IP.css"><link rel="modulepreload" as="script" href="https://centipidacademy.com/build/assets/app-KbQGfMin.js"><link rel="stylesheet" href="https://centipidacademy.com/build/assets/app-AE6iy_IP.css" data-navigate-track="reload"><script type="module" src="https://centipidacademy.com/build/assets/app-KbQGfMin.js" data-navigate-track="reload"></script><style>
+    :root.dark {
+        color-scheme: dark;
+    }
+</style>
+<script>
+    window.Flux = {
+        applyAppearance (appearance) {
+            let applyDark = () => document.documentElement.classList.add('dark')
+            let applyLight = () => document.documentElement.classList.remove('dark')
+
+            if (appearance === 'system') {
+                let media = window.matchMedia('(prefers-color-scheme: dark)')
+
+                window.localStorage.removeItem('flux.appearance')
+
+                media.matches ? applyDark() : applyLight()
+            } else if (appearance === 'dark') {
+                window.localStorage.setItem('flux.appearance', 'dark')
+
+                applyDark()
+            } else if (appearance === 'light') {
+                window.localStorage.setItem('flux.appearance', 'light')
+
+                applyLight()
+            }
+        }
+    }
+
+    window.Flux.applyAppearance(window.localStorage.getItem('flux.appearance') || 'system')
+</script>
+
+    <script type="application/ld+json">{
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    "name": "Centipid Academy",
+    "url": "https://centipidacademy.com",
+    "description": "Centipid Academy helps beginners learn practical networking, troubleshooting, and infrastructure skills through structured digital training."
+}</script>
+    <script src="chrome-extension://liecbddmkiiihnedobmlmillhodjkdmb/js/recordConsoleEvents.js"></script></head>
+    <body class="min-h-screen bg-[#f6fff8] text-[#143524] antialiased">
+        
+        
+        <div class="absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(circle_at_top_left,_rgba(146,224,173,0.65),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(255,255,255,0.95),_transparent_32%),linear-gradient(180deg,_#ecfff2_0%,_#f6fff8_70%)]"></div>
+
+        <header class="sticky top-0 z-30 border-b border-[#d9f5e2] bg-white/85 backdrop-blur">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+                <a href="https://centipidacademy.com" class="shrink-0" aria-label="Centipid Academy home">
+                    <img src="https://centipidacademy.com/images/centipid-academy-logo.png" alt="Centipid Academy" class="h-9 w-auto sm:h-11">
+                </a>
+
+                <nav class="hidden items-center gap-3 md:flex">
+                    <a href="https://centipidacademy.com" class="rounded-full border border-[#cbeed7] bg-[#ecfff2] px-4 py-2 text-sm font-semibold text-[#143524] transition hover:border-[#92e0ad]" aria-current="page">
+                        Home
+                    </a>
+                    <a href="https://centipidacademy.com/courses" class="rounded-full px-4 py-2 text-sm font-medium text-[#143524] transition hover:bg-[#ecfff2]">
+                        Courses
+                    </a>
+                    <a href="https://centipidacademy.com/enrollment" class="rounded-full px-4 py-2 text-sm font-medium text-[#143524] transition hover:bg-[#ecfff2]">
+                        Enrollment cart (0)
+                    </a>
+                    <a href="https://centipidacademy.com/become-an-instructor" class="rounded-md bg-[#143524] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f6b43]">
+                        Become an Instructor
+                    </a>
+
+                                                                        <a href="https://centipidacademy.com/login" class="rounded-full px-4 py-2 text-sm font-medium text-[#143524] transition hover:bg-[#ecfff2]">Log in</a>
+                                                            </nav>
+            </div>
+        </header>
+
+        
+        <main>
+            <div class="bg-white">
+    <section class="mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-14 sm:px-6 md:pb-28 md:pt-20 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:px-8 lg:pb-32 lg:pt-24">
+        <div class="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+            <h1 class="text-4xl font-bold tracking-[-0.04em] text-black sm:text-5xl lg:text-6xl">
+                Build networking confidence.
+            </h1>
+            <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-[#747474] sm:text-lg sm:leading-8 lg:mx-0">
+                Centipid Academy combines beginner-friendly explanations, practical labs, and structured networking tracks so learners can move from theory into real infrastructure and support skills with confidence.
+            </p>
+            <div class="mt-8 grid gap-3 sm:inline-flex">
+                <a href="https://centipidacademy.com/courses" class="inline-flex items-center justify-center rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#143524]">
+                    Explore Courses
+                </a>
+                <a href="#featured-courses" class="inline-flex items-center justify-center rounded-xl border-2 border-[#dedede] bg-white px-6 py-3 text-sm font-semibold text-black transition hover:border-[#b8c5bc]">
+                    Featured Courses
+                </a>
+            </div>
+        </div>
+
+        <img src="https://centipidacademy.com/images/home/hero-learning-workspace.png" alt="Illustration of a digital learning workspace" class="mx-auto w-full max-w-xl rounded-2xl shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
+    </section>
+
+    <section class="mx-auto max-w-7xl px-4 pb-24 sm:px-6 md:pb-28 lg:px-8">
+        <div class="grid gap-10 lg:grid-cols-[18rem_1fr] lg:items-center">
+            <div class="text-center lg:text-left">
+                <h2 class="text-3xl font-bold tracking-tight text-black sm:text-4xl">Learn essential career skills</h2>
+                <p class="mt-5 text-base leading-7 text-[#747474] sm:text-lg">
+                    Centipid Academy helps you build in-demand skills fast and advance your career in a changing job market.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
+                                    <a href="https://centipidacademy.com/courses/market-survey-and-feasibility-7" class="group relative min-h-44 overflow-hidden rounded-2xl border border-[#c8e5cf] bg-[#e8faec] shadow-sm sm:min-h-56">
+                        <img src="https://centipidacademy.com/images/home/network-skill.png" alt="" class="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105">
+                        <span class="absolute inset-x-3 bottom-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black sm:text-lg">
+                            <span class="block">Marketing &amp; growth for ISPs</span>
+                            <span class="mt-2 block text-xs font-medium text-[#4d765d] sm:text-sm">View →</span>
+                        </span>
+                    </a>
+                                    <a href="https://centipidacademy.com/courses/upstream-and-backhaul-connections-3" class="group relative min-h-44 overflow-hidden rounded-2xl border border-[#c8e5cf] bg-[#e8faec] shadow-sm sm:min-h-56">
+                        <img src="https://centipidacademy.com/images/home/network-skill.png" alt="" class="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105">
+                        <span class="absolute inset-x-3 bottom-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black sm:text-lg">
+                            <span class="block">Upstream &amp; backhaul</span>
+                            <span class="mt-2 block text-xs font-medium text-[#4d765d] sm:text-sm">View →</span>
+                        </span>
+                    </a>
+                                    <a href="https://centipidacademy.com/courses/what-an-isp-is-3" class="group relative min-h-44 overflow-hidden rounded-2xl border border-[#c8e5cf] bg-[#e8faec] shadow-sm sm:min-h-56">
+                        <img src="https://centipidacademy.com/images/home/network-skill.png" alt="" class="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105">
+                        <span class="absolute inset-x-3 bottom-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black sm:text-lg">
+                            <span class="block">Networking fundamentals</span>
+                            <span class="mt-2 block text-xs font-medium text-[#4d765d] sm:text-sm">View →</span>
+                        </span>
+                    </a>
+                                    <a href="https://centipidacademy.com/courses/isp-business-model-3" class="group relative min-h-44 overflow-hidden rounded-2xl border border-[#c8e5cf] bg-[#e8faec] shadow-sm sm:min-h-56">
+                        <img src="https://centipidacademy.com/images/home/network-skill.png" alt="" class="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105">
+                        <span class="absolute inset-x-3 bottom-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black sm:text-lg">
+                            <span class="block">ISP operations</span>
+                            <span class="mt-2 block text-xs font-medium text-[#4d765d] sm:text-sm">View →</span>
+                        </span>
+                    </a>
+                            </div>
+        </div>
+    </section>
+
+    <section id="featured-courses" class="mx-auto max-w-7xl px-4 pb-24 sm:px-6 md:pb-28 lg:px-8">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[#1f6b43]">Start learning</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight text-[#27283d] sm:text-4xl">Featured Courses</h2>
+            </div>
+            <a href="https://centipidacademy.com/courses" class="text-sm font-semibold text-[#115627] hover:text-[#143524]">View all Featured Courses →</a>
+        </div>
+
+                    <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                                    <article class="flex h-full flex-col rounded-2xl border border-[#e1e5e3] bg-white p-3 shadow-[0_8px_30px_rgba(20,53,36,0.04)]">
+    <a href="https://centipidacademy.com/courses/market-survey-and-feasibility-7" class="relative block aspect-[16/9] overflow-hidden rounded-xl bg-[#edf8f0]">
+                    <img src="https://fls-a1f9d49b-da3a-4c4c-b296-66b4905a889d.laravel.cloud/courses/thumbnails/nI7EJbvW2m1Hti8BWpoiuQlX7tQl2389wipXLkBi.png" alt="Market Survey and Feasibility course thumbnail" onerror="this.hidden = true" class="absolute inset-0 size-full object-cover">
+            </a>
+
+    <div class="flex flex-1 flex-col pt-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d765d]">Marketing &amp; growth for ISPs</p>
+        <h3 class="mt-2 text-lg font-bold leading-tight text-[#27283d]">Market Survey and Feasibility</h3>
+        <p class="mt-2 line-clamp-2 text-sm leading-5 text-[#74767e]">Learn how to survey, evaluate, and validate an ISP market before investing in infrastructure, customers, and operations.</p>
+        <p class="mt-2 text-xs text-[#8a908c]">Centipid Academy</p>
+
+        <div class="mt-4 flex flex-wrap gap-2 text-xs text-[#74767e]">
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">Beginner</span>
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">18 min</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 text-xs text-[#74767e]">
+                            <span class="font-semibold text-[#a86700]">★ 4.8</span>
+                <span>20 ratings</span>
+                    </div>
+
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-4">
+    <span class="font-bold text-sm text-[#27283d]">KES 2,500</span>
+
+    </div>
+
+        <div class="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+                            <form method="POST" action="https://centipidacademy.com/enrollment">
+                    <input type="hidden" name="_token" value="0XzHJQ8nNbeoEgw3cyXg9xBtQtFrd35qSIQCPG3u" autocomplete="off">                    <input type="hidden" name="course" value="market-survey-and-feasibility-7">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-[#115627] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0b401c]">
+                        Add to cart
+                    </button>
+                </form>
+                <a href="https://centipidacademy.com/courses/market-survey-and-feasibility-7" class="inline-flex items-center justify-center rounded-md bg-[#e4ece7] px-3 py-2 text-xs font-semibold text-[#164f28] transition hover:bg-[#d8e6dc]">
+                    View details
+                </a>
+                    </div>
+    </div>
+</article>
+                            </div>
+            </section>
+
+    <section class="mx-auto max-w-7xl px-4 pb-24 sm:px-6 md:pb-28 lg:px-8">
+        <div class="grid overflow-hidden rounded-[2rem] bg-[#031b0d] px-6 py-10 text-white sm:px-10 sm:py-14 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-12 lg:px-12">
+            <div class="text-center lg:text-left">
+                <h2 class="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">Structured training for practical networking outcomes.</h2>
+                <p class="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/70 sm:text-base lg:mx-0">
+                    Future-proof your skills with structured courses, practical lessons, and fresh content from real-world experts.
+                </p>
+
+                <div class="mt-8 grid gap-4 text-left sm:grid-cols-2">
+                                            <div class="flex items-start gap-3">
+                            <span class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dcefe4] text-xs font-bold text-[#143524]">✓</span>
+                            <span class="text-sm font-medium text-white/85">Guided networking paths</span>
+                        </div>
+                                            <div class="flex items-start gap-3">
+                            <span class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dcefe4] text-xs font-bold text-[#143524]">✓</span>
+                            <span class="text-sm font-medium text-white/85">Lab-style practical work</span>
+                        </div>
+                                            <div class="flex items-start gap-3">
+                            <span class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dcefe4] text-xs font-bold text-[#143524]">✓</span>
+                            <span class="text-sm font-medium text-white/85">Career-ready foundation</span>
+                        </div>
+                                        <div class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dcefe4] text-xs font-bold text-[#143524]">✓</span>
+                        <span class="text-sm font-medium text-white/85">Advance your career</span>
+                    </div>
+                </div>
+
+                <a href="https://centipidacademy.com/accounts" class="mt-9 inline-flex w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#27283d] transition hover:bg-[#e7f2ea] sm:w-auto sm:min-w-64">
+                    Choose your account
+                </a>
+            </div>
+
+            <img src="https://centipidacademy.com/images/home/training-outcomes-collage.png" alt="Instructor and modern learning technology" class="mt-12 w-full rounded-2xl lg:mt-0">
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-7xl px-4 pb-24 sm:px-6 md:pb-28 lg:px-8">
+        <div class="text-center lg:text-left">
+            <h2 class="text-3xl font-bold tracking-tight text-[#27283d] sm:text-4xl">Skills to transform your career and life</h2>
+            <p class="mt-3 text-base leading-7 text-[#747474] sm:text-lg">Build in-demand skills fast and advance your career in a changing job market.</p>
+        </div>
+
+                    <div class="mt-8" data-course-tabs="">
+                <div class="flex gap-2 overflow-x-auto border-b border-[#dfe3e1] text-base text-[#747474] sm:gap-8 sm:text-lg" role="tablist" aria-label="Course categories">
+                                            <button type="button" role="tab" aria-selected="true" data-course-tab="0" data-active="true" class="shrink-0 border-b-2 border-transparent px-4 pb-3 transition hover:text-[#27283d] data-[active=true]:border-black data-[active=true]:font-semibold data-[active=true]:text-[#27283d]">
+                            Marketing &amp; growth for ISPs
+                        </button>
+                                            <button type="button" role="tab" aria-selected="false" data-course-tab="1" data-active="false" class="shrink-0 border-b-2 border-transparent px-4 pb-3 transition hover:text-[#27283d] data-[active=true]:border-black data-[active=true]:font-semibold data-[active=true]:text-[#27283d]">
+                            Upstream &amp; backhaul
+                        </button>
+                                            <button type="button" role="tab" aria-selected="false" data-course-tab="2" data-active="false" class="shrink-0 border-b-2 border-transparent px-4 pb-3 transition hover:text-[#27283d] data-[active=true]:border-black data-[active=true]:font-semibold data-[active=true]:text-[#27283d]">
+                            Networking fundamentals
+                        </button>
+                                            <button type="button" role="tab" aria-selected="false" data-course-tab="3" data-active="false" class="shrink-0 border-b-2 border-transparent px-4 pb-3 transition hover:text-[#27283d] data-[active=true]:border-black data-[active=true]:font-semibold data-[active=true]:text-[#27283d]">
+                            ISP operations
+                        </button>
+                                    </div>
+
+                                    <div role="tabpanel" data-course-panel="0" class="mt-8">
+                        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                                                            <article class="flex h-full flex-col rounded-2xl border border-[#e1e5e3] bg-white p-3 shadow-[0_8px_30px_rgba(20,53,36,0.04)]">
+    <a href="https://centipidacademy.com/courses/market-survey-and-feasibility-7" class="relative block aspect-[16/9] overflow-hidden rounded-xl bg-[#edf8f0]">
+                    <img src="https://fls-a1f9d49b-da3a-4c4c-b296-66b4905a889d.laravel.cloud/courses/thumbnails/nI7EJbvW2m1Hti8BWpoiuQlX7tQl2389wipXLkBi.png" alt="Market Survey and Feasibility course thumbnail" onerror="this.hidden = true" class="absolute inset-0 size-full object-cover">
+            </a>
+
+    <div class="flex flex-1 flex-col pt-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d765d]">Marketing &amp; growth for ISPs</p>
+        <h3 class="mt-2 text-lg font-bold leading-tight text-[#27283d]">Market Survey and Feasibility</h3>
+        <p class="mt-2 line-clamp-2 text-sm leading-5 text-[#74767e]">Learn how to survey, evaluate, and validate an ISP market before investing in infrastructure, customers, and operations.</p>
+        <p class="mt-2 text-xs text-[#8a908c]">Centipid Academy</p>
+
+        <div class="mt-4 flex flex-wrap gap-2 text-xs text-[#74767e]">
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">Beginner</span>
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">18 min</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 text-xs text-[#74767e]">
+                            <span class="font-semibold text-[#a86700]">★ 4.8</span>
+                <span>20 ratings</span>
+                    </div>
+
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-4">
+    <span class="font-bold text-sm text-[#27283d]">KES 2,500</span>
+
+    </div>
+
+        <div class="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+                            <form method="POST" action="https://centipidacademy.com/enrollment">
+                    <input type="hidden" name="_token" value="0XzHJQ8nNbeoEgw3cyXg9xBtQtFrd35qSIQCPG3u" autocomplete="off">                    <input type="hidden" name="course" value="market-survey-and-feasibility-7">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-[#115627] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0b401c]">
+                        Add to cart
+                    </button>
+                </form>
+                <a href="https://centipidacademy.com/courses/market-survey-and-feasibility-7" class="inline-flex items-center justify-center rounded-md bg-[#e4ece7] px-3 py-2 text-xs font-semibold text-[#164f28] transition hover:bg-[#d8e6dc]">
+                    View details
+                </a>
+                    </div>
+    </div>
+</article>
+                                                    </div>
+
+                        <a href="https://centipidacademy.com/courses?search=Marketing%20%26%20growth%20for%20ISPs" class="mt-8 inline-flex text-sm font-semibold text-[#115627] hover:text-[#143524]">
+                            View all Marketing &amp; growth for ISPs Courses →
+                        </a>
+                    </div>
+                                    <div role="tabpanel" data-course-panel="1" class="mt-8 hidden">
+                        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                                                            <article class="flex h-full flex-col rounded-2xl border border-[#e1e5e3] bg-white p-3 shadow-[0_8px_30px_rgba(20,53,36,0.04)]">
+    <a href="https://centipidacademy.com/courses/upstream-and-backhaul-connections-3" class="relative block aspect-[16/9] overflow-hidden rounded-xl bg-[#edf8f0]">
+                    <img src="https://fls-a1f9d49b-da3a-4c4c-b296-66b4905a889d.laravel.cloud/courses/thumbnails/jvyFuyrncZKOlvzYsCObEJQEs0B4EEy9pP4sixok.png" alt="Upstream and Backhaul Connections course thumbnail" onerror="this.hidden = true" class="absolute inset-0 size-full object-cover">
+            </a>
+
+    <div class="flex flex-1 flex-col pt-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d765d]">Upstream &amp; backhaul</p>
+        <h3 class="mt-2 text-lg font-bold leading-tight text-[#27283d]">Upstream and Backhaul Connections</h3>
+        <p class="mt-2 line-clamp-2 text-sm leading-5 text-[#74767e]">Learn how to choose, evaluate, and manage upstream and backhaul connections to build a reliable and scalable ISP network.</p>
+        <p class="mt-2 text-xs text-[#8a908c]">Centipid Academy</p>
+
+        <div class="mt-4 flex flex-wrap gap-2 text-xs text-[#74767e]">
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">Beginner</span>
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">34 min</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 text-xs text-[#74767e]">
+                            <span class="font-semibold text-[#a86700]">☆</span>
+                <span>Not yet rated</span>
+                    </div>
+
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-4">
+    <span class="font-bold text-sm text-[#27283d]">KES 5,000</span>
+
+    </div>
+
+        <div class="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+                            <form method="POST" action="https://centipidacademy.com/enrollment">
+                    <input type="hidden" name="_token" value="0XzHJQ8nNbeoEgw3cyXg9xBtQtFrd35qSIQCPG3u" autocomplete="off">                    <input type="hidden" name="course" value="upstream-and-backhaul-connections-3">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-[#115627] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0b401c]">
+                        Add to cart
+                    </button>
+                </form>
+                <a href="https://centipidacademy.com/courses/upstream-and-backhaul-connections-3" class="inline-flex items-center justify-center rounded-md bg-[#e4ece7] px-3 py-2 text-xs font-semibold text-[#164f28] transition hover:bg-[#d8e6dc]">
+                    View details
+                </a>
+                    </div>
+    </div>
+</article>
+                                                    </div>
+
+                        <a href="https://centipidacademy.com/courses?search=Upstream%20%26%20backhaul" class="mt-8 inline-flex text-sm font-semibold text-[#115627] hover:text-[#143524]">
+                            View all Upstream &amp; backhaul Courses →
+                        </a>
+                    </div>
+                                    <div role="tabpanel" data-course-panel="2" class="mt-8 hidden">
+                        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                                                            <article class="flex h-full flex-col rounded-2xl border border-[#e1e5e3] bg-white p-3 shadow-[0_8px_30px_rgba(20,53,36,0.04)]">
+    <a href="https://centipidacademy.com/courses/what-an-isp-is-3" class="relative block aspect-[16/9] overflow-hidden rounded-xl bg-[#edf8f0]">
+                    <img src="https://fls-a1f9d49b-da3a-4c4c-b296-66b4905a889d.laravel.cloud/courses/thumbnails/MaM5bOLH3y9D5NIJ3ByI8Bm6bLKgV0Oi9cxD7y4w.png" alt="What An ISP Is course thumbnail" onerror="this.hidden = true" class="absolute inset-0 size-full object-cover">
+            </a>
+
+    <div class="flex flex-1 flex-col pt-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d765d]">Networking fundamentals</p>
+        <h3 class="mt-2 text-lg font-bold leading-tight text-[#27283d]">What An ISP Is</h3>
+        <p class="mt-2 line-clamp-2 text-sm leading-5 text-[#74767e]">Learn what an Internet Service Provider really does from zero</p>
+        <p class="mt-2 text-xs text-[#8a908c]">Centipid Academy</p>
+
+        <div class="mt-4 flex flex-wrap gap-2 text-xs text-[#74767e]">
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">Beginner</span>
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">27 min</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 text-xs text-[#74767e]">
+                            <span class="font-semibold text-[#a86700]">☆</span>
+                <span>Not yet rated</span>
+                    </div>
+
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-4">
+    <span class="font-bold text-sm text-[#27283d]">KES 2,500</span>
+
+    </div>
+
+        <div class="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+                            <form method="POST" action="https://centipidacademy.com/enrollment">
+                    <input type="hidden" name="_token" value="0XzHJQ8nNbeoEgw3cyXg9xBtQtFrd35qSIQCPG3u" autocomplete="off">                    <input type="hidden" name="course" value="what-an-isp-is-3">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-[#115627] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0b401c]">
+                        Add to cart
+                    </button>
+                </form>
+                <a href="https://centipidacademy.com/courses/what-an-isp-is-3" class="inline-flex items-center justify-center rounded-md bg-[#e4ece7] px-3 py-2 text-xs font-semibold text-[#164f28] transition hover:bg-[#d8e6dc]">
+                    View details
+                </a>
+                    </div>
+    </div>
+</article>
+                                                    </div>
+
+                        <a href="https://centipidacademy.com/courses?search=Networking%20fundamentals" class="mt-8 inline-flex text-sm font-semibold text-[#115627] hover:text-[#143524]">
+                            View all Networking fundamentals Courses →
+                        </a>
+                    </div>
+                                    <div role="tabpanel" data-course-panel="3" class="mt-8 hidden">
+                        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                                                            <article class="flex h-full flex-col rounded-2xl border border-[#e1e5e3] bg-white p-3 shadow-[0_8px_30px_rgba(20,53,36,0.04)]">
+    <a href="https://centipidacademy.com/courses/isp-business-model-3" class="relative block aspect-[16/9] overflow-hidden rounded-xl bg-[#edf8f0]">
+                    <img src="https://fls-a1f9d49b-da3a-4c4c-b296-66b4905a889d.laravel.cloud/courses/thumbnails/4HJQeWYoofRG4QL5nJlzpivo50KZFQmlplDKu4Hq.png" alt="ISP Business Model course thumbnail" onerror="this.hidden = true" class="absolute inset-0 size-full object-cover">
+            </a>
+
+    <div class="flex flex-1 flex-col pt-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d765d]">ISP operations</p>
+        <h3 class="mt-2 text-lg font-bold leading-tight text-[#27283d]">ISP Business Model</h3>
+        <p class="mt-2 line-clamp-2 text-sm leading-5 text-[#74767e]">Learn how to choose the right ISP business model based on your market, capital, technical skills, customer demand, and available infrastructure.</p>
+        <p class="mt-2 text-xs text-[#8a908c]">Centipid Academy</p>
+
+        <div class="mt-4 flex flex-wrap gap-2 text-xs text-[#74767e]">
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">Beginner</span>
+            <span class="rounded border border-[#dfe3e1] px-2 py-1">24 min</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 text-xs text-[#74767e]">
+                            <span class="font-semibold text-[#a86700]">☆</span>
+                <span>Not yet rated</span>
+                    </div>
+
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-4">
+    <span class="font-bold text-sm text-[#27283d]">KES 2,500</span>
+
+    </div>
+
+        <div class="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+                            <form method="POST" action="https://centipidacademy.com/enrollment">
+                    <input type="hidden" name="_token" value="0XzHJQ8nNbeoEgw3cyXg9xBtQtFrd35qSIQCPG3u" autocomplete="off">                    <input type="hidden" name="course" value="isp-business-model-3">
+                    <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-[#115627] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0b401c]">
+                        Add to cart
+                    </button>
+                </form>
+                <a href="https://centipidacademy.com/courses/isp-business-model-3" class="inline-flex items-center justify-center rounded-md bg-[#e4ece7] px-3 py-2 text-xs font-semibold text-[#164f28] transition hover:bg-[#d8e6dc]">
+                    View details
+                </a>
+                    </div>
+    </div>
+</article>
+                                                    </div>
+
+                        <a href="https://centipidacademy.com/courses?search=ISP%20operations" class="mt-8 inline-flex text-sm font-semibold text-[#115627] hover:text-[#143524]">
+                            View all ISP operations Courses →
+                        </a>
+                    </div>
+                            </div>
+            </section>
+
+    <footer class="border-t border-[#e7e7e7] bg-white" data-public-footer="">
+    <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr] lg:px-8 lg:py-20">
+        <div>
+            <img src="https://centipidacademy.com/images/centipid-academy-logo.png" alt="Centipid Academy" class="h-8 w-auto">
+            <p class="mt-4 max-w-xs text-sm leading-6 text-[#303030]">Teaching tech one person at a time.</p>
+                    </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-black">Features</h3>
+            <div class="mt-4 space-y-3 text-sm text-[#747474]">
+                <p>Practical courses</p>
+                <p>Guided learning</p>
+                <p>Career skills</p>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-black">Learn more</h3>
+            <div class="mt-4 space-y-3 text-sm text-[#747474]">
+                <a href="https://centipidacademy.com/courses" class="block hover:text-[#115627]">Course catalog</a>
+                <a href="https://centipidacademy.com#featured-courses" class="block hover:text-[#115627]">Featured courses</a>
+                <a href="https://centipidacademy.com/enrollment" class="block hover:text-[#115627]">Shopping cart</a>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-black">Support</h3>
+            <div class="mt-4 space-y-3 text-sm text-[#747474]">
+                <a href="mailto:academy@centipidtechnologies.com" class="block hover:text-[#115627]">academy@centipidtechnologies.com</a>
+                                <a href="https://centipidacademy.com/terms" class="block hover:text-[#115627]">Terms of Service</a>
+                <a href="https://centipidacademy.com/privacy" class="block hover:text-[#115627]">Privacy Policy</a>
+                <a href="https://centipidacademy.com/creator-agreement" class="block hover:text-[#115627]">Instructor Terms</a>
+            </div>
+        </div>
+    </div>
+</footer>
+    </div>
+        </main>
+
+            <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a456e9162894b5f9',t:'MTc5MTE0NTQ3MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><iframe height="1" width="1" style="position: absolute; top: 0px; left: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; visibility: hidden;"></iframe>
+
+<amino-inspect></amino-inspect><g0-ratings-popup-host id="g0-ratings-popup"></g0-ratings-popup-host><g0-widget-host id="g0-widget"></g0-widget-host><g0-textarea-recorder-host id="g0-textarea-recorder"></g0-textarea-recorder-host></body></html>    
+
+
+
+
+
