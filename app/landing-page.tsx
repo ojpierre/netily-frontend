@@ -25,6 +25,7 @@ import {
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { blogPosts } from "@/lib/blog-data"
+import { caseStudies } from "@/lib/case-studies"
 import { submitLead } from "@/lib/api"
 import { useGeo } from "@/hooks/use-geo"
 
@@ -386,6 +387,154 @@ function HomepageMetricsSection() {
                 <p className="max-w-36 text-sm lowercase leading-5 text-muted-foreground">/{metric.label}</p>
               </div>
             </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function TestimonialsSection() {
+  const testimonials = [
+    {
+      quote:
+        "Internetily gave our billing and support team one clean place to understand payments, renewals, customers, and router-side work.",
+      name: "Operations Lead",
+      company: "Regional WISP",
+      region: "East Africa",
+      metric: "renewals",
+    },
+    {
+      quote:
+        "The biggest win was visibility. We could tell which customers needed billing follow-up, which needed support, and which were ready to reconnect.",
+      name: "Founder",
+      company: "Estate WiFi Operator",
+      region: "Kenya",
+      metric: "support clarity",
+    },
+    {
+      quote:
+        "We wanted a system that felt practical for daily ISP work. Internetily made billing, customer records, and access workflows easier to coordinate.",
+      name: "Commercial Manager",
+      company: "Altnet Team",
+      region: "United Kingdom",
+      metric: "billing visibility",
+    },
+  ]
+  const [active, setActive] = useState(0)
+  const testimonial = testimonials[active]
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActive((current) => (current + 1) % testimonials.length)
+    }, 6500)
+    return () => window.clearInterval(timer)
+  }, [testimonials.length])
+
+  return (
+    <section id="testimonials" className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
+      <Grain />
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 md:px-12 lg:grid-cols-[0.85fr_1.15fr] lg:px-16 lg:items-end">
+        <div>
+          <SectionLabel>Customer Voice</SectionLabel>
+          <h2 className="mt-6 text-balance text-4xl font-normal leading-tight md:text-6xl">
+            Teams trust Internetily when billing needs to move with operations.
+          </h2>
+          <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
+            Clear billing, customer records, payments, support, and access workflows help ISP teams spend less time chasing context and more time serving subscribers.
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden border border-zinc-800 bg-zinc-900 p-6 md:p-8">
+          <div className="absolute right-6 top-6 text-8xl font-light leading-none text-white/5">"</div>
+          <AnimatePresence mode="wait">
+            <motion.article
+              key={testimonial.quote}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.35 }}
+              className="relative z-10"
+            >
+              <p className="text-2xl font-light leading-10 text-white md:text-4xl md:leading-[1.18]">
+                {testimonial.quote}
+              </p>
+              <div className="mt-10 flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-base font-medium text-white">{testimonial.name}</p>
+                  <p className="mt-1 text-sm text-zinc-500">{testimonial.company} / {testimonial.region}</p>
+                </div>
+                <p className="w-fit border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs uppercase tracking-[0.22em] text-amber-200">
+                  {testimonial.metric}
+                </p>
+              </div>
+            </motion.article>
+          </AnimatePresence>
+
+          <div className="mt-8 flex gap-2">
+            {testimonials.map((item, index) => (
+              <button
+                key={item.quote}
+                type="button"
+                onClick={() => setActive(index)}
+                className={`h-2.5 flex-1 transition ${index === active ? "bg-amber-400" : "bg-zinc-700 hover:bg-zinc-600"}`}
+                aria-label={`Show testimonial from ${item.company}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CaseStudiesSection() {
+  return (
+    <section id="case-studies" className="relative overflow-hidden border-b border-zinc-800 bg-zinc-900 py-24 md:py-32">
+      <NetworkPattern />
+      <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <div className="mb-12 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <SectionLabel>Case Studies</SectionLabel>
+            <h2 className="mt-6 max-w-3xl text-balance text-4xl font-normal leading-tight md:text-6xl">
+              Example wins from ISP billing, support, and renewal workflows.
+            </h2>
+          </div>
+          <a href="#contact" className="inline-flex min-h-12 items-center gap-2 text-sm font-medium text-amber-400">
+            Build your case study
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          {caseStudies.map((study) => (
+            <Link key={study.slug} href={`/case-studies/${study.slug}`} className="group overflow-hidden border border-zinc-800 bg-zinc-950 transition hover:border-zinc-600">
+              <div className="relative aspect-[4/3] overflow-hidden border-b border-zinc-800">
+                <Image
+                  src={study.image}
+                  alt={study.imageAlt}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-cover opacity-80 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+                <div className="absolute bottom-4 left-4 border border-white/15 bg-zinc-950/70 px-3 py-2 text-xs uppercase tracking-[0.22em] text-white backdrop-blur">
+                  {study.region}
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="mb-5 flex items-end justify-between gap-4">
+                  <p className="text-5xl font-light tracking-tight text-white">{study.metric}</p>
+                  <p className="max-w-28 text-right text-xs lowercase leading-4 text-zinc-500">/{study.metricLabel}</p>
+                </div>
+                <h3 className="line-clamp-2 text-2xl font-normal leading-tight text-white">{study.title}</h3>
+                <p className="mt-4 line-clamp-3 text-sm leading-6 text-zinc-400">{study.summary}</p>
+                <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-amber-400">
+                  Read case study
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </span>
+              </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -1051,6 +1200,10 @@ export function LandingPage() {
         </section>
 
         <HomepageMetricsSection />
+
+        <TestimonialsSection />
+
+        <CaseStudiesSection />
 
         <PaymentLogoStrip />
 
@@ -1795,7 +1948,7 @@ export function LandingPage() {
           </div>
           <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-8 text-sm text-zinc-600 md:flex-row md:items-center md:justify-between">
             <p>&copy; {new Date().getFullYear()} Internetily. All rights reserved.</p>
-            <a href="https://mjengo-tech.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center hover:text-zinc-400">
+            <a href="https://mjengocorporate.com/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center hover:text-zinc-400">
               a product of Mjengo Corporate
             </a>
           </div>

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
 
 // Advertise public content and rendering assets without listing private routes.
-const publicPages = ["/", "/blog", "/alternatives", "/docs", "/solutions", "/compare", "/demo", "/privacy", "/terms", "/affiliate", "/affiliate/register"]
+const publicPages = ["/", "/blog", "/case-studies", "/alternatives", "/docs", "/solutions", "/compare", "/demo", "/privacy", "/terms", "/affiliate", "/affiliate/register"]
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: "/",
       allow: [
         ...publicPages.flatMap((path) => [`${path}$`, `${path}?*`]),
-        "/blog/", "/alternatives/", "/docs/", "/solutions/", "/compare/",
+        "/blog/", "/case-studies/", "/alternatives/", "/docs/", "/solutions/", "/compare/",
         "/_next/", "/images/", "/icons/", "/payments-logos/",
         "/internetily", "/video-", "/favicon", "/icon", "/apple-icon",
         "/og-image.svg", "/manifest.json", "/sw.js", "/llms.txt", "/netily-docs.md",

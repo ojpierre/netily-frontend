@@ -1,6 +1,7 @@
 import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
 import { blogPosts } from "@/lib/blog-data"
+import { caseStudies } from "@/lib/case-studies"
 import { HomepagePreloader } from "@/components/homepage-preloader"
 
 const homepageSeoDescription =
@@ -1105,6 +1106,22 @@ export default function Page() {
       keywords: post.keywords.join(", "),
     })),
   }
+  const caseStudyCollectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Internetily ISP Billing Case Studies",
+    description:
+      "Example case studies showing how ISP, WISP, hotspot, altnet, and managed WiFi teams can improve billing, renewals, revenue visibility, and support operations with Internetily.",
+    url: "https://netily.co.ke/#case-studies",
+    hasPart: caseStudies.map((study) => ({
+      "@type": "Article",
+      headline: study.title,
+      description: study.seoDescription,
+      image: `https://netily.co.ke${study.image}`,
+      url: `https://netily.co.ke/case-studies/${study.slug}`,
+      about: study.keywords.map((name) => ({ "@type": "Thing", name })),
+    })),
+  }
 
   return (
     <>
@@ -1136,6 +1153,10 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(caseStudyCollectionSchema) }}
       />
       <script
         type="application/ld+json"

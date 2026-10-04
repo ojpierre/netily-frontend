@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next"
 import { blogPosts } from "@/lib/blog-data"
+import { caseStudies } from "@/lib/case-studies"
 import { publicAlternativePages } from "@/lib/alternatives-data"
 
 const BASE = "https://netily.co.ke"
@@ -48,6 +49,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.84,
   }))
 
+  const caseStudyEntries: MetadataRoute.Sitemap = caseStudies.map((study) => ({
+    url: `${BASE}/case-studies/${study.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.83,
+  }))
+
   return [
     {
       url: BASE,
@@ -60,6 +68,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9,
+    },
+    {
+      url: `${BASE}/case-studies`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.86,
     },
     {
       url: `${BASE}/alternatives`,
@@ -76,6 +90,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...blogEntries,
     ...alternativeEntries,
     ...solutionEntries,
+    ...caseStudyEntries,
     {
       url: `${BASE}/affiliate`,
       lastModified: new Date(),
