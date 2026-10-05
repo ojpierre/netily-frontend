@@ -3,6 +3,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
+import { readLearner, type LearnerSession } from "@/lib/academy-preview"
 import { ShoppingCart } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { academyCourses, type AcademyCourse } from "@/lib/academy-data"
@@ -11,6 +13,8 @@ import { AddCourseButton, useAcademyCart } from "./academy-cart"
 export function AcademyHeader() {
   const pathname = usePathname()
   const { courses, ready } = useAcademyCart()
+  const [learner, setLearner] = useState<LearnerSession | null>(null)
+  useEffect(() => setLearner(readLearner()), [pathname])
   return (
     <header className="academy-nav" aria-busy={!ready}>
       <div className="academy-container academy-nav-inner">
@@ -64,6 +68,12 @@ export function AcademyHeader() {
             )}
           </Link>
           <ThemeToggle className="min-h-12 min-w-12" />
+          <Link
+            href={learner ? "/academy/account" : "/academy/login"}
+            aria-label={learner ? "My learning" : "Sign in to academy"}
+          >
+            {learner ? "My learning" : "Sign in"}
+          </Link>
         </nav>
       </div>
     </header>

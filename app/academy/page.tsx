@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, BookOpen, Check, GraduationCap, Router, Wifi } from "lucide-react"
-import { AcademyHeader, CourseGrid } from "./academy-components"
+import { AcademyHeader, AcademyFooter, CourseGrid } from "./academy-components"
 import { academyCourses, academyStats } from "@/lib/academy-data"
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Internetily Academy | Practical ISP Training",
     description: "Practical ISP, WISP, MikroTik, hotspot, billing, support, and growth courses for broadband teams.",
     url: "https://netily.co.ke/academy",
-    images: [{ url: "/academy/internetily-academy-training.webp", alt: "Internetily Academy training workspace" }],
+    images: [{ url: "/academy/networking-foundations.webp", alt: "African learners practising networking at Internetily Academy" }],
   },
 }
 
@@ -62,8 +62,8 @@ export default function AcademyPage() {
 
       <section className="relative overflow-hidden border-b border-zinc-800">
         <Image
-          src="/academy/internetily-academy-training.webp"
-          alt="Internetily Academy networking training workspace"
+          src="/academy/networking-foundations.webp"
+          alt="African adult learners practising networking with an instructor"
           fill
           priority
           sizes="100vw"
@@ -71,7 +71,7 @@ export default function AcademyPage() {
         />
         <div className="absolute inset-0 bg-linear-to-r from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
         <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-transparent to-zinc-950/20" />
-        <div className="relative z-10 mx-auto grid min-h-[720px] max-w-7xl items-end gap-10 px-6 pb-16 pt-36 md:px-12 lg:grid-cols-[0.95fr_1.05fr] lg:px-16">
+        <div className="relative z-10 mx-auto grid min-h-[580px] max-w-7xl items-end gap-10 px-6 pb-16 pt-24 md:px-12 lg:grid-cols-[0.95fr_1.05fr] lg:px-16">
           <div className="max-w-3xl">
             <p className="text-sm uppercase tracking-[0.28em] text-amber-300">Internetily Academy</p>
             <h1 className="mt-6 text-balance text-4xl font-normal leading-tight md:text-6xl">
@@ -147,7 +147,7 @@ export default function AcademyPage() {
             </h2>
           </div>
           <div className="grid gap-3">
-            {["Beginner-friendly lessons", "Practical ISP examples", "Course pages with clear outcomes", "Simple enrollment journey"].map((item) => (
+            {["Beginner-friendly lessons", "Practical ISP examples", "Clear steps you can practise", "Pick up where you left off"].map((item) => (
               <div key={item} className="flex items-center gap-3 border border-zinc-800 bg-zinc-950 p-4">
                 <Check className="h-5 w-5 text-emerald-300" />
                 <span className="text-sm text-zinc-300">{item}</span>
@@ -156,6 +156,7 @@ export default function AcademyPage() {
           </div>
         </div>
       </section>
+      <AcademyFooter />
     </main>
   )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { CalendarDays, Check, ChevronRight, Clock, Globe } from "lucide-react"
 import { AcademyFooter, AcademyHeader } from "../../academy-components"
@@ -75,7 +76,9 @@ export default async function AcademyCourseDetailPage({ params }: PageProps) {
       />
       <AcademyHeader />
       <section className="academy-detail-hero">
-        <div className="academy-container">
+        <Image src={course.image} alt={course.imageAlt} fill priority sizes="100vw" className="academy-hero-image" />
+        <div className="academy-hero-shade" />
+        <div className="academy-container relative">
           <div className="academy-detail-column">
             <nav className="academy-breadcrumb" aria-label="Breadcrumb">
               <Link href="/academy/courses">Courses</Link>

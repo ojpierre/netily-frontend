@@ -219,9 +219,123 @@
   text-align: right;
 }
 .academy-detail-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: #10354b;
   color: white;
   padding-block: 28px 44px;
+}
+.academy-hero-image {
+  object-fit: cover;
+  object-position: 70% center;
+  z-index: -2;
+}
+.academy-hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(7, 24, 35, 0.94) 0%,
+    rgba(7, 24, 35, 0.85) 48%,
+    rgba(7, 24, 35, 0.22) 100%
+  );
+  z-index: -1;
+}
+.academy-detail-hero .academy-detail-column {
+  max-width: 760px;
+}
+.academy-site
+  :is(
+    .academy-button,
+    .academy-input,
+    .academy-thumbnail,
+    .academy-topics a,
+    .academy-order-panel,
+    .academy-course-card,
+    .academy-learn-box,
+    .academy-filters
+  ) {
+  border-radius: 1.1rem;
+}
+.academy-curriculum {
+  border-radius: 1.1rem;
+  overflow: hidden;
+}
+.academy-auth {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  max-width: 1040px;
+  margin: auto;
+  padding: 60px 24px;
+  align-items: center;
+  min-height: 75vh;
+}
+.academy-auth-story {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  padding: 40px;
+  background: var(--academy-tint);
+  min-height: 530px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: white;
+}
+.academy-auth-story img {
+  object-fit: cover;
+}
+.academy-auth-story:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(8, 29, 44, 0.95),
+    rgba(8, 29, 44, 0.1)
+  );
+}
+.academy-auth-story > div {
+  position: relative;
+  z-index: 1;
+}
+.academy-auth-panel {
+  border: 1px solid var(--academy-line);
+  border-radius: 1.25rem;
+  padding: 30px;
+}
+.academy-auth-panel .academy-form {
+  max-width: none;
+}
+.academy-site article,
+.academy-site button:not(.academy-lesson-toggle),
+.academy-site a[class*="bg-white"],
+.academy-site a[class*="border-white"] {
+  border-radius: 1.1rem;
+}
+.academy-payment-panel {
+  border: 1px solid var(--academy-line);
+  border-radius: 1.1rem;
+  padding: 24px;
+  margin-block: 24px;
+}
+@media (max-width: 700px) {
+  .academy-auth {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 24px 20px;
+  }
+  .academy-auth-story {
+    min-height: 240px;
+    padding: 24px;
+  }
+  .academy-auth-panel {
+    padding: 24px;
+  }
+  .academy-hero-shade {
+    background: rgba(7, 24, 35, 0.82);
+  }
 }
 .academy-detail-column {
   max-width: 960px;

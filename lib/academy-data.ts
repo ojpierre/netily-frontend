@@ -40,7 +40,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["New ISP owners", "Support teams", "Technicians in training"],
     status: "Popular",
-    image: "/academy/internetily-academy-training.webp",
+    image: "/academy/networking-foundations.webp",
     imageAlt: "Instructor teaching networking fundamentals with routers and dashboards",
     seoTitle: "Networking Fundamentals for ISP Teams | Internetily Academy",
     seoDescription:
@@ -67,7 +67,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["WISP operators", "Network planners", "Field technicians"],
     status: "New",
-    image: "/academy/internetily-academy-training.webp",
+    image: "/academy/wisp-backhaul.webp",
     imageAlt: "Network training workspace for upstream and backhaul planning",
     seoTitle: "Upstream and Backhaul Planning Course | Internetily Academy",
     seoDescription:
@@ -94,7 +94,7 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["ISP owners", "Billing teams", "Support managers"],
     status: "Popular",
-    image: "/academy/internetily-academy-training.webp",
+    image: "/academy/isp-operations.webp",
     imageAlt: "ISP operations training for billing and support teams",
     seoTitle: "ISP Operations, Billing, and Support Course | Internetily Academy",
     seoDescription:
@@ -121,12 +121,69 @@ export const academyCourses: AcademyCourse[] = [
     ],
     audience: ["New ISP founders", "Sales teams", "Growth-focused operators"],
     status: "Open",
-    image: "/academy/internetily-academy-training.webp",
+    image: "/academy/market-survey.webp",
     imageAlt: "ISP growth training with learners reviewing market and customer data",
     seoTitle: "Market Survey and ISP Growth Course | Internetily Academy",
     seoDescription:
       "Learn practical market survey, local marketing, pricing, and lead conversion skills for starting or growing an ISP.",
     keywords: ["ISP market survey course", "ISP marketing course", "start ISP training", "ISP lead generation"],
+  },
+  {
+    slug: "mikrotik-pppoe-and-mpesa",
+    title: "MikroTik PPPoE and M-Pesa Setup",
+    category: "ISP operations",
+    level: "Intermediate",
+    duration: "64 min",
+    price: "KES 3,500",
+    rating: "", ratingsCount: 0,
+    summary: "Connect your router, create sensible plans, and follow a customer payment from M-Pesa confirmation to restored internet access.",
+    outcome: "Build a repeatable setup checklist and test renewals before your first customer goes live.",
+    lessons: ["Prepare the router and RADIUS connection", "Create PPPoE plans and customer credentials", "Connect payments and test confirmations", "Check renewals, expiry, and reconnection"],
+    audience: ["ISP technicians", "Network administrators", "Growing WISP teams"],
+    status: "New",
+    image: "/academy/mikrotik-pppoe.webp",
+    imageAlt: "African networking instructor and technicians configuring a MikroTik router",
+    seoTitle: "MikroTik PPPoE and M-Pesa Course | Internetily Academy",
+    seoDescription: "Learn a practical MikroTik PPPoE setup workflow, customer plans, RADIUS checks, M-Pesa confirmations, and renewal testing.",
+    keywords: ["MikroTik PPPoE course", "M-Pesa ISP training", "RADIUS setup", "ISP technician training"]
+  },
+  {
+    slug: "fiber-olt-and-onu-operations",
+    title: "Fibre, OLT, and ONU Operations",
+    category: "Infrastructure planning",
+    level: "Intermediate",
+    duration: "58 min",
+    price: "KES 3,500",
+    rating: "", ratingsCount: 0,
+    summary: "Understand the path from your OLT to a customer's ONU, keep a clear port map, and troubleshoot fibre faults without guessing.",
+    outcome: "Create a tidy fibre handover checklist covering optical readings, device records, provisioning, and support.",
+    lessons: ["Understand OLT ports, splitters, and ONUs", "Plan fibre routes and record installations", "Provision devices and check optical levels", "Troubleshoot faults and prepare for growth"],
+    audience: ["Fibre technicians", "FTTH operators", "Support teams"],
+    status: "New",
+    image: "/academy/fiber-olt.webp",
+    imageAlt: "African fibre technicians learning at an OLT and optical patch panel",
+    seoTitle: "Fibre OLT and ONU Management Course | Internetily Academy",
+    seoDescription: "Practical FTTH training for OLT and ONU operations, fibre planning, optical checks, provisioning, and troubleshooting.",
+    keywords: ["OLT training", "ONU management course", "FTTH training Africa", "fibre network operations"]
+  },
+  {
+    slug: "hotspot-wifi-and-captive-portals",
+    title: "Hotspot WiFi and Captive Portals",
+    category: "Networking foundation",
+    level: "Beginner",
+    duration: "51 min",
+    price: "KES 3,000",
+    rating: "", ratingsCount: 0,
+    summary: "Set up a hotspot people can use easily. Plan WiFi coverage, choose packages, and test the full payment and reconnect journey.",
+    outcome: "Launch with a checklist for coverage, captive portal access, payments, and returning customers.",
+    lessons: ["Plan coverage and place access points", "Build clear hotspot plans and vouchers", "Test the captive portal and M-Pesa journey", "Help returning customers reconnect"],
+    audience: ["Hotspot owners", "Community WiFi teams", "New technicians"],
+    status: "New",
+    image: "/academy/hotspot-wifi.webp",
+    imageAlt: "African adult learners testing WiFi coverage using a phone and laptop",
+    seoTitle: "Hotspot WiFi and Captive Portal Course | Internetily Academy",
+    seoDescription: "Learn hotspot coverage planning, WiFi packages, vouchers, captive portal payments, and customer reconnection checks.",
+    keywords: ["hotspot WiFi course", "captive portal training", "M-Pesa hotspot setup", "community WiFi Africa"]
   },
 ]
 
@@ -135,7 +192,7 @@ export function getAcademyCourse(slug: string) {
 }
 
 export const academyStats = [
-  ["4", "practical courses"],
-  ["2h+", "guided lessons"],
+  ["7", "practical courses"],
+  ["5h+", "guided lessons"],
   ["KES", "local pricing"],
 ]

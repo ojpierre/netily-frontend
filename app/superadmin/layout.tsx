@@ -29,6 +29,8 @@ import {
   MessageSquareText, // <-- Added for SMS page
   Gift, // Affiliate Referrals
   Server, // <-- Added for Server Stats page
+  GraduationCap,
+  ShoppingBag,
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -58,6 +60,8 @@ const navItems = [
   { name: "SMS", href: "/superadmin/sms", icon: MessageSquareText },
   { name: "Live Chat", href: "/superadmin/support-chat", icon: Headphones },
   { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
+  { name: "Academy", href: "/superadmin/academy", icon: GraduationCap },
+  { name: "Shop", href: "/superadmin/shop", icon: ShoppingBag },
   { name: "Referrals", href: "/superadmin/referrals", icon: Gift },
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { name: "Activity", href: "/superadmin/activity", icon: Activity },

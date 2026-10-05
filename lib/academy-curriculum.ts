@@ -1,6 +1,24 @@
 import type { AcademyCourse } from "./academy-data"
 
 const lessonGuides: Record<string, string[]> = {
+  "mikrotik-pppoe-and-mpesa": [
+    "Back up your router before making changes. Keep management access separate from customer traffic, check the router clock, and test the RADIUS connection with one test account.",
+    "Create a plan with a clear speed, price, and renewal period. Add a test customer, check the PPPoE credentials, and confirm that the assigned profile matches the plan.",
+    "Use test payments first. Match the payment reference to the right customer, confirm the callback, and check that a retry cannot credit the same payment twice.",
+    "Test a customer before expiry, after expiry, and after a confirmed renewal. Check the access state, session limit, and customer message at each step."
+  ],
+  "fiber-olt-and-onu-operations": [
+    "Follow the optical path from an OLT port through a splitter to the customer's ONU. Record device serial numbers, ports, and management addresses before provisioning.",
+    "Survey access permission, route length, split ratios, and safe cable paths. Keep your installation map current so another technician can find the same customer without guessing.",
+    "Check supported device profiles and record optical readings against the manufacturer's limits. Avoid exposing management interfaces to the public internet.",
+    "Work from power and physical checks to optical loss and provisioning. Keep a fault history and spare equipment plan as the network grows."
+  ],
+  "hotspot-wifi-and-captive-portals": [
+    "Survey coverage using a real phone in busy areas. Consider walls, interference, power, and the number of people using each access point at peak times.",
+    "Keep package names, prices, and duration clear. Test vouchers and fair-use settings with a small group before opening the service to everyone.",
+    "Test the portal on several phones, including a returning user. Follow a payment from request to confirmation and verify that internet access actually opens.",
+    "Check the customer's remaining access time before requesting another payment. Provide a clear already-paid path and a helpful message when no active session is found."
+  ],
   "networking-fundamentals-for-isp-teams": [
     "An ISP buys or builds an upstream connection, carries it across a network, and delivers access to customers. Follow the path from the upstream link through your router and access equipment to a customer's device. Understanding that path makes it easier to find where a connection has failed.",
     "Identify the job of each device before changing its settings. A router connects networks, a switch connects devices within a network, and an access point provides wireless access. Label ports and cables, keep a simple network diagram, and record management addresses somewhere your team can find them.",
