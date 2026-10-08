@@ -3,11 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
+  ArrowLeftRight,
   Banknote,
   Calculator,
   Loader2,
   Plus,
-  RotateCcw,
   ReceiptText,
   RefreshCw,
   TrendingUp,
@@ -15,10 +15,6 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
-import {
-  AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -67,6 +63,9 @@ const emptySummary: PlatformExpenditureSummary = {
   accrued_total: "0.00",
   manual_expenditure_total: "0.00",
   net_profit: "0.00",
+  transfer_in_total: "0.00",
+  transfer_out_total: "0.00",
+  calculated_position: "0.00",
 }
 
 function kes(value: string | number) {
@@ -142,9 +141,6 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
   const [summary, setSummary] = useState<PlatformExpenditureSummary>({ ...emptySummary, ledger })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [reversing, setReversing] = useState<string | null>(null)
-  const [entryToReverse, setEntryToReverse] = useState<PlatformExpenditure | null>(null)
-  const [reversalReason, setReversalReason] = useState("")
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState({ start: "", end: "" })
@@ -219,23 +215,6 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
     }
   }
 
-  const reverseEntry = async () => {
-    if (!entryToReverse || !reversalReason.trim()) return
-    setReversing(entryToReverse.id)
-    try {
-      await superadminApi.reverseExpenditure(entryToReverse.id, reversalReason.trim(), ledger)
-      toast.success("Correction recorded. The original entry remains in the audit log.")
-      setEntryToReverse(null)
-      setReversalReason("")
-      setPage(1)
-      await fetchData()
-    } catch (err: any) {
-      toast.error(err?.message || "Could not reverse this entry")
-    } finally {
-      setReversing(null)
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -293,12 +272,14 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Payment Receipts" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · subscriptions + SMS`} icon={WalletCards} />
         <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed tenant subscription payments" icon={Banknote} tone="emerald" />
         <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed inbuilt SMS top-ups" icon={ReceiptText} tone="cyan" />
         <MetricCard title="Net Manual Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses less credits" icon={ReceiptText} tone="rose" />
         <MetricCard title="Net After Costs" value={kes(summary.net_profit)} subtitle="Receipts less recorded costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
+        <MetricCard title="Account Transfer" value={Number(ledger === "new_business" ? summary.transfer_in_total : summary.transfer_out_total) === 0 ? kes(0) : `${ledger === "new_business" ? "+" : "-"}${kes(ledger === "new_business" ? summary.transfer_in_total : summary.transfer_out_total)}`} subtitle={ledger === "new_business" ? "From Account 1, not revenue" : "To Account 2, not a cost"} icon={ArrowLeftRight} tone="amber" />
+        <MetricCard title={filters.start || filters.end ? "Net Movement" : "Calculated Position"} value={kes(summary.calculated_position)} subtitle="Receipts less costs, plus or minus transfer" icon={WalletCards} tone={Number(summary.calculated_position) >= 0 ? "emerald" : "rose"} />
       </div>
 
       <Card className="border-slate-800 bg-slate-900">
@@ -452,11 +433,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
                         <td className="px-4 py-3 text-slate-300">{dateLabel(entry.incurred_on)}</td>
                         <td className="px-4 py-3 text-slate-400">{entry.created_by_email || "Superadmin"}</td>
                         <td className="px-4 py-3 text-right">
-                          {entry.reverses ? <span className="text-xs text-slate-400">Reversal</span> : entry.is_reversed ? <span className="text-xs text-slate-400">Reversed</span> : (
-                            <Button type="button" variant="ghost" size="sm" disabled={reversing === entry.id} onClick={() => setEntryToReverse(entry)} title="Offset this entry with an audited correction" className="text-slate-300">
-                              <RotateCcw className="mr-1 h-4 w-4" />Reverse
-                            </Button>
-                          )}
+                          <span className="text-xs text-slate-400">{entry.reverses ? "Reversal" : entry.is_reversed ? "Reversed" : "-"}</span>
                         </td>
                       </tr>
                     ))}
@@ -490,27 +467,6 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           </CardContent>
         </Card>
       </div>
-      <AlertDialog open={Boolean(entryToReverse)} onOpenChange={(open) => { if (!open && !reversing) { setEntryToReverse(null); setReversalReason("") } }}>
-        <AlertDialogContent className="border-slate-700 bg-slate-900 text-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reverse expenditure</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-300">
-              This records a {entryToReverse ? kes(-Number(entryToReverse.amount)) : ""} correction against {entryToReverse?.title}. The original entry remains visible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="reversal-reason" className="text-slate-200">Reason</Label>
-            <Textarea id="reversal-reason" value={reversalReason} onChange={(event) => setReversalReason(event.target.value)} placeholder="For example: Duplicate of the 01 Oct charge" className="border-slate-700 bg-slate-950 text-white" />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={Boolean(reversing)} className="border-slate-700 bg-slate-800 text-white">Cancel</AlertDialogCancel>
-            <Button type="button" disabled={!reversalReason.trim() || Boolean(reversing)} onClick={reverseEntry} className="bg-rose-600 text-white hover:bg-rose-500">
-              {reversing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-              Record reversal
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

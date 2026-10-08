@@ -525,6 +525,9 @@ export interface PlatformExpenditureSummary {
   accrued_total: string
   manual_expenditure_total: string
   net_profit: string
+  transfer_in_total: string
+  transfer_out_total: string
+  calculated_position: string
 }
 
 export interface PlatformExpenditureResponse extends PaginatedResponse<PlatformExpenditure> {
