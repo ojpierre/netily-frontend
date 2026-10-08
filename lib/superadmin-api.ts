@@ -438,6 +438,7 @@ export interface SubscriptionPayment {
   currency: string
   status: string
   payment_method: string
+  business_account?: PlatformExpenditureLedger | null
   service_type?: "subscription" | "hotspot" | "pppoe" | "other" | string
   reference: string
   created_at: string
@@ -451,6 +452,7 @@ export interface ManualSubscriptionPaymentPayload {
   tenant_id: string
   amount: string
   payment_method: "mpesa_paybill" | "bank_transfer" | "card"
+  business_account: PlatformExpenditureLedger
   reference: string
   billing_period: "monthly" | "yearly"
   plan_id?: string
@@ -488,6 +490,8 @@ export interface PlatformExpenditure {
   category: PlatformExpenditureCategory
   title: string
   amount: string
+  reverses: string | null
+  is_reversed: boolean
   currency: string
   incurred_on: string
   notes: string
@@ -513,6 +517,7 @@ export interface PlatformExpenditureSummary {
   ledger_description: string
   ledger_route: string
   cutover_at: string | null
+  cutover_verified: boolean
   cutover_reference: string
   cutover_company: string
   subscription_payments_total: string
@@ -1421,6 +1426,13 @@ class SuperadminApiService {
 
   async deleteExpenditure(id: string, ledger: PlatformExpenditureLedger = "primary"): Promise<void> {
     await this.request(`${this.expenditurePath(ledger)}${id}/`, { method: "DELETE" })
+  }
+
+  async reverseExpenditure(id: string, reason: string, ledger: PlatformExpenditureLedger = "primary"): Promise<PlatformExpenditure> {
+    return this.request(`${this.expenditurePath(ledger)}${id}/`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    })
   }
 
   async getSubscriptionInvoices(params?: Record<string, string>): Promise<SubscriptionInvoiceListResponse> {

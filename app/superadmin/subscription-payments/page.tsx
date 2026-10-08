@@ -51,6 +51,8 @@ interface SubscriptionPaymentRow {
   amount: string
   currency: string
   payment_method: string
+  business_account?: "primary" | "new_business" | null
+  effective_business_account?: "primary" | "new_business" | null
   status: string
   reference?: string
   mpesa_receipt?: string
@@ -68,6 +70,7 @@ type ManualPaymentForm = {
   billing_period: "monthly" | "yearly"
   amount: string
   payment_method: "mpesa_paybill" | "bank_transfer" | "card"
+  business_account: "primary" | "new_business"
   reference: string
   phone_number: string
   completed_at: string
@@ -82,6 +85,7 @@ const emptyManualPaymentForm = (): ManualPaymentForm => ({
   billing_period: "monthly",
   amount: "",
   payment_method: "mpesa_paybill",
+  business_account: "new_business",
   reference: "",
   phone_number: "",
   completed_at: "",
@@ -270,6 +274,7 @@ export default function SubscriptionPaymentsPage() {
       ...emptyManualPaymentForm(),
       amount: String(Number(payment.amount || 0) || ""),
       payment_method: (payment.payment_method as ManualPaymentForm["payment_method"]) || "mpesa_paybill",
+      business_account: payment.business_account || "new_business",
       reference: payment.reference || payment.mpesa_receipt || payment.bank_reference || "",
       phone_number: payment.phone_number || "",
       completed_at: toDatetimeLocal(payment.completed_at || payment.created_at),
@@ -299,6 +304,7 @@ export default function SubscriptionPaymentsPage() {
         tenant_id: form.tenant_id,
         amount: form.amount,
         payment_method: form.payment_method,
+        business_account: form.business_account,
         reference: form.reference.trim(),
         billing_period: form.billing_period,
         phone_number: form.phone_number.trim() || undefined,
@@ -313,6 +319,7 @@ export default function SubscriptionPaymentsPage() {
         ? await superadminApi.updateSubscriptionPayment(editingPayment.id, {
             amount: payload.amount,
             payment_method: payload.payment_method,
+            business_account: payload.business_account,
             reference: payload.reference,
             billing_period: payload.billing_period,
             phone_number: payload.phone_number,
@@ -402,6 +409,7 @@ export default function SubscriptionPaymentsPage() {
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Plan</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Amount</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 md:table-cell">Method</th>
+                <th className="hidden px-4 py-3 text-left font-medium text-slate-400 xl:table-cell">Account</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Status</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 lg:table-cell">Reference</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 lg:table-cell">Phone</th>
@@ -412,13 +420,13 @@ export default function SubscriptionPaymentsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center">
+                  <td colSpan={10} className="py-16 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-violet-400" />
                   </td>
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-slate-500">
+                  <td colSpan={10} className="py-16 text-center text-slate-500">
                     No payments found
                   </td>
                 </tr>
@@ -432,6 +440,9 @@ export default function SubscriptionPaymentsPage() {
                     </td>
                     <td className="hidden px-4 py-3 capitalize text-slate-400 md:table-cell">
                       {p.payment_method?.replace("_", " ") || "-"}
+                    </td>
+                    <td className="hidden px-4 py-3 text-xs text-slate-400 xl:table-cell">
+                      {p.effective_business_account === "primary" ? "Account 1" : p.effective_business_account === "new_business" ? "Account 2" : "-"}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={p.status} />
@@ -612,6 +623,18 @@ export default function SubscriptionPaymentsPage() {
                     placeholder="+254..."
                   />
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label className="text-slate-200">Business account that received the payment</Label>
+                <Select value={form.business_account} onValueChange={(value) => updateForm("business_account", value as ManualPaymentForm["business_account"])}>
+                  <SelectTrigger className="border-slate-700 bg-slate-900 text-white"><SelectValue /></SelectTrigger>
+                  <SelectContent className="border-slate-700 bg-slate-900">
+                    <SelectItem value="new_business" className="text-slate-200">Account 2 - New Business Account</SelectItem>
+                    <SelectItem value="primary" className="text-slate-200">Account 1 - Original Business Account</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-400">Choose where the money actually arrived. This controls the expenditure ledger, not the tenant invoice.</p>
               </div>
 
               <div className="grid gap-2">

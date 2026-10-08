@@ -7,6 +7,7 @@ import {
   Calculator,
   Loader2,
   Plus,
+  RotateCcw,
   ReceiptText,
   RefreshCw,
   TrendingUp,
@@ -14,6 +15,10 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -54,6 +59,7 @@ const emptySummary: PlatformExpenditureSummary = {
   ledger_description: "Closed ledger ending at the gateway/account cutover.",
   ledger_route: "/superadmin/expenditure",
   cutover_at: null,
+  cutover_verified: false,
   cutover_reference: "",
   cutover_company: "",
   subscription_payments_total: "0.00",
@@ -67,7 +73,8 @@ function kes(value: string | number) {
   return Number(value || 0).toLocaleString("en-KE", {
     style: "currency",
     currency: "KES",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   })
 }
 
@@ -135,6 +142,9 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
   const [summary, setSummary] = useState<PlatformExpenditureSummary>({ ...emptySummary, ledger })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [reversing, setReversing] = useState<string | null>(null)
+  const [entryToReverse, setEntryToReverse] = useState<PlatformExpenditure | null>(null)
+  const [reversalReason, setReversalReason] = useState("")
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState({ start: "", end: "" })
@@ -142,6 +152,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
     title: "",
     category: "operations" as PlatformExpenditureCategory,
     amount: "",
+    direction: "expense" as "expense" | "credit",
     incurred_on: today(),
     notes: "",
   })
@@ -192,19 +203,36 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
       await superadminApi.createExpenditure({
         title: form.title.trim(),
         category: form.category,
-        amount: amount.toFixed(2),
+        amount: (form.direction === "credit" ? -amount : amount).toFixed(2),
         currency: "KES",
         incurred_on: form.incurred_on || today(),
         notes: form.notes.trim(),
       }, ledger)
-      toast.success("Expenditure recorded")
-      setForm({ title: "", category: "operations", amount: "", incurred_on: today(), notes: "" })
+      toast.success(form.direction === "credit" ? "Credit recorded" : "Expenditure recorded")
+      setForm({ title: "", category: "operations", amount: "", direction: "expense", incurred_on: today(), notes: "" })
       setPage(1)
       await fetchData()
     } catch (err: any) {
       toast.error(err?.message || "Failed to save expenditure")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const reverseEntry = async () => {
+    if (!entryToReverse || !reversalReason.trim()) return
+    setReversing(entryToReverse.id)
+    try {
+      await superadminApi.reverseExpenditure(entryToReverse.id, reversalReason.trim(), ledger)
+      toast.success("Correction recorded. The original entry remains in the audit log.")
+      setEntryToReverse(null)
+      setReversalReason("")
+      setPage(1)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err?.message || "Could not reverse this entry")
+    } finally {
+      setReversing(null)
     }
   }
 
@@ -259,12 +287,18 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
         </div>
       </div>
 
+      {!loading && !summary.cutover_verified && (
+        <p role="alert" className="border-l-4 border-amber-400 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Cutover receipt {summary.cutover_reference} was not found. Totals use the recorded 29 Sep 2026, 16:39 boundary until the payment can be verified.
+        </p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <MetricCard title="Accrued Total" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · ${summary.ledger_label}`} icon={WalletCards} />
         <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed tenant subscription payments" icon={Banknote} tone="emerald" />
         <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed inbuilt SMS top-ups" icon={ReceiptText} tone="cyan" />
-        <MetricCard title="Manual Expenditure" value={kes(summary.manual_expenditure_total)} subtitle="Costs entered here" icon={ReceiptText} tone="rose" />
-        <MetricCard title="Net Profit" value={kes(summary.net_profit)} subtitle="Accrued minus expenditure" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
+        <MetricCard title="Net Manual Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses less credits" icon={ReceiptText} tone="rose" />
+        <MetricCard title="Net After Costs" value={kes(summary.net_profit)} subtitle="Receipts less recorded costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
       </div>
 
       <Card className="border-slate-800 bg-slate-900">
@@ -298,6 +332,16 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Entry type</Label>
+                <Select value={form.direction} onValueChange={(value) => setForm((current) => ({ ...current, direction: value as "expense" | "credit" }))}>
+                  <SelectTrigger className="mt-1 border-slate-700 bg-slate-950 text-slate-200"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="expense">Expense (+) - reduces profit</SelectItem>
+                    <SelectItem value="credit">Credit (-) - offsets expenditure</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label className="text-slate-300">Title</Label>
                 <Input
@@ -357,7 +401,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
               </div>
               <Button type="submit" disabled={saving} className="w-full bg-violet-600 hover:bg-violet-500">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                Record expenditure
+                {form.direction === "credit" ? "Record credit" : "Record expenditure"}
               </Button>
             </form>
           </CardContent>
@@ -388,6 +432,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
                       <th className="px-4 py-3 text-right">Amount</th>
                       <th className="px-4 py-3">Date</th>
                       <th className="px-4 py-3">Recorded by</th>
+                      <th className="px-4 py-3 text-right">Correction</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
@@ -402,9 +447,16 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
                             {categoryLabel(entry.category)}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-white">{kes(entry.amount)}</td>
+                        <td className={`px-4 py-3 text-right font-mono ${Number(entry.amount) < 0 ? "text-emerald-400" : "text-white"}`}>{Number(entry.amount) > 0 ? "+" : ""}{kes(entry.amount)}</td>
                         <td className="px-4 py-3 text-slate-300">{dateLabel(entry.incurred_on)}</td>
                         <td className="px-4 py-3 text-slate-400">{entry.created_by_email || "Superadmin"}</td>
+                        <td className="px-4 py-3 text-right">
+                          {entry.reverses ? <span className="text-xs text-slate-400">Reversal</span> : entry.is_reversed ? <span className="text-xs text-slate-400">Reversed</span> : (
+                            <Button type="button" variant="ghost" size="sm" disabled={reversing === entry.id} onClick={() => setEntryToReverse(entry)} title="Offset this entry with an audited correction" className="text-slate-300">
+                              <RotateCcw className="mr-1 h-4 w-4" />Reverse
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -437,6 +489,27 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           </CardContent>
         </Card>
       </div>
+      <AlertDialog open={Boolean(entryToReverse)} onOpenChange={(open) => { if (!open && !reversing) { setEntryToReverse(null); setReversalReason("") } }}>
+        <AlertDialogContent className="border-slate-700 bg-slate-900 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reverse expenditure</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-300">
+              This records a {entryToReverse ? kes(-Number(entryToReverse.amount)) : ""} correction against {entryToReverse?.title}. The original entry remains visible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reversal-reason" className="text-slate-200">Reason</Label>
+            <Textarea id="reversal-reason" value={reversalReason} onChange={(event) => setReversalReason(event.target.value)} placeholder="For example: Duplicate of the 01 Oct charge" className="border-slate-700 bg-slate-950 text-white" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(reversing)} className="border-slate-700 bg-slate-800 text-white">Cancel</AlertDialogCancel>
+            <Button type="button" disabled={!reversalReason.trim() || Boolean(reversing)} onClick={reverseEntry} className="bg-rose-600 text-white hover:bg-rose-500">
+              {reversing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              Record reversal
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
