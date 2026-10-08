@@ -294,7 +294,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard title="Accrued Total" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · ${summary.ledger_label}`} icon={WalletCards} />
+        <MetricCard title="Payment Receipts" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · subscriptions + SMS`} icon={WalletCards} />
         <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed tenant subscription payments" icon={Banknote} tone="emerald" />
         <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed inbuilt SMS top-ups" icon={ReceiptText} tone="cyan" />
         <MetricCard title="Net Manual Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses less credits" icon={ReceiptText} tone="rose" />
@@ -308,6 +308,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
             <p className="mt-1 text-sm font-medium text-slate-100">
               {ledger === "new_business" ? "After cutover" : "Up to cutover"}
             </p>
+            {ledger === "new_business" && <p className="mt-1 text-xs text-slate-400">The transfer from Account 1 is not new income.</p>}
           </div>
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500">Cutover payment</p>
