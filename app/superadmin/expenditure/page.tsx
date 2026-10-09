@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { FinancialCsvActions } from "@/components/superadmin/financial-csv-actions"
 import {
   superadminApi,
   type PlatformExpenditure,
@@ -265,6 +266,12 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           </Button>
         </div>
       </div>
+
+      <FinancialCsvActions
+        kind={ledger === "primary" ? "expenditure" : "expenditure-2"}
+        params={{ ...(filters.start ? { start: filters.start } : {}), ...(filters.end ? { end: filters.end } : {}) }}
+        onImported={fetchData}
+      />
 
       {!loading && !summary.cutover_verified && (
         <p role="alert" className="border-l-4 border-amber-400 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageSquareText, Banknote, SignalHigh, SignalLow, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react"
 import { superadminApi, SMSOverview, SMSTopupRecord, SMSTenantRow } from "@/lib/superadmin-api"
 import { Button } from "@/components/ui/button"
+import { FinancialCsvActions } from "@/components/superadmin/financial-csv-actions"
 
 const PAGE_SIZE = 20
 
@@ -88,6 +89,8 @@ export default function SuperAdminSMSPage() {
           Refresh
         </Button>
       </div>
+
+      <FinancialCsvActions kind="sms" onImported={fetchData} />
 
       {error && (
         <div className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded p-3 text-sm border border-red-500/20">

@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { FinancialCsvActions } from "@/components/superadmin/financial-csv-actions"
 
 interface SubscriptionPaymentRow {
   id: string
@@ -362,6 +363,12 @@ export default function SubscriptionPaymentsPage() {
           Manual Payment
         </Button>
       </div>
+
+      <FinancialCsvActions
+        kind="subscription-payments"
+        params={{ ...(search ? { search } : {}), ...(statusFilter && statusFilter !== "all" ? { status: statusFilter } : {}) }}
+        onImported={fetchPayments}
+      />
 
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
         <div className="flex flex-wrap gap-3">

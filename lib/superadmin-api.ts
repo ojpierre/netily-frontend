@@ -1807,6 +1807,46 @@ class SuperadminApiService {
     return this.request("/superadmin/subscription-reminders/balance/")
   }
 
+  async downloadFinancialCsv(kind: "expenditure" | "expenditure-2" | "sms" | "subscription-payments", params: Record<string, string> = {}): Promise<void> {
+    const query = new URLSearchParams(params)
+    const url = `${this.getBaseUrl()}/superadmin/financial-csv/${kind}/?${query}`
+    const token = this.getToken()
+    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!res.ok) throw new Error("Could not download the CSV. Please try again.")
+    const blobUrl = URL.createObjectURL(await res.blob())
+    const a = document.createElement("a")
+    a.href = blobUrl
+    a.download = params.template ? `${kind}-template.csv` : `${kind}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+  }
+
+  async importFinancialCsv(kind: "expenditure" | "expenditure-2" | "sms" | "subscription-payments", file: File, commit = false): Promise<{
+    valid?: number
+    invalid?: number
+    imported?: number
+    failed?: number
+    rows: Array<{ line: number; label: string; errors: string[] }>
+  }> {
+    const token = this.getToken()
+    const data = new FormData()
+    data.append("file", file)
+    if (commit) {
+      data.append("commit", "true")
+      data.append("confirm", "IMPORT")
+    }
+    const res = await fetch(`${this.getBaseUrl()}/superadmin/financial-csv/${kind}/`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: data,
+    })
+    const result = await res.json().catch(() => ({ detail: "CSV request failed." }))
+    if (!res.ok) throw new Error(result.detail || "CSV request failed.")
+    return result
+  }
+
   async getSubscriptionReminderLogs(params?: Record<string, string>): Promise<PaginatedResponse<SubscriptionReminderLogEntry>> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/subscription-reminders/logs/${qs}`)
