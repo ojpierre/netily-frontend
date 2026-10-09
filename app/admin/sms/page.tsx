@@ -49,7 +49,6 @@ const EMPTY_STATS = {
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
   hotspot_welcome: true,
-  hotspot_session_expired: true,
   pppoe_welcome: true,
   pppoe_payment_confirmation: true,
   pppoe_expiry_reminder: true,
@@ -231,7 +230,6 @@ function TemplateEditor({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hotspot_welcome">Hotspot → Welcome</SelectItem>
-                  <SelectItem value="hotspot_session_expired">Hotspot → Session Expired</SelectItem>
                   <SelectItem value="pppoe_welcome">PPPoE → Welcome</SelectItem>
                   <SelectItem value="pppoe_payment">PPPoE → Payment / Renewal Confirmation</SelectItem>
                   <SelectItem value="pppoe_expiry_reminder">PPPoE → Expiry Reminder</SelectItem>
@@ -1156,13 +1154,6 @@ export default function SMSPage() {
                     description="Confirm activation with access code and speed"
                     checked={notifSettings.hotspot_welcome}
                     onCheckedChange={v => handleToggleNotif('hotspot_welcome', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
-                    label="Session Fully Expired"
-                    description="Let user know they need to purchase again"
-                    checked={notifSettings.hotspot_session_expired}
-                    onCheckedChange={v => handleToggleNotif('hotspot_session_expired', v)}
                   />
                 </CardContent>
               </Card>

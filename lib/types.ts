@@ -3037,7 +3037,6 @@ export interface SMSGatewayConfig {
 export interface SMSNotificationSettings {
   use_inbuilt_system: boolean
   hotspot_welcome: boolean
-  hotspot_session_expired: boolean
   pppoe_welcome: boolean
   pppoe_payment_confirmation: boolean  // MERGED: handles both payment AND renewal confirmations
   pppoe_expiry_reminder: boolean
@@ -3731,9 +3730,6 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
     { key: '{duration}', label: 'Duration', example: '1 hour' },
     { key: '{amount}', label: 'Amount Paid', example: '400' },
     { key: '{amount_due}', label: 'Amount Paid (with KES)', example: 'KES 400' },
-  ],
-  hotspot_session_expired: [
-    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
   ],
 
   // PPPoE templates
