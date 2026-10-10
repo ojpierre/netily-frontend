@@ -1205,7 +1205,7 @@ export interface Lead {
 // ==========================================
 
 export interface RevenueAnalytics {
-  total_revenue: number
+  total_revenue: number 
   monthly_revenue: number
   daily_revenue: number
   revenue_by_plan: { plan: string; revenue: number }[]
@@ -3723,6 +3723,10 @@ export interface SMSTemplateVariable {
 export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
   // Hotspot templates - only two remain
   hotspot_welcome: [
+    { key: '{credentials}', label: 'Login(s) — all devices', example: 'Device 1: User BENT-06EU Pass BENT-06EU\nDevice 2: User BENT-06EU-2 Pass BENT-06EU-2' },
+    { key: '{username}', label: 'Username (device 1)', example: 'BENT-06EU' },
+    { key: '{password}', label: 'Password (device 1)', example: 'BENT-06EU' },
+    { key: '{device_count}', label: 'Number of Devices', example: '2' },
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
     { key: '{expiry_time}', label: 'Expiry Time', example: '22 Jun 2026 14:30' },
     { key: '{access_code}', label: 'Access Code', example: 'BENT-06EU' },

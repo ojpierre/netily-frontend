@@ -435,6 +435,34 @@ async function phoneReconnect(data: {
   return json
 }
 
+// ==========================================
+// Credential reconnect API (username + password)
+// ==========================================
+type ReconnectResult = Awaited<ReturnType<typeof phoneReconnect>>
+
+async function credentialReconnect(data: {
+  username: string
+  password: string
+  router_id: string
+  mac_address: string
+  tenant: string
+}): Promise<ReconnectResult> {
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/credentials-reconnect/`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    },
+    // No retries: mutating endpoint, and retries would burn the throttle budget
+    { timeoutMs: 12000, retries: 0, retryDelayMs: 0 }
+  )
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(json.error || 'Could not connect')
+  return json
+}
+
 // === NEW MAC-based TV API FUNCTIONS ===
 // scanNetworkDevices - calls backend to scan for devices on the network
 // Updated to include mac_masked field
@@ -1351,10 +1379,40 @@ export default function HotspotClientView({
     }
   }
 
-  // ── Phone reconnect handler ────────────────────────────────────────────────
+  // ── Shared success path for phone + credential reconnect ──
+  const applyReconnectResult = (result: ReconnectResult) => {
+    setAccessCode(result.access_code)
+    setExpiresAt(result.expires_at)
+    setSelectedPlan({
+      id: 'phone-reconnect',
+      name: result.plan_name || 'Active Plan',
+      duration_display: `${result.remaining_minutes} min remaining`,
+      speed_display: '',
+      price: 0,
+      currency: 'KES',
+      validity_type: 'MINUTES',
+      validity_value: result.remaining_minutes,
+      download_speed: 0,
+      upload_speed: 0,
+      speed_unit: 'MBPS',
+      limitation_type: 'UNLIMITED',
+      data_limit_value: null,
+      data_limit_unit: 'MB',
+      data_limit_display: 'Unlimited',
+    })
+    setShowPhoneModal(false)
+    setPaymentStatus('success')
+
+    const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
+    if (effectiveLoginUrl && result.credentials) {
+      const { username, password } = result.credentials
+      setReturningToRouter(true)
+      submitRouterLoginConfirmed(routerId, effectiveLoginUrl, username, password)
+    }
+  }
+
   const handlePhoneReconnect = async () => {
     const phone = reconnectPhone.trim()
-    // Validate 10-digit Kenyan number starting with 0 then 1 or 7
     if (!phone || !/^0[17]\d{8}$/.test(phone)) {
       setReconnectPhoneError('Enter a valid number: 07XX or 01XX (10 digits)')
       return
@@ -1368,38 +1426,33 @@ export default function HotspotClientView({
         mac_address: getMacAddress(),
         tenant: getTenant(),
       })
-      setAccessCode(result.access_code)
-      setExpiresAt(result.expires_at)
-      setSelectedPlan({
-        id: 'phone-reconnect',
-        name: result.plan_name || 'Active Plan',
-        duration_display: `${result.remaining_minutes} min remaining`,
-        speed_display: '',
-        price: 0,
-        currency: 'KES',
-        validity_type: 'MINUTES',
-        validity_value: result.remaining_minutes,
-        download_speed: 0,
-        upload_speed: 0,
-        speed_unit: 'MBPS',
-        limitation_type: 'UNLIMITED',
-        data_limit_value: null,
-        data_limit_unit: 'MB',
-        data_limit_display: 'Unlimited',
-      })
-      setShowPhoneModal(false)
-      setPaymentStatus('success')
-
-      // ── 🔥 FIX: Use confirmed version (already does verify+retry) ──
-      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
-      const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
-      if (effectiveLoginUrl && result.credentials) {
-        const { username, password } = result.credentials
-        setReturningToRouter(true)
-        submitRouterLoginConfirmed(routerId, effectiveLoginUrl, username, password)
-      }
+      applyReconnectResult(result)
     } catch (err: any) {
-      // Surface specific backend messages (slots full, expired, etc.)
+      setReconnectPhoneError(err.message || 'Could not connect. Please try again.')
+    } finally {
+      setReconnectPhoneLoading(false)
+    }
+  }
+
+  const handleCredentialReconnect = async (username: string, password: string) => {
+    const u = username.trim().toUpperCase()
+    const p = password.trim()
+    if (!/^[A-Z0-9-]{4,25}$/.test(u) || !p) {
+      setReconnectPhoneError('Enter your username and password from the SMS')
+      return
+    }
+    setReconnectPhoneLoading(true)
+    setReconnectPhoneError(null)
+    try {
+      const result = await credentialReconnect({
+        username: u,
+        password: p,
+        router_id: routerId,
+        mac_address: getMacAddress(),
+        tenant: getTenant(),
+      })
+      applyReconnectResult(result)
+    } catch (err: any) {
       setReconnectPhoneError(err.message || 'Could not connect. Please try again.')
     } finally {
       setReconnectPhoneLoading(false)
@@ -2348,6 +2401,8 @@ export default function HotspotClientView({
             setReconnectPhoneError(null)
           }}
           onReconnect={handlePhoneReconnect}
+          onCredentialReconnect={handleCredentialReconnect}
+          onClearError={() => setReconnectPhoneError(null)}
           onClose={() => setShowPhoneModal(false)}
         />
       )}

@@ -1151,7 +1151,7 @@ export default function SMSPage() {
                 <CardContent className="space-y-4">
                   <NotifToggle
                     label="Welcome / Session Active"
-                    description="Confirm activation with access code and speed"
+                    description="Confirm activation with login details (username & password per device) and speed"
                     checked={notifSettings.hotspot_welcome}
                     onCheckedChange={v => handleToggleNotif('hotspot_welcome', v)}
                   />
