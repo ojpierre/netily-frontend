@@ -101,6 +101,12 @@ const nextConfig = {
         ],
       },
       {
+        source: '/admin/brand-guide',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      {
         source: '/api/netily-system-payment/:path*',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, max-age=0, must-revalidate' },
@@ -148,7 +154,9 @@ const withPWA = withPWAInit({
       {
         urlPattern: ({ url }) =>
           url.pathname === "/affiliate/verify" ||
-          url.pathname === "/affiliate/admin-access",
+          url.pathname === "/affiliate/admin-access" ||
+          url.pathname === "/admin/brand-guide" ||
+          url.pathname === "/admin/brand-guide/",
         handler: "NetworkOnly",
         method: "GET",
       },

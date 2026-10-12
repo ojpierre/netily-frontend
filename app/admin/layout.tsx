@@ -692,12 +692,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return
     const host = window.location.hostname.toLowerCase()
-    if (
-      ROOT_MARKETING_HOSTS.has(host)
-      && pathname?.startsWith("/admin")
-      && pathname !== "/admin/selfie"
-      && pathname !== "/admin/brand-guide"
-    ) {
+    const isPublicAdminRoute = pathname?.startsWith("/admin/selfie") || pathname?.startsWith("/admin/brand-guide")
+    if (ROOT_MARKETING_HOSTS.has(host) && pathname?.startsWith("/admin") && !isPublicAdminRoute) {
       window.location.replace("/")
     }
   }, [pathname])

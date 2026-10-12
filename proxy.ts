@@ -130,6 +130,7 @@ const TENANT_PASSTHROUGH_PREFIXES = [
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
+  const isBrandGuide = pathname === '/admin/brand-guide' || pathname.startsWith('/admin/brand-guide/')
 
   if (pathname === '/robots.txt' && !isRootMarketingDomain(hostname) && !hostname.startsWith('localhost:')) {
     return new NextResponse('User-agent: *\nDisallow: /\n', {
@@ -180,6 +181,10 @@ export function proxy(request: NextRequest) {
 
   // ── 3. Superadmin routes protection ───────────────────────────────────────
   if (isRootMarketingDomain(hostname) && pathname.startsWith('/admin')) {
+    if (isBrandGuide) {
+      return NextResponse.next()
+    }
+
     if (pathname === '/admin/selfie' && (superadminToken || supportToken)) {
       return NextResponse.next()
     }
@@ -220,6 +225,10 @@ export function proxy(request: NextRequest) {
 
   // ── 4. Admin routes protection ────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
+    if (isBrandGuide) {
+      return NextResponse.next()
+    }
+
     if (pathname === '/admin/selfie') {
       if (!superadminToken && !supportToken) {
         const loginUrl = new URL('/support/login', request.url)
