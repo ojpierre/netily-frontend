@@ -1,8 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { api } from "@/lib/api"
+import { safeStorage } from "@/lib/safe-storage"
 import type { User, Customer, CustomerService } from "@/lib/types"
 
 // ==========================================
@@ -89,11 +90,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CustomerUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const pathname = usePathname()
 
   // Check authentication on mount
   useEffect(() => {
+    // Captive portal pages never need customer auth; skip storage and network work
+    if (pathname?.startsWith("/hotspot")) { setIsLoading(false); return }
     checkAuth()
-  }, [])
+  }, [pathname])
+
+  const clearTokens = () => {
+    safeStorage.remove("access_token")
+    safeStorage.remove("refresh_token")
+    try { document.cookie = "access_token=; path=/; max-age=0" } catch {}
+  }
 
   const checkAuth = async () => {
     if (USE_MOCK_AUTH) {
@@ -104,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const token = localStorage.getItem("access_token")
+      const token = safeStorage.get("access_token")
       if (token) {
         // Get current user from /core/users/me/
         const userData = await api.getCurrentUser()
@@ -124,9 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.log("Not authenticated, clearing tokens")
-      localStorage.removeItem("access_token")
-      localStorage.removeItem("refresh_token")
-      document.cookie = "access_token=; path=/; max-age=0"
+      clearTokens()
     } finally {
       setIsLoading(false)
     }
@@ -153,8 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { access, refresh, user: responseUser } = await api.login(email, password)
       
       // Store tokens
-      localStorage.setItem("access_token", access)
-      localStorage.setItem("refresh_token", refresh)
+      safeStorage.set("access_token", access)
+      safeStorage.set("refresh_token", refresh)
       document.cookie = `access_token=${access}; path=/; max-age=86400; SameSite=Lax`
       
       // Get full user profile
@@ -206,8 +214,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       
       // Store tokens
-      localStorage.setItem("access_token", response.access)
-      localStorage.setItem("refresh_token", response.refresh)
+      safeStorage.set("access_token", response.access)
+      safeStorage.set("refresh_token", response.refresh)
       document.cookie = `access_token=${response.access}; path=/; max-age=86400; SameSite=Lax`
 
       // Set user data
@@ -239,8 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // Clear local storage
-    localStorage.removeItem("access_token")
-    localStorage.removeItem("refresh_token")
+    safeStorage.remove("access_token")
+    safeStorage.remove("refresh_token")
     
     // Clear cookies
     document.cookie = "access_token=; path=/; max-age=0"
