@@ -692,7 +692,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return
     const host = window.location.hostname.toLowerCase()
-    if (ROOT_MARKETING_HOSTS.has(host) && pathname?.startsWith("/admin") && pathname !== "/admin/selfie") {
+    if (
+      ROOT_MARKETING_HOSTS.has(host)
+      && pathname?.startsWith("/admin")
+      && pathname !== "/admin/selfie"
+      && pathname !== "/admin/brand-guide"
+    ) {
       window.location.replace("/")
     }
   }, [pathname])
@@ -732,7 +737,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Check if we're on a public/special page handled outside tenant admin auth.
-  const isPublicPage = pathname?.startsWith('/admin/login') || pathname?.startsWith('/admin/selfie')
+  const isPublicPage = pathname?.startsWith('/admin/login') || pathname?.startsWith('/admin/selfie') || pathname?.startsWith('/admin/brand-guide')
 
   // Handle hydration
   useEffect(() => {

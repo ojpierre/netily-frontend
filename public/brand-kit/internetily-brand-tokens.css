@@ -1,0 +1,15 @@
+:root {
+  --internetily-blue: #0b84f3;
+  --internetily-deep: #0b1220;
+  --internetily-cyan: #22d3ee;
+  --internetily-white: #ffffff;
+  --internetily-ink: #171717;
+  --internetily-slate: #64748b;
+  --internetily-border: #d7dee8;
+  --internetily-success: #00a651;
+  --internetily-warning: #f59e0b;
+  --internetily-error: #dc2626;
+  --internetily-info: #2563eb;
+  --internetily-font-primary: "Plus Jakarta Sans", system-ui, sans-serif;
+  --internetily-font-secondary: "Outfit", system-ui, sans-serif;
+}

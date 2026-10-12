@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="180" viewBox="0 0 760 180" role="img" aria-labelledby="title desc">
+  <title id="title">Internetily Affiliate Program</title>
+  <desc id="desc">Internetily icon and wordmark with Affiliate Program label.</desc>
+  <rect width="760" height="180" rx="16" fill="#ffffff"/>
+  <g transform="translate(34 26)">
+    <path d="M74 0 16 69h48L54 128l72-82H78L94 0Z" fill="#0b84f3"/>
+    <path d="M78 74 54 101v27c0 20 13 32 30 32s30-12 30-32V57L78 98Z" fill="#171717"/>
+  </g>
+  <text x="190" y="96" fill="#171717" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="62" font-weight="700" letter-spacing="-2">internetily</text>
+  <line x1="548" y1="53" x2="548" y2="125" stroke="#d7dee8" stroke-width="2"/>
+  <text x="580" y="82" fill="#0b84f3" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="20" font-weight="800" letter-spacing="1.5">AFFILIATE</text>
+  <text x="580" y="111" fill="#4b5563" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="18" font-weight="600" letter-spacing="1.5">PROGRAM</text>
+</svg>

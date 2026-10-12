@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="112" viewBox="0 0 480 112" role="img" aria-labelledby="title">
+  <title id="title">Internetily Verified Partner</title>
+  <rect x="1" y="1" width="478" height="110" rx="12" fill="#0b1220" stroke="#23324a" stroke-width="2"/>
+  <rect x="20" y="20" width="72" height="72" rx="12" fill="#0b84f3"/>
+  <path d="m62 29-25 30h20l-5 25 31-36H63l7-19Z" fill="#ffffff"/>
+  <text x="116" y="48" fill="#8ca2bd" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="15" font-weight="600">INTERNETILY</text>
+  <text x="116" y="78" fill="#ffffff" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="27" font-weight="750">Verified Partner</text>
+  <circle cx="443" cy="56" r="18" fill="#16a34a"/>
+  <path d="m434 56 6 6 12-14" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
