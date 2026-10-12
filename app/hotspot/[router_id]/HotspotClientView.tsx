@@ -266,6 +266,7 @@ async function initiatePurchase(data: {
   mac_address: string
   tenant: string
   tv_code?: string
+  target_device?: "this" | "tv"   // NEW
 }): Promise<PurchaseResponse> {
   const response = await fetchWithRetry(
     `${getApiBase()}/hotspot/purchase/`,
@@ -1192,22 +1193,40 @@ export default function HotspotClientView({
     setTvMacError(null)
   }
 
+  // ── NEW: normalize a manually-typed MAC into canonical AA:BB:CC:DD:EE:FF ──
+  const normalizeMac = (raw: string): string | null => {
+    const s = raw.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
+    return s.length === 12 ? s.match(/.{2}/g)!.join(":") : null
+  }
+
+  // ── NEW: manual mode — the user typed the full MAC, so no digit check needed ──
+  const handleConfirmManualMac = () => {
+    const mac = normalizeMac(tvMacInput)
+    if (!mac) {
+      setTvMacError("Enter a valid 12-character MAC address (e.g. AA:BB:CC:DD:EE:FF)")
+      return
+    }
+    setTvMacInput(mac)
+    setTvMacVerified(true)
+    setTvMacError(null)
+  }
+
+  // ── Scan mode: verify the last digits against the selected device's MAC ──
   const handleVerifyMacDigits = () => {
-    if (!tvSelectedDevice && !tvMacInput) {
-      setTvMacError("Please select or enter a device MAC address")
+    if (!tvSelectedDevice) {
+      setTvMacError("Please select a device first")
       return
     }
-    const targetMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput
-    const normalized = targetMac.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
-    const lastFour = normalized.slice(-4)
-    const inputNorm = tvMacLastDigits.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
-    if (inputNorm.length < 2) {
-      setTvMacError("Enter at least the last 2 digits of the MAC address")
+    const full = tvSelectedDevice.mac.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
+    const input = tvMacLastDigits.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
+    if (input.length < 3) {
+      setTvMacError("Enter the hidden characters of the MAC address")
       return
     }
-    if (!lastFour.endsWith(inputNorm) && !lastFour.includes(inputNorm)) {
+    if (!full.endsWith(input)) {
       setTvMacError("MAC digits don't match. Check your TV's Settings → About → MAC Address")
-      return    }
+      return
+    }
     setTvMacVerified(true)
     setTvMacError(null)
   }
@@ -1307,7 +1326,8 @@ export default function HotspotClientView({
         phone_number: formatPhoneNumber(phoneNumber),
         mac_address: finalMac,
         tenant: getTenant(),
-        tv_code: undefined
+        tv_code: undefined,
+        target_device: targetDevice,     // NEW
       })
       setSessionId(result.session_id)
       setPaymentStatus("waiting")
@@ -1638,6 +1658,15 @@ export default function HotspotClientView({
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <Loader2 className="w-5 h-5 animate-spin text-blue-600 inline mr-2" />
               <span className="text-sm text-blue-700">Connecting you to the internet...</span>
+            </div>
+          )}
+
+          {/* NEW: reassure TV buyers the TV will join automatically */}
+          {targetDevice === "tv" && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-sm text-blue-700">
+                Your TV will connect automatically within a few seconds.
+              </span>
             </div>
           )}
 
@@ -2091,15 +2120,16 @@ export default function HotspotClientView({
                     </div>
                   )}
 
-                  {(tvSelectedDevice || tvMacInput) && (
+                  {/* SCAN MODE ONLY: confirm the hidden MAC characters */}
+                  {tvPayMode === "scan" && tvSelectedDevice && (
                     <div className="mt-3">
                       <label className="block text-xs text-gray-600 mb-1 font-medium">
-                        Confirm: enter the 4 hidden characters shown as **** on your TV&apos;s Settings → Network
+                        Confirm: enter the hidden characters shown as **** on your TV&apos;s Settings → Network
                       </label>
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          maxLength={4}
+                          maxLength={5}
                           placeholder="Hidden chars"
                           value={tvMacLastDigits}
                           onChange={(e) => { setTvMacLastDigits(e.target.value.toUpperCase()); setTvMacError(null) }}
@@ -2107,13 +2137,24 @@ export default function HotspotClientView({
                         />
                         <button
                           onClick={handleVerifyMacDigits}
-                          disabled={tvMacLastDigits.length < 2}
+                          disabled={tvMacLastDigits.replace(/[^a-fA-F0-9]/g, "").length < 2}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
                         >
                           Verify
                         </button>
                       </div>
                     </div>
+                  )}
+
+                  {/* MANUAL MODE: no digit check, just validate the format */}
+                  {tvPayMode === "manual" && (
+                    <button
+                      onClick={handleConfirmManualMac}
+                      disabled={!tvMacInput.trim()}
+                      className="w-full mt-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Use this MAC
+                    </button>
                   )}
 
                   {tvMacError && (
