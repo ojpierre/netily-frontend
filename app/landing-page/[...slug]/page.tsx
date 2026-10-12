@@ -1,74 +1,18 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import { ArrowRight } from "lucide-react"
-import { detailPages, featurePages, pageName, previewHref, resources, solutionPages } from "../content"
-import { ClosingCTA, DetailCards, Hero, PricingSummary, SectionHeading } from "../sections"
-import { ContactForm } from "../contact-form"
-import { PreviewCalculator } from "../calculator"
-import s from "../preview.module.css"
+import { notFound, permanentRedirect } from "next/navigation"
+import { marketingPaths } from "@/components/marketing/content"
 
-const indexes: Record<string, { title: string; intro: string }> = {
-  features: { title: "Everything your ISP runs on. One place.", intro: "Collect payments, manage network access, support your subscribers, and see what is working." },
-  solutions: { title: "Built around the network you run.", intro: "From a first hotspot to a growing fibre network. Find the workflow that fits your subscribers." },
-  pricing: { title: "Pricing that grows with your subscribers.", intro: "A monthly invoice based on your billable usage. Review the breakdown and pay via M-Pesa or bank transfer." },
-  contact: { title: "Let's talk about your ISP.", intro: "A walkthrough starts with your network, your subscribers, and the work you want to simplify." },
-  resources: { title: "Practical help for your next step.", intro: "Learn a skill, find a setup guide, or explore the tools for your next installation." },
-  integrations: { title: "Connect the tools you already use.", intro: "Bring payments and network access together. We will check the right connection method for your equipment." },
-  countries: { title: "Local payments. Connected operations.", intro: "Start with the payment channels, equipment, and support your network needs." },
-  "countries/kenya": { title: "ISP billing built for Kenya.", intro: "M-Pesa STK Push. Paybill collections. KSh pricing. Billing and network access, working together." },
+type Props = {
+  params: Promise<{ slug: string[] }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-type Props = { params: Promise<{ slug: string[] }> }
-
-export function generateStaticParams() {
-  return [...Object.keys(indexes), ...detailPages.map((page) => page.path.slice(1))].map((path) => ({ slug: path.split("/") }))
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export default async function PreviousPreviewRoute({ params, searchParams }: Props) {
   const { slug } = await params
-  const path = slug.join("/")
-  const page = indexes[path] || detailPages.find((item) => item.path === `/${path}`)
-  return { title: page ? `${page.title} | Internetily Preview` : "Page not found | Internetily", description: page?.intro, robots: { index: false, follow: false, googleBot: { index: false, follow: false } } }
-}
-
-export default async function PreviewNestedPage({ params }: Props) {
-  const { slug } = await params
-  const path = slug.join("/")
-  const detail = detailPages.find((page) => page.path === `/${path}`)
-
-  if (detail) {
-    const related = detail.path.startsWith("/features/") ? featurePages : solutionPages
-    const image = detail.path.includes("hotspot") || detail.path.includes("portal") || detail.path.includes("wifi") ? "/academy/hotspot-wifi.webp" : detail.path.includes("fibre") ? "/academy/fiber-olt.webp" : "/academy/mikrotik-pppoe.webp"
-    return <>
-      <div className={s.container}><nav aria-label="Breadcrumb" className={s.breadcrumb}><Link href={previewHref()}>Home</Link><span>/</span><Link href={previewHref(`/${slug[0]}`)}>{pageName(slug[0])}</Link><span>/</span><span aria-current="page">{pageName(detail.path)}</span></nav></div>
-      <Hero label={pageName(detail.path)} title={detail.title} intro={detail.intro} image={image} />
-      <section className={s.section}><div className={s.container}>{detail.problem && <SectionHeading label="Sound familiar?" title="Less work between you and your subscribers.">{detail.problem}</SectionHeading>}<div className={s.detailPoints}>{detail.points.map((point) => { const [heading, ...body] = point.split(/\s+-\s+/); return <div key={point}>{body.length > 0 && <h2 style={{ fontSize: 26 }}>{heading}</h2>}<p>{body.length ? body.join(" - ") : heading}</p></div> })}</div></div></section>
-      {detail.steps.length > 0 && <section className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="How it works" title="A simpler way through your day." /><ol className={s.threeColumns}>{detail.steps.map((step, index) => <li className={s.plainItem} key={step}><span className={s.stepNumber}>0{index + 1}</span><p>{step}</p></li>)}</ol></div></section>}
-      <section className={s.section}><div className={s.container}><SectionHeading label="Keep exploring" title="The rest of your workflow, connected." /><DetailCards pages={related.filter((page) => page.path !== detail.path).slice(0, 3)} /></div></section><ClosingCTA />
-    </>
+  const path = `/${slug.join("/")}`
+  if (!marketingPaths.includes(path)) notFound()
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(await searchParams)) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, item)
   }
-
-  const intro = indexes[path]
-  if (!intro) notFound()
-  return <>
-    <section className={s.pageIntro}><div className={s.container}><nav className={s.breadcrumb} aria-label="Breadcrumb"><Link href={previewHref()}>Home</Link><span>/</span><span aria-current="page">{pageName(path)}</span></nav><p className={s.eyebrow}>Internetily / {pageName(path)}</p><h1>{intro.title}</h1><p>{intro.intro}</p></div></section>
-    {path === "features" || path === "solutions" ? <section className={s.section}><div className={s.container}><DetailCards pages={path === "features" ? featurePages : solutionPages} /></div></section> : null}
-    {path === "pricing" && <><section className={s.section}><div className={s.container}><PricingSummary /></div></section><section id="calculator" className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="Billing calculator" title="Put your own numbers in." /><PreviewCalculator /></div></section><section className={s.section}><div className={`${s.container} ${s.faq}`}><SectionHeading label="A few useful answers" title="Before you get started." />{[
-      ["Can I try Internetily first?", "Yes. Request a trial and we will help you get your network set up. You can also explore the read-only demo before we talk."],
-      ["Can I bring my existing subscribers?", "You can import subscriber records by CSV. We can help you check the fields and plan the move."],
-      ["Do I need a static IP?", "Internetily supports a secure tunnel connection to MikroTik. We will help you check the setup for your router and connection."],
-      ["Is activation included in the monthly estimate?", "No. The one-time KSh 500 activation fee after trial is separate. The estimate covers monthly PPPoE usage and the 3% hotspot share, subject to the KSh 500 minimum."],
-    ].map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section></>}
-    {path === "contact" && <section className={s.section}><div className={s.container}><ContactForm /></div></section>}
-    {path === "resources" && <section className={s.section}><div className={`${s.container} ${s.cardGrid}`}>{resources.map((item) => <Link key={item.href} href={item.href} className={s.featureCard}><h2 style={{ fontSize: 26 }}>{item.title}</h2><p>{item.text}</p><span className={s.cardArrow}>Explore <ArrowRight size={18} /></span></Link>)}</div></section>}
-    {path === "integrations" && <section className={s.section}><div className={s.container}><div className={s.threeColumns}>{[
-      ["Payments", "Connect M-Pesa STK Push and paybill collections. Keep payments linked to subscriber records.", "/features/mpesa-billing"],
-      ["Network access", "Connect MikroTik for subscriber access, PPPoE profiles, and hotspot sessions.", "/features/mikrotik-provisioning"],
-      ["Customer equipment", "Manage compatible TR-069 CPE remotely. Compatibility depends on the model, firmware, and supported parameters.", "/features/tr069-device-management"],
-    ].map(([title, text, href]) => <div className={s.plainItem} key={title}><h2 style={{ fontSize: 26 }}>{title}</h2><p>{text}</p><Link className={s.textLink} href={previewHref(href)}>Explore <ArrowRight size={18} /></Link></div>)}</div><p className={s.small}>Using Ubiquiti, TP-Link, Tenda, Cambium, Huawei, or Starlink? Tell us how it fits into your network so we can confirm the integration path.</p></div></section>}
-    {path === "countries" && <section className={s.section}><div className={s.container}><Link className={s.textLink} href={previewHref("/countries/kenya")}>ISP billing in Kenya <ArrowRight size={18} /></Link><p>Operating elsewhere? Tell us which payment channels and equipment you need during your demo.</p></div></section>}
-    {path === "countries/kenya" && <><section className={s.section}><div className={s.container}><SectionHeading label="From estates to regional networks" title="A workflow for the way your subscribers pay.">Connect collections to subscriber access. Send renewal reminders by SMS and let subscribers renew from their portal.</SectionHeading><DetailCards pages={solutionPages} /></div></section><section className={`${s.section} ${s.tinted}`}><div className={s.container}><PricingSummary /></div></section></>}
-    {path !== "contact" && <ClosingCTA />}
-  </>
+  permanentRedirect(`${path}${query.size ? `?${query}` : ""}`)
 }

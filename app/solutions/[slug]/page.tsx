@@ -1,6 +1,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import type { Metadata } from "next"
+import { solutionPages } from "@/components/marketing/content"
+import { marketingMetadata, MarketingRoute } from "@/components/marketing/routes"
 import { ArrowRight, Check, Clock, CreditCard, Globe, MapPin, MessageSquare, Router, ShieldCheck, TrendingUp, Wifi } from "lucide-react"
 
 type SolutionConfig = {
@@ -734,11 +736,12 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
 }
 
 export function generateStaticParams() {
-  return Object.keys(SOLUTIONS).map((slug) => ({ slug }))
+  return [...Object.keys(SOLUTIONS), ...solutionPages.map((page) => page.path.split("/").pop()!)].map((slug) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
+  if (solutionPages.some((page) => page.path === `/solutions/${slug}`)) return marketingMetadata(`/solutions/${slug}`)
   const solution = SOLUTIONS[slug]
   if (!solution) {
     return {
@@ -781,6 +784,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function SolutionPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  if (solutionPages.some((page) => page.path === `/solutions/${slug}`)) return <MarketingRoute path={`/solutions/${slug}`} />
   const solution = SOLUTIONS[slug]
 
   if (!solution) {

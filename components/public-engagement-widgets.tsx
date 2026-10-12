@@ -16,6 +16,12 @@ const WHATSAPP_NUMBER = "254100034307"
 const WHATSAPP_TEXT = "Hello Internetily, I would like to make an enquiry."
 
 const publicRoutePrefixes = [
+  "/features",
+  "/pricing",
+  "/contact",
+  "/resources",
+  "/integrations",
+  "/countries",
   "/landing-page",
   "/demo",
   "/compare",
@@ -77,7 +83,7 @@ export function PublicEngagementWidgets() {
   const pathname = usePathname() || "/"
   const isPublicRoute = isPublicMarketingRoute(pathname)
   const isDemoRoute = pathname === "/demo" || pathname.startsWith("/demo/")
-  const [ready, setReady] = useState(pathname !== "/")
+  const [ready, setReady] = useState(pathname !== "/landing-page")
   const [showCookieBanner, setShowCookieBanner] = useState(false)
   const [showPreferences, setShowPreferences] = useState(false)
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -92,7 +98,7 @@ export function PublicEngagementWidgets() {
 
   useEffect(() => {
     if (!isPublicRoute) return
-    if (pathname !== "/") {
+    if (pathname !== "/landing-page") {
       const timer = window.setTimeout(() => setReady(true), 350)
       return () => window.clearTimeout(timer)
     }

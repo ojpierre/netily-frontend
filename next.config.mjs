@@ -134,11 +134,14 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
+  // The homepage changed routes; never pin a previous homepage in the start-URL cache.
+  cacheStartUrl: false,
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
     runtimeCaching: [
       {
         urlPattern: ({ url }) =>
+          url.pathname === "/" ||
           url.pathname === "/netilysystempayment" ||
           url.pathname === "/landing-page" ||
           url.pathname.startsWith("/landing-page/") ||

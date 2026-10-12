@@ -1,7 +1,19 @@
 import pages from "./content.json"
 
-export const previewRoot = "/landing-page"
-export const previewHref = (path = "") => `${previewRoot}${path}`
+export const marketingIndexes: Record<string, { title: string; intro: string }> = {
+  features: { title: "Everything your ISP runs on. One place.", intro: "Collect payments, manage network access, support your subscribers, and see what is working." },
+  solutions: { title: "Built around the network you run.", intro: "From a first hotspot to a growing fibre network. Find the workflow that fits your subscribers." },
+  pricing: { title: "Pricing that grows with your subscribers.", intro: "A monthly invoice based on your billable usage. Review the breakdown and pay via M-Pesa or bank transfer." },
+  contact: { title: "Let's talk about your ISP.", intro: "A walkthrough starts with your network, your subscribers, and the work you want to simplify." },
+  resources: { title: "Practical help for your next step.", intro: "Learn a skill, find a setup guide, or explore the tools for your next installation." },
+  integrations: { title: "Connect the tools you already use.", intro: "Bring payments and network access together. We will check the right connection method for your equipment." },
+  countries: { title: "Local payments. Connected operations.", intro: "Start with the payment channels, equipment, and support your network needs." },
+  "countries/kenya": { title: "ISP billing built for Kenya.", intro: "M-Pesa STK Push. Paybill collections. KSh pricing. Billing and network access, working together." },
+}
+
+export const marketingPaths = [...Object.keys(marketingIndexes).map((path) => `/${path}`), ...pages.map((page) => page.path)]
+
+export const marketingHref = (path = "") => path || "/"
 export const featurePages = pages.filter((page) => page.path.startsWith("/features/"))
 export const solutionPages = pages.filter((page) => page.path.startsWith("/solutions/"))
 export const detailPages = pages

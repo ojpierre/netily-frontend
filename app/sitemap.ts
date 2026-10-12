@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { marketingPaths } from "@/components/marketing/content"
 import { academyCourses } from "@/lib/academy-data"
 import { blogPosts } from "@/lib/blog-data"
 import { caseStudies } from "@/lib/case-studies"
@@ -85,6 +86,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
 
   return [
+    ...marketingPaths.map((path) => ({
+      url: `${BASE}${path}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     {
       url: BASE,
       lastModified: new Date(),

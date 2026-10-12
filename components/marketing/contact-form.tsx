@@ -4,16 +4,19 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { ArrowRight, CheckCircle2, LoaderCircle, Mail, MessageCircle } from "lucide-react"
 import { submitLead } from "@/lib/api"
-import s from "./preview.module.css"
+import s from "./marketing.module.css"
 
 export function ContactForm() {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle")
   const [error, setError] = useState("")
   const [referral, setReferral] = useState("")
   const [message, setMessage] = useState("")
+  const [leadSource, setLeadSource] = useState("Website enquiry")
   const request = useRef<AbortController | null>(null)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    if (params.get("message")) setMessage(params.get("message")!.slice(0, 4000))
+    if (params.get("lead_source")) setLeadSource(params.get("lead_source")!.trim().slice(0, 100))
     let ref = params.get("ref")?.trim().toUpperCase() || ""
     try { ref ||= sessionStorage.getItem("internetily-preview-referral") || "" } catch {}
     if (/^[A-Z0-9_-]{4,64}$/.test(ref)) setReferral(ref)
@@ -33,7 +36,7 @@ export function ContactForm() {
     const timeout = window.setTimeout(() => controller.abort(), 15000)
     setState("sending"); setError("")
     try {
-      await submitLead({ name, email: String(data.get("email")).trim(), phone: String(data.get("phone") || "").trim(), company: String(data.get("company") || "").trim(), message: message.trim(), lead_source: referral ? "Affiliate referral" : "Website enquiry", ...(referral ? { referral_code: referral } : {}) }, controller.signal)
+      await submitLead({ name, email: String(data.get("email")).trim(), phone: String(data.get("phone") || "").trim(), company: String(data.get("company") || "").trim(), message: message.trim(), lead_source: referral ? "Affiliate referral" : leadSource, ...(referral ? { referral_code: referral } : {}) }, controller.signal)
       setState("sent")
     } catch (err) {
       setError(controller.signal.aborted ? "We could not confirm your submission. Please check your connection or contact us on WhatsApp." : err instanceof Error ? err.message : "We could not send your enquiry. Please try again.")

@@ -1,71 +1,70 @@
-# Homepage Preview
+# Homepage Migration
 
-## Where to Review
+## Current Routes
 
-The new homepage is at `/landing-page`. The existing `/` homepage is unchanged.
-The superadmin topbar now links to `/admin/brand-guide`.
+- `/` now serves the new Internetily homepage.
+- `/landing-page` serves the previous homepage, including its original intro.
+- Previous nested preview URLs redirect permanently to the matching main URL.
+  For example, `/landing-page/features/mpesa-billing` redirects to
+  `/features/mpesa-billing`. Query strings, including affiliate codes, are preserved.
+- The superadmin topbar brand-guide shortcut is unchanged.
 
-All new page components, styles, and copy live in `app/landing-page`.
-The source copy is `ISP_NEW/internetily-new-hpcopy.md`; `content.json` contains
-the visitor-facing feature and solution copy, not the source document's notes.
+## Public Pages
 
-## Routes
+The migrated pages include `/features` and its 20 detail pages, `/solutions` and
+four operator solutions, `/pricing`, `/contact`, `/integrations`, `/resources`,
+`/countries`, and `/countries/kenya`.
 
-- `/landing-page`: streamlined homepage, network imagery, enquiry form.
-- `/landing-page/features`: feature index with 20 detail pages.
-- `/landing-page/solutions`: fibre ISPs, hotspot providers, rural WISPs, managed Wi-Fi.
-- `/landing-page/pricing`: current rates, calculator, common questions.
-- `/landing-page/contact`: enquiry form using the existing lead-submission API.
-- `/landing-page/integrations`: payment, MikroTik, and TR-069 integration paths.
-- `/landing-page/resources`: links to existing guides, academy, documentation, affiliates, and shop.
-- `/landing-page/countries` and `/landing-page/countries/kenya`: regional starting point.
+Existing country/county pages under `/solutions/[slug]` remain in place. The new
+operator solutions share that route without replacing the older pages.
+The academy, blog, shop, documentation, legal pages, and dashboards are unchanged.
 
-Feature and solution detail paths follow the supplied document, prefixed with
-`/landing-page`. Unknown preview paths return 404.
-Links to existing resources, legal pages, and the demo intentionally use their
-existing destinations. New marketing pages stay under the preview prefix.
+## Implementation
 
-## What Stayed the Same
+Shared presentation and copy now live in `components/marketing`, independently
+of the archived homepage. Thin route files use the shared metadata and page
+renderer. The previous homepage component remains in `app/landing-page.tsx`.
 
-- The live homepage, billing backend, authentication, and existing public pages.
-- KSh 25 per billable PPPoE subscriber and 3% hotspot share, not the draft's 5%.
-- KSh 500 monthly minimum and separate KSh 500 activation after trial.
-- The existing lead API and referral-code payload. Preview referral codes persist
-  across preview navigation for the browser session.
-- Existing enquiry submissions are real leads. Do not submit test data to production.
+The new homepage retains contact, features, pricing, problem, and solution anchors.
+Older calculator and FAQ anchors navigate to the relevant part of `/pricing`.
 
-The new pages use Plus Jakarta Sans for interface/body text and Outfit for headings,
-with blue, mint, neutral surfaces, and light/dark support. No additional fonts load.
+Billing rates remain KSh 25 per billable PPPoE subscriber, 3% hotspot share, and
+the KSh 500 monthly minimum. Activation remains separate. No backend billing or
+payment behavior changed.
 
-## Review Before Publishing
+The enquiry form still uses the existing lead-submission API. Referral codes and
+prefilled enquiry messages are preserved. Submissions are real leads.
 
-- Confirm feature claims against enabled product capabilities, especially branch
-  isolation, referral rewards, device compatibility, and automated notifications.
-- Supply verified customer quotes and evidence for growth metrics before adding
-  social proof. Example case studies are not presented as real customer results.
-- Confirm any launch-time commitment, trial duration, and cancellation/data-retention
-  promises. The preview does not advertise unverified deadlines or policies.
-- Trial requests go to an enquiry form, so they say "Request a trial", not instant signup.
-- Competitor comparisons, other countries, tools, and changelog entries need their
-  own review. No competitor claims or backdated product updates were invented.
+## Search and Caching
 
-## Staging and Migration
+- Main routes have indexable metadata, self-referencing canonical URLs, social
+  sharing metadata, and appropriate organization/website or breadcrumb markup.
+- The dynamic sitemap includes the new routes; the existing sitemap index already
+  points to it. The old homepage and preview redirects are not listed.
+- Crawl rules allow the new public paths without exposing private dashboard routes.
+- `/landing-page` retains noindex metadata and HTTP headers.
+- Homepage service-worker caching is bypassed, including the start-URL cache, so
+  an old offline homepage does not mask the route swap after deployment.
+- Stale FAQ, review, and offer markup from the previous homepage is not emitted on
+  the new homepage.
 
-Preview pages have noindex/nofollow metadata and HTTP headers, are absent from all
-sitemaps, and bypass service-worker runtime caching. This is a public preview URL,
-not a password-protected environment.
+## Verification
 
-After approval, move the approved pages and links to their final paths, review
-canonicals and structured data, remove preview noindex rules only for the approved
-production routes, and update sitemaps. Do not remove noindex from `/landing-page`.
+Run the local server with `npm run dev -- --webpack --port 3002`, then run
+`node scripts/check-marketing-pages.mjs`.
 
-## Local Checks
+The browser test checks the 33 public routes, canonical and robots metadata,
+archive behavior, permanent redirects with query strings, sitemap entries, an
+existing country page, responsive navigation, calculator anchors, and mocked lead
+success/error/retry flows. It never sends test enquiries to production.
 
-Run `npm run dev -- --webpack --port 3002`, then
-`node scripts/check-landing-preview.mjs` in another terminal.
-The smoke test uses headless Chrome, checks routes and responsive navigation, and
-mocks lead requests so it does not create production leads. Set `CHROME_PATH` if
-Chrome is installed elsewhere and `PREVIEW_URL` to use a different local port.
+Set `MARKETING_URL` for another local port and `CHROME_PATH` for a different Chrome
+installation. Production builds still need access to the existing Google Fonts
+downloads. Local development can render fallback fonts when downloads are blocked.
 
-Google Fonts must be reachable for a production build. A network-restricted local
-development server may use fallback fonts even though routes render successfully.
+## Deployment
+
+Deploy the frontend normally; this migration requires no database changes.
+After deployment, check `/`, `/landing-page`, `/pricing`, a feature page, and an
+existing country page. Clear any separate reverse-proxy/CDN HTML cache if it still
+serves the previous homepage. The old homepage remains available for comparison.

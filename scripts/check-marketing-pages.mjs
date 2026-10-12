@@ -4,10 +4,10 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-const base = process.env.PREVIEW_URL || "http://localhost:3002"
+const base = process.env.MARKETING_URL || process.env.PREVIEW_URL || "http://localhost:3002"
 const chrome = process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe"
 assert(existsSync(chrome), "Set CHROME_PATH to a Chromium browser executable")
-const output = mkdtempSync(join(tmpdir(), "internetily-preview-"))
+const output = mkdtempSync(join(tmpdir(), "internetily-marketing-"))
 const browser = spawn(chrome, ["--headless=new", "--no-first-run", "--no-default-browser-check", "--remote-debugging-port=0", `--user-data-dir=${output}`, "about:blank"], { windowsHide: true, stdio: ["ignore", "ignore", "pipe"] })
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 let socket
@@ -50,27 +50,47 @@ try {
   async function navigate(path) {
     await page("Page.navigate", { url: `${base}${path}` })
     for (let i = 0; i < 200; i++) {
-      if (await evaluate(`location.pathname === ${JSON.stringify(path.split("?")[0])} && !!document.querySelector('#preview-main h1') && document.readyState === 'complete'`)) break
+      if (await evaluate(`location.pathname === ${JSON.stringify(path.split("?")[0])} && !!document.querySelector('#marketing-main h1') && document.readyState === 'complete'`)) break
       await delay(150)
     }
-    assert(await evaluate("!!document.querySelector('#preview-main h1')"), `Page did not render: ${path}`)
+    assert(await evaluate("!!document.querySelector('#marketing-main h1')"), `Page did not render: ${path}`)
     await delay(700)
   }
-  const content = JSON.parse(readFileSync(new URL("../app/landing-page/content.json", import.meta.url), "utf8"))
+  const content = JSON.parse(readFileSync(new URL("../components/marketing/content.json", import.meta.url), "utf8"))
   const paths = ["", "/features", "/solutions", "/pricing", "/contact", "/resources", "/integrations", "/countries", "/countries/kenya", ...content.map((item) => item.path)]
   for (const path of paths) {
-    const response = await fetch(`${base}/landing-page${path}`, { headers: { Host: "netily.co.ke" } })
+    const response = await fetch(`${base}${path || "/"}`, { headers: { Host: "netily.co.ke" } })
     assert.equal(response.status, 200, path)
-    assert.match(response.headers.get("x-robots-tag") || "", /noindex/, path)
+    assert(!/noindex/.test(response.headers.get("x-robots-tag") || ""), path)
     const html = await response.text()
-    assert.match(html, /name="robots" content="noindex/, path)
-    assert(!html.includes('name="googlebot" content="index'), path)
+    assert.match(html, /name="robots" content="index, follow/, path)
+    assert(html.includes(`rel="canonical" href="https://netily.co.ke${path || "/"}"`), `Canonical: ${path}`)
+    assert(!/<title>[^<]*Preview/.test(html), path)
+    assert(!html.includes('name="googlebot" content="noindex'), path)
   }
+  for (const path of paths.filter(Boolean)) {
+    const response = await fetch(`${base}/landing-page${path}?ref=MIGRATION123&utm_source=review`, { redirect: "manual" })
+    assert.equal(response.status, 308, path)
+    assert.equal(response.headers.get("location"), `${path}?ref=MIGRATION123&utm_source=review`, path)
+  }
+  const archived = await fetch(`${base}/landing-page`)
+  assert.equal(archived.status, 200)
+  assert.match(archived.headers.get("x-robots-tag") || "", /noindex/)
+  const archiveHtml = await archived.text()
+  assert(archiveHtml.includes('id="main-content"'), "Archive must render the old homepage")
+  assert(!archiveHtml.includes('id="marketing-main"'), "Archive must not wrap old page in new header")
+  const sitemap = await (await fetch(`${base}/sitemap.xml`)).text()
+  for (const path of paths.filter(Boolean)) assert(sitemap.includes(`https://netily.co.ke${path}</loc>`), path)
+  assert(!sitemap.includes("/landing-page"))
+  const robots = await (await fetch(`${base}/robots.txt`)).text()
+  for (const path of ["/features/", "/countries/", "/pricing$", "/contact$", "/resources$", "/integrations$"]) assert(robots.includes(`Allow: ${path}`), path)
+  const legacy = await fetch(`${base}/solutions/isp-billing-software-kenya`)
+  assert.equal(legacy.status, 200, "Existing country solution must survive")
   for (const width of [1440, 1024, 768, 390, 320]) {
     await page("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false })
-    await navigate("/landing-page")
+    await navigate("/")
     assert(await evaluate("document.documentElement.scrollWidth <= innerWidth"), `Horizontal overflow at ${width}`)
-    assert(await evaluate("[...document.querySelectorAll('#preview-main img')].filter(i => i.loading !== 'lazy').every(i => i.complete && i.naturalWidth > 0)"), "Hero image failed")
+    assert(await evaluate("[...document.querySelectorAll('#marketing-main img')].filter(i => i.loading !== 'lazy').every(i => i.complete && i.naturalWidth > 0)"), "Hero image failed")
     if (width < 921) await evaluate("document.querySelector('[aria-controls=preview-navigation]').click()")
     await evaluate("document.querySelector('[aria-controls=preview-Features]').click()")
     assert(await evaluate("!!document.querySelector('#preview-Features')"), "Features menu failed")
@@ -81,13 +101,20 @@ try {
     await evaluate("document.querySelectorAll('header button[aria-expanded=true]').forEach(b => b.click())")
     await page("Page.captureScreenshot", { format: "png" }).then(({ data }) => writeFileSync(join(output, `home-${width}.png`), Buffer.from(data, "base64")))
   }
-  await navigate("/landing-page/pricing")
+  await navigate("/")
+  await evaluate("location.hash = 'calculator'")
+  for (let i = 0; i < 100; i++) {
+    if (await evaluate("location.pathname === '/pricing' && !!document.querySelector('output')")) break
+    await delay(150)
+  }
+  assert(await evaluate("location.pathname === '/pricing' && location.hash === '#calculator'"), "Old calculator anchor must resolve")
+  await navigate("/pricing")
   assert(await evaluate("document.querySelector('output').textContent.includes('2,800')"), "Default estimate must be 100 * 25 + 10000 * 3%")
-  await navigate("/landing-page/features/mpesa-billing")
+  await navigate("/features/mpesa-billing")
   assert(await evaluate("document.documentElement.scrollWidth <= innerWidth"), "Feature overflow")
   await evaluate("document.documentElement.classList.add('dark')")
   await page("Page.captureScreenshot", { format: "png" }).then(({ data }) => writeFileSync(join(output, "feature-dark-mobile.png"), Buffer.from(data, "base64")))
-  await navigate("/landing-page/contact")
+  await navigate("/contact")
   assert(await evaluate("document.documentElement.scrollWidth <= innerWidth"), "Contact overflow")
   await page("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
   await evaluate("document.documentElement.classList.remove('dark'); document.documentElement.classList.add('light')")
@@ -108,24 +135,25 @@ try {
     for (const [name,value] of [['name','Preview Test'],['email','preview@example.com']]) {
       const input=document.querySelector('input[name='+name+']'); setter.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true}));
     }
-    document.querySelector('#preview-main form').requestSubmit();
-    document.querySelector('#preview-main form').requestSubmit();
+    document.querySelector('#marketing-main form').requestSubmit();
+    document.querySelector('#marketing-main form').requestSubmit();
   })()`)
   await delay(1000)
-  assert(await evaluate("document.querySelector('#preview-main').innerText.includes('Your enquiry is with us') || document.querySelector('#preview-main').innerText.includes('your enquiry is with us')"), "Submission success feedback missing")
+  assert(await evaluate("document.querySelector('#marketing-main').innerText.includes('Your enquiry is with us') || document.querySelector('#marketing-main').innerText.includes('your enquiry is with us')"), "Submission success feedback missing")
   assert.equal(await evaluate("window.testLeads.length"), 1, "Double submission must be blocked")
-  await evaluate(`document.querySelector('#preview-main button').click()`)
+  await evaluate(`document.querySelector('#marketing-main button').click()`)
   await delay(200)
   await evaluate(`(() => {
     window.fetch = async () => new Response(JSON.stringify({error:'Please try again later.'}),{status:400,headers:{'Content-Type':'application/json'}});
     for (const [name,value] of [['name','Preview Test'],['email','preview@example.com']]) { const input=document.querySelector('input[name='+name+']'); input.value=value; input.dispatchEvent(new Event('input',{bubbles:true})); }
-    document.querySelector('#preview-main form').requestSubmit();
+    document.querySelector('#marketing-main form').requestSubmit();
   })()`)
   await delay(600)
   assert(await evaluate("document.querySelector('[role=alert]').textContent.includes('Please try again later')"), "Submission error feedback missing")
-  assert(await evaluate("!document.querySelector('#preview-main button[type=submit]').disabled"), "Retry must be available")
+  assert(await evaluate("!document.querySelector('#marketing-main button[type=submit]').disabled"), "Retry must be available")
+  assert.equal((await fetch(`${base}/features/not-a-page`)).status, 404)
   assert.equal((await fetch(`${base}/landing-page/not-a-page`)).status, 404)
-  console.log(`PASS: ${paths.length} routes, noindex headers, 5 viewports, navigation, images, pricing, 404, mocked lead success/error/retry and double-submit protection. Screenshots: ${output}`)
+  console.log(`PASS: ${paths.length} public routes, canonicals, archive noindex, redirects, sitemap/robots, 5 viewports, navigation, images, pricing, 404, mocked lead success/error/retry and double-submit protection. Screenshots: ${output}`)
 } finally {
   socket?.close()
   browser.kill()
