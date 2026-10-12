@@ -482,10 +482,10 @@ async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip
 }
 
 // === AD API FUNCTIONS ===
-async function fetchServableAd(routerId: string, tenant: string): Promise<{ ad: HotspotAd | null }> {
+async function fetchServableAd(routerId: string, tenant: string, mac: string): Promise<{ ad: HotspotAd | null }> {
   try {
     const res = await fetchWithRetry(
-      `${getApiBase()}/hotspot/ads/serve/?router_id=${routerId}&tenant=${encodeURIComponent(tenant)}`,
+      `${getApiBase()}/hotspot/ads/serve/?router_id=${routerId}&tenant=${encodeURIComponent(tenant)}&mac=${encodeURIComponent(mac)}`,
       { cache: 'no-store' },
       { timeoutMs: 4000, retries: 1, retryDelayMs: 300 }
     )
@@ -515,6 +515,7 @@ async function grantAdAccess(data: {
   )
   const json = await res.json()
   if (!res.ok && res.status !== 409) throw new Error(json.error || 'Failed to grant access')
+  if (res.status === 409 && !json.access_code) throw new Error(json.error || 'Reward already claimed')
   return json
 }
 
@@ -1069,7 +1070,8 @@ export default function HotspotClientView({
     if (!tenant) return
 
     const runSecondaryFetches = () => {
-      fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
+      fetchServableAd(routerId, tenant, getMacAddress()).then(({ ad }) => setAvailableAd(ad))
+      // ...loyalty fetch unchanged
 
       const mac = getMacAddress()
       if (mac !== '00:00:00:00:00:00') {
@@ -1503,6 +1505,7 @@ export default function HotspotClientView({
         data_limit_display: 'Unlimited',
       })
       setShowAdModal(false)
+      setAvailableAd(null)          // add: button disappears after reward
       setPaymentStatus('success')
       // 🔥 FIX: Use confirmed version for ad grant
       // BUG 2 FIX: Use getEffectiveLoginUrl fallback
@@ -1512,6 +1515,10 @@ export default function HotspotClientView({
         submitRouterLoginConfirmed(routerId, effectiveLoginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
+      if (/already claimed/i.test(err.message || '')) {
+        setShowAdModal(false)
+        setAvailableAd(null)        // add: remove the button for this device
+      }
       setAdError(err.message || 'Could not grant access. Please try again.')
       setAdGranting(false)
       setAdCompleted(false)
