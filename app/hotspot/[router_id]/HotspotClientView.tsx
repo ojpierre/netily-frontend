@@ -213,11 +213,8 @@ function getApiBase(): string {
 function isCaptivePortalContext(): boolean {
   if (typeof window === "undefined") return false
   const ua = navigator.userAgent || ""
-  const isKnownCaptiveUA = /CaptivePortalLogin|CaptiveNetworkSupport|Android.*wv\)/i.test(ua)
-  const isPlainHttp = window.location.protocol === "http:"
-  // Most captive WebViews still expose sessionStorage, so don't rely on that alone —
-  // keep it as a weak secondary signal, not primary.
-  return isKnownCaptiveUA || isPlainHttp
+  return /CaptivePortalLogin|CaptiveNetworkSupport|Android.*; wv\)/i.test(ua)
+    || window.location.protocol === "http:"
 }
 
 // ============================================================

@@ -12,6 +12,7 @@ import {
   normalizeAppearanceFont,
   type AppearanceFont,
 } from '@/lib/appearance-fonts'
+import { safeStorage } from '@/lib/safe-storage'
 
 export type ColorTheme =
   | 'blue'
@@ -84,7 +85,7 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     setMounted(true)
     // Read from localStorage on mount
-    const saved = localStorage.getItem('netily-color-theme') as ColorTheme | null
+    const saved = safeStorage.get('netily-color-theme') as ColorTheme | null
     if (saved && COLOR_THEME_VALUES.includes(saved)) {
       setColorThemeState(saved)
       document.documentElement.setAttribute('data-theme', saved)
@@ -92,14 +93,14 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.setAttribute('data-theme', 'blue')
     }
 
-    const savedFont = localStorage.getItem(APPEARANCE_FONT_STORAGE_KEY)
+    const savedFont = safeStorage.get(APPEARANCE_FONT_STORAGE_KEY)
     setAppearanceFontState(applyAppearanceFont(savedFont))
 
-    const token =
-      localStorage.getItem(`adminToken:${window.location.hostname}`) ||
-      sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
-      localStorage.getItem('adminToken') ||
-      sessionStorage.getItem('adminToken')
+    let token: string | null = null
+    try { token = sessionStorage?.getItem(`adminToken:${window.location.hostname}`) } catch {}
+    try { token = token || localStorage?.getItem(`adminToken:${window.location.hostname}`) } catch {}
+    try { token = token || sessionStorage?.getItem('adminToken') } catch {}
+    try { token = token || localStorage?.getItem('adminToken') } catch {}
 
     if (token && window.location.pathname.startsWith('/admin')) {
       const knownDomains = ['netily.co.ke']
@@ -131,7 +132,7 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setColorTheme = React.useCallback((theme: ColorTheme) => {
     setColorThemeState(theme)
-    localStorage.setItem('netily-color-theme', theme)
+    safeStorage.set('netily-color-theme', theme)
     document.documentElement.setAttribute('data-theme', theme)
   }, [])
 

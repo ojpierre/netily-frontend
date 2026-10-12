@@ -474,6 +474,28 @@ export default function RootLayout({
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
+        {/* ── Global storage shim ── */}
+        {/* Must run before any bundle. Replaces null/broken localStorage & sessionStorage
+            (Android captive-portal WebViews on API 23–27) with an in-memory fallback. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  function usable(n){try{var s=window[n];if(!s)return false;s.setItem('__t','1');s.removeItem('__t');return true}catch(e){return false}}
+  function mem(){var d={};return{
+    getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},
+    setItem:function(k,v){d[k]=String(v)},
+    removeItem:function(k){delete d[k]},
+    clear:function(){d={}},
+    key:function(i){return Object.keys(d)[i]||null},
+    get length(){return Object.keys(d).length}}}
+  ['localStorage','sessionStorage'].forEach(function(n){
+    if(usable(n))return;
+    try{Object.defineProperty(window,n,{value:mem(),configurable:true,writable:true})}catch(e){}
+  });
+})();`,
+          }}
+        />
+
         <meta name="theme-color" content="#0f172a" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
