@@ -474,40 +474,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
-        {/* ── TEMPORARY DIAGNOSTIC (Step 1) — remove after hotspot issue is fixed ── */}
-        {/* Catches errors Next.js never reports (chunk syntax errors, unhandled
-            rejections, pre-hydration crashes) and shows them on /hotspot only.
-            ES5 on purpose so old WebViews can run it. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-(function(){
-  if (location.pathname.indexOf('/hotspot') !== 0) return;
-  function show(msg){
-    try {
-      var box = document.getElementById('__err_box');
-      if (!box) {
-        box = document.createElement('pre');
-        box.id = '__err_box';
-        box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:50%;overflow:auto;margin:0;padding:8px;background:#fee2e2;color:#7f1d1d;font:11px monospace;white-space:pre-wrap;z-index:2147483647';
-        box.textContent = 'UA: ' + navigator.userAgent + '\\n';
-        (document.body || document.documentElement).appendChild(box);
-      }
-      box.textContent += msg + '\\n';
-    } catch (e) {}
-  }
-  window.onerror = function(m, src, l, c, err){
-    show('ERR: ' + m + ' @' + (src || '') + ':' + l + ':' + c + (err && err.stack ? '\\n' + err.stack : ''));
-  };
-  window.addEventListener('unhandledrejection', function(e){
-    var r = e.reason;
-    show('REJECT: ' + (r && r.stack ? r.stack : String(r)));
-  });
-})();
-`,
-          }}
-        />
-
         <meta name="theme-color" content="#0f172a" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
