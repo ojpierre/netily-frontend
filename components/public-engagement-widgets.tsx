@@ -16,6 +16,7 @@ const WHATSAPP_NUMBER = "254100034307"
 const WHATSAPP_TEXT = "Hello Internetily, I would like to make an enquiry."
 
 const publicRoutePrefixes = [
+  "/landing-page",
   "/demo",
   "/compare",
   "/blog",

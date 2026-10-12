@@ -31,6 +31,7 @@ import {
   Server, // <-- Added for Server Stats page
   GraduationCap,
   ShoppingBag,
+  Palette,
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -194,6 +195,12 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="hidden lg:block" />
 
           <div className="flex items-center gap-3">
+            <Button asChild variant="ghost" className="h-12 gap-2 px-3 text-slate-200 hover:bg-slate-800 hover:text-white">
+              <Link href="/admin/brand-guide">
+                <Palette className="h-4 w-4" aria-hidden="true" />
+                Brand guide
+              </Link>
+            </Button>
             <Badge variant="outline" className="border-violet-500/50 text-violet-300 hidden sm:flex">
               <Shield className="w-3 h-3 mr-1" />
               Superadmin

@@ -1,0 +1,346 @@
+[
+  {
+    "path": "/features/mpesa-billing",
+    "title": "Payment confirmed. Subscriber reconnected.",
+    "intro": "M-Pesa pays. The subscriber goes online. No one opens a router.",
+    "problem": "A subscriber pays via M-Pesa. Your team checks the statement, matches the payment manually, then logs into the router to unblock the account. Three steps. Every payment. Every time.",
+    "points": [
+      "No manual matching  -  STK Push and paybill payments are matched to the subscriber by phone number or account reference. Automatically.",
+      "Instant restoration  -  The moment payment confirms, access is restored. The subscriber gets an SMS receipt. Your team didn't lift a finger.",
+      "Every receipt recorded  -  Every M-Pesa transaction is logged with the subscriber, the amount, the timestamp, and the channel. Month-end closes itself.",
+      "Revenue you can close  -  Your collections report shows what came in, from whom, and through which channel. No spreadsheet reconciliation."
+    ],
+    "steps": [
+      "Subscriber pays via M-Pesa STK Push or paybill",
+      "Internetily matches the payment to the account automatically",
+      "Subscriber is reconnected and receives an SMS receipt"
+    ]
+  },
+  {
+    "path": "/features/mikrotik-provisioning",
+    "title": "Your MikroTik, connected in minutes.",
+    "intro": "Add a router to Internetily once. PPPoE profiles, queues, and subscriber access manage themselves from there.",
+    "problem": "Configuring a MikroTik for billing by hand takes an experienced technician and still goes wrong. PPPoE profiles get mismatched. Queues don't apply. Subscribers call in.",
+    "points": [
+      "Connected in one step  -  Add the router in Internetily, copy the setup command, paste it into the MikroTik terminal. Done.",
+      "Profiles that stay correct  -  PPPoE profiles, bandwidth queues, and subscriber states sync automatically. Changes in the dashboard apply to the router within seconds.",
+      "Reachable behind NAT  -  Internetily connects to your MikroTik even behind carrier-grade NAT. No static IP required. No port forwarding.",
+      "Any technician can do it  -  You don't need deep RouterOS knowledge. One command. One time."
+    ],
+    "steps": [
+      "Add the router in Internetily and copy the setup command",
+      "Run it once in the MikroTik terminal",
+      "PPPoE profiles, queues, and subscriber states sync from that point on"
+    ]
+  },
+  {
+    "path": "/features/pppoe-billing",
+    "title": "Paid means online.",
+    "intro": "Subscribers stay connected while they're paid up. No manual disconnects, no missed renewals.",
+    "problem": "Subscribers disconnect. They call in. Someone checks M-Pesa manually, then unblocks them in the router. Three steps. Every time.",
+    "points": [
+      "No manual disconnects  -  When a subscription expires, the system disconnects the session. When payment arrives, it reconnects. Automatically.",
+      "Instant reconnection  -  M-Pesa payment confirms, RADIUS re-authenticates, the subscriber is back online. Under 30 seconds.",
+      "The right speed profile  -  Each plan maps to a bandwidth queue. Upgrades and downgrades apply to the active session without a router login.",
+      "Collections you can close  -  Every PPPoE subscriber has a billing record: plan, payment history, expiry, and current status."
+    ],
+    "steps": [
+      "Set up the subscriber with a plan and PPPoE credentials",
+      "M-Pesa confirms payment",
+      "The router applies the access profile automatically"
+    ]
+  },
+  {
+    "path": "/features/hotspot-billing",
+    "title": "Sell Wi-Fi by the minute. Collect by M-Pesa.",
+    "intro": "Branded captive portal. Payment. Session. One step for the subscriber, zero steps for you.",
+    "problem": "Voucher codes run out. Agents forget to restock. Customers complain about expired sessions. Revenue leaks through the gaps.",
+    "points": [
+      "Packages that sell  -  Set hourly, daily, weekly, or monthly packages. Subscribers choose and pay from the portal.",
+      "A portal that converts  -  Your brand, your colors. The subscriber sees the price, taps pay, and they're online. M-Pesa STK Push.",
+      "Sessions you can see  -  Active sessions, expired sessions, bandwidth usage. All in one dashboard.",
+      "Revenue you can trust  -  Every voucher sale and portal payment is recorded against the subscriber and the access point."
+    ],
+    "steps": [
+      "Subscriber opens the captive portal and picks a package",
+      "M-Pesa processes the payment",
+      "Wi-Fi session opens immediately"
+    ]
+  },
+  {
+    "path": "/features/subscriber-management",
+    "title": "The whole subscriber. One screen.",
+    "intro": "Answer any customer question in seconds. Without opening three systems.",
+    "problem": "The subscriber calls. Your support agent checks M-Pesa on the phone, opens the router in another tab, and looks up the account in a spreadsheet. The subscriber waits.",
+    "points": [
+      "Faster support  -  Name, plan, payment history, active session, support tickets. One page.",
+      "Fixes in one click  -  Reconnect, change plan, extend expiry, issue a credit. From the subscriber record.",
+      "A full history  -  Every payment, every support interaction, every plan change. Timestamped and searchable.",
+      "Fair use handled  -  Bandwidth limits, data caps, and grace periods managed per subscriber."
+    ],
+    "steps": [
+      "Search for the subscriber by name, phone, or account number",
+      "See their full record  -  plan, payments, sessions, tickets",
+      "Take action from the same screen"
+    ]
+  },
+  {
+    "path": "/features/subscriber-portal",
+    "title": "Subscribers serve themselves. You save the calls.",
+    "intro": "Renewals, receipts, password resets, and support tickets  -  handled by the subscriber, without calling your team.",
+    "problem": "Your support team handles 40 calls a day. Half are \"I paid, reconnect me\" or \"send me my receipt.\" Those calls cost time your team should spend on real problems.",
+    "points": [
+      "Renew without calling  -  The subscriber logs into their portal, sees their plan, and renews via M-Pesa. No call. No WhatsApp.",
+      "Receipts on demand  -  Every payment has a downloadable receipt. The subscriber pulls it themselves.",
+      "Reset their own password  -  PPPoE password resets from the portal. No support ticket needed.",
+      "Raise a ticket themselves  -  If something is genuinely wrong, they open a support ticket from the same portal. You see it in your dashboard."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/payment-reconciliation",
+    "title": "Know where every shilling came from.",
+    "intro": "M-Pesa, Airtel Money, bank deposits, and cash  -  matched to the right subscriber. Without a spreadsheet.",
+    "problem": "M-Pesa statements arrive with the wrong reference, in duplicate, or not at all. Someone spends hours matching them. Revenue stays unreconciled until month-end. Then it's a fire.",
+    "points": [
+      "Matched automatically  -  Payments are matched by phone number, account reference, or invoice number. The most common match happens without any manual input.",
+      "Duplicates caught  -  The same payment posted twice? Flagged before it credits the wrong account.",
+      "Missed callbacks recovered  -  If the M-Pesa callback failed, the system retries and recovers the transaction.",
+      "Nothing unaccounted  -  Unmatched payments are held in a queue for your team to claim. Nothing disappears."
+    ],
+    "steps": [
+      "Payment arrives via M-Pesa, Airtel Money, bank transfer, or cash entry",
+      "Internetily matches it to the subscriber automatically",
+      "Unmatched payments are held for your team to claim"
+    ]
+  },
+  {
+    "path": "/features/recurring-invoicing",
+    "title": "Invoices that send themselves.",
+    "intro": "Generate, send, and follow up on invoices without remembering to do any of it.",
+    "problem": "You create invoices manually. You forget to send reminders. Subscribers forget to pay. You chase them on WhatsApp.",
+    "points": [
+      "Generated on schedule  -  Invoices are created automatically based on the subscriber's billing cycle.",
+      "Sent via SMS  -  The subscriber gets a message with the amount, the due date, and a payment link.",
+      "Overdue reminders  -  If they don't pay, reminders go out. Automatically. On the schedule you set.",
+      "Paid and closed  -  When payment arrives, the invoice is marked paid. No manual update."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/sms-reminders",
+    "title": "Remind. Renew. Reconnect. Automatically.",
+    "intro": "Subscription expiring, payment overdue, plan upgraded  -  the subscriber hears it from the system, not from your team.",
+    "problem": "You rely on WhatsApp messages and manual follow-ups. Subscribers slip through. You notice when they've already churned.",
+    "points": [
+      "Expiry warnings  -  Subscribers get an SMS before their plan expires. They renew before they lose access.",
+      "Payment confirmations  -  Every M-Pesa payment triggers an SMS receipt. The subscriber knows it went through.",
+      "Overdue nudges  -  Configurable reminders at 1, 3, and 7 days overdue. Polite, persistent, automatic.",
+      "Custom templates  -  Write your own SMS copy. Use subscriber name, plan, amount, and expiry date as variables."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/revenue-reporting",
+    "title": "See what you collected. Know what's at risk.",
+    "intro": "Revenue, churn, overdue accounts, and package performance. Without building a single spreadsheet.",
+    "problem": "End of month. You export M-Pesa statements, cross-reference with your subscriber list, and try to figure out what's actually due. It takes two days.",
+    "points": [
+      "Revenue by period  -  Daily, weekly, monthly. Collected vs outstanding. At a glance.",
+      "Churn visibility  -  Which subscribers didn't renew this cycle? How many? What revenue did you lose?",
+      "Package performance  -  Which plans sell? Which don't? Where should you adjust pricing?",
+      "Exportable  -  Download reports as CSV or PDF. For your records, your accountant, or your investors."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/staff-roles",
+    "title": "The right access for every team member.",
+    "intro": "Assign roles, restrict permissions, and see who did what. Every action logged.",
+    "problem": "",
+    "points": [
+      "Role-based access  -  Technicians see routers. Support sees subscribers. Finance sees payments. No one sees what they shouldn't.",
+      "Full audit trail  -  Every subscriber change, every payment action, every router command. Timestamped and attributed.",
+      "Multi-branch ready  -  If you run more than one site, each branch can have its own staff and its own permissions."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/captive-portals",
+    "title": "Make the first connection count.",
+    "intro": "A branded login page that converts visitors into paying subscribers. Your logo, your packages, your payment flow.",
+    "problem": "",
+    "points": [
+      "Your brand  -  Upload your logo, set your colors. The subscriber sees your ISP, not a generic portal.",
+      "Packages on the page  -  Hourly, daily, monthly. The subscriber picks, pays, and connects.",
+      "M-Pesa built in  -  STK Push from the portal. No voucher code, no agent, no friction.",
+      "Promotions  -  Run time-limited offers from the portal. Happy hour, weekend specials, first-time discounts."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/vouchers-agents",
+    "title": "Vouchers that sell. Agents you can track.",
+    "intro": "Generate codes, assign them to agents, and see what sold, where, and when.",
+    "problem": "",
+    "points": [
+      "Batch generation  -  Create 100, 500, or 1,000 voucher codes in one click. Set the plan and validity.",
+      "Agent tracking  -  Assign codes to agents. See who sold what, and how much revenue each agent generated.",
+      "Restock alerts  -  Know when an agent is running low before customers start complaining."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/router-monitoring",
+    "title": "Know when a router goes down. Before your subscribers call.",
+    "intro": "Uptime, traffic, and alerts  -  for every MikroTik in your network.",
+    "problem": "",
+    "points": [
+      "Live status  -  Online, offline, rebooted. Visible from your dashboard.",
+      "Traffic monitoring  -  Bandwidth usage per router, per interface. Spot congestion before it becomes a complaint.",
+      "Alerts  -  Get notified the moment a router goes offline. SMS or email."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/support-tickets",
+    "title": "Support requests that don't get lost.",
+    "intro": "Subscribers raise tickets from their portal. Your team resolves them from the dashboard. Nothing falls through.",
+    "problem": "",
+    "points": [
+      "Subscriber-initiated  -  Tickets come from the portal with the subscriber's details attached. No \"what's your account number?\"",
+      "Assigned and tracked  -  Route tickets to the right team member. Track open, in progress, and resolved.",
+      "Linked to the record  -  The ticket sits on the subscriber's profile. Support sees the full context."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/tr069-device-management",
+    "title": "Manage every customer router. Without leaving your desk.",
+    "intro": "Configure, monitor, and troubleshoot customer CPE devices remotely. No site visit. No WhatsApp back-and-forth with the technician.",
+    "problem": "A subscriber calls. Their router is showing a fault. Someone has to drive out, plug in, and figure it out on-site. Half a day gone. One subscriber fixed. Twelve more waiting.",
+    "points": [
+      "Remote configuration  -  Update firmware, change settings, reboot, and push configs to customer routers from your dashboard. Works while you're in the office or at home.",
+      "Full device visibility  -  See every CPE device on your network: model, firmware version, connection status, uptime, and signal quality. Without calling the customer.",
+      "Fault diagnosis before the truck rolls  -  Check the device log, test connectivity, and identify the fault remotely. If you do need a site visit, you arrive knowing exactly what's wrong.",
+      "Bulk updates  -  Push firmware updates or config changes to a whole group of routers at once. Keep your fleet current without individual logins."
+    ],
+    "steps": [
+      "Customer router connects to Internetily's TR-069 ACS on installation",
+      "The device appears in your dashboard with full status and config visibility",
+      "Manage, update, or troubleshoot it remotely from that point on"
+    ]
+  },
+  {
+    "path": "/features/ip-mac-bindings",
+    "title": "One device. One subscriber. No sharing.",
+    "intro": "Lock each PPPoE or hotspot session to a specific IP and MAC address. One subscriber, one connection. No workarounds.",
+    "problem": "A subscriber shares their credentials with the whole apartment block. You're providing bandwidth for 10 people. You're billing for one. You notice when your revenue per subscriber doesn't add up.",
+    "points": [
+      "IP binding  -  Assign a fixed IP to a specific subscriber. Their device always gets the same address. Useful for remote access, fixed services, and fraud prevention.",
+      "MAC binding  -  Tie a PPPoE or hotspot session to the device's hardware address. If the MAC doesn't match, the session doesn't open.",
+      "Credential sharing blocked  -  Even if a subscriber shares their username and password, MAC binding stops anyone else from connecting on those credentials.",
+      "Easy management  -  View and update bindings from the subscriber record. Change a binding when a customer gets a new router in seconds."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/customer-wallet",
+    "title": "Prepay credit that applies itself at renewal.",
+    "intro": "Subscribers top up their wallet. Renewals draw from it automatically. Fewer overdue accounts, fewer reminder calls.",
+    "problem": "A subscriber wants to pay for two months in advance. You take the payment, write it in a spreadsheet, and hope you remember to apply it next month. You forget. They disconnect. They complain.",
+    "points": [
+      "Wallet top-up  -  Subscribers add credit via M-Pesa. It sits in their account and applies automatically at the next billing cycle.",
+      "Automatic renewal draw  -  When a subscription is due, the system checks the wallet first. If the balance covers it, it renews without any action from the subscriber or your team.",
+      "Balance visibility  -  Subscribers see their wallet balance in the self-service portal. No guessing, no calls asking \"how much do I have left?\"",
+      "Partial payments handled  -  If the wallet balance doesn't cover the full amount, the shortfall is invoiced separately. The subscriber knows exactly what's due."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/customer-referrals",
+    "title": "Subscribers refer friends. You grow without spending on ads.",
+    "intro": "Every subscriber gets a referral link. Every successful signup earns them a reward. You track it all from one dashboard.",
+    "problem": "Your best growth channel is word of mouth. You know this because most new subscribers say \"my neighbour told me about you.\" You have no way to track it, reward it, or scale it.",
+    "points": [
+      "Unique referral links  -  Every subscriber gets their own link to share. When someone signs up through it, the referral is attributed automatically.",
+      "Configurable rewards  -  Set the reward yourself: account credit, a free month, a cash payout via M-Pesa. The system applies it when the referred subscriber activates.",
+      "Referral tracking  -  See who referred whom, how many referrals each subscriber has made, and which ones converted. One report.",
+      "Reward status  -  Subscribers see their referrals and reward status in their portal. They know what's pending, what's paid, and what's still to come."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/features/multi-branch-management",
+    "title": "Multiple sites. One dashboard.",
+    "intro": "Run more than one ISP location, coverage zone, or partner operation from a single account. Separate configs. Shared visibility.",
+    "problem": "You have two sites. Each one has its own router login, its own subscriber list, its own M-Pesa float. You switch between them all day. Nothing is in one place.",
+    "points": [
+      "Separate environments  -  Each branch has its own subscriber list, billing setup, payment channels, and network config. They don't bleed into each other.",
+      "Shared dashboard  -  You see all branches from one login. Revenue, active subscribers, overdue accounts  -  across the whole operation at once.",
+      "Role-based access per branch  -  Staff at Branch A only see Branch A. Senior managers see everything. You control who sees what.",
+      "Secure data separation  -  Subscriber data, payment records, and network configs are isolated per branch. Each environment is secure and independent."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/solutions/fibre-isps",
+    "title": "Paid means online. For every fibre subscriber.",
+    "intro": "PPPoE billing tied to M-Pesa. Automated disconnects and reconnections. Revenue you can close at month-end.",
+    "problem": "You built a fibre network. Subscribers are growing. But every renewal, every reconnection, every invoice is still manual. Your support team is the bottleneck.",
+    "points": [
+      "M-Pesa STK Push to payment confirmed to subscriber reconnected. Automatically.",
+      "PPPoE profiles synced to MikroTik. Bandwidth queues applied per plan.",
+      "Recurring invoices generated and sent via SMS.",
+      "Subscriber self-service portal for renewals and receipts.",
+      "Revenue reporting by plan, by period, by router."
+    ],
+    "steps": [
+      "Import your subscriber list and connect your MikroTik",
+      "Set up your plans and link M-Pesa",
+      "Billing, access, and reporting run from one dashboard"
+    ]
+  },
+  {
+    "path": "/solutions/hotspot-providers",
+    "title": "Turn logins into revenue.",
+    "intro": "Sell Wi-Fi by the hour, day, or month  -  from a branded portal that handles payment, access, and session in one step.",
+    "problem": "Voucher codes run out. Agents forget to restock. Customers see an expired session and walk away. You lose revenue you never see.",
+    "points": [
+      "Branded captive portal with your logo and packages.",
+      "M-Pesa STK Push from the portal. Subscriber pays, session opens.",
+      "Voucher generation and agent sales tracking.",
+      "Session monitoring: active, expired, bandwidth usage.",
+      "Revenue per access point, per package, per agent."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/solutions/rural-wisps",
+    "title": "Collections that work without a bank branch.",
+    "intro": "M-Pesa paybill. SMS reminders. Field-friendly support. Built for ISPs where \"go to the office\" isn't an option.",
+    "problem": "Your subscribers are spread across a wide area. They can't visit an office. They pay when they remember. You disconnect them manually. Collections take your entire week.",
+    "points": [
+      "M-Pesa paybill  -  subscribers pay from anywhere with a phone.",
+      "Automatic disconnection on expiry, reconnection on payment.",
+      "SMS reminders before expiry and after overdue.",
+      "Subscriber portal for self-service renewals.",
+      "Low minimum: KSh 500/month. Start with 20 subscribers."
+    ],
+    "steps": []
+  },
+  {
+    "path": "/solutions/managed-wifi",
+    "title": "Guests pay. You don't lift a finger.",
+    "intro": "Estates, campuses, co-working spaces. A captive portal that handles payment, access, and session management. You see the revenue.",
+    "problem": "You manage Wi-Fi for a building owner. Residents need internet. You need to collect. Nobody wants to deal with voucher cards and WhatsApp complaints.",
+    "points": [
+      "Branded captive portal for the property.",
+      "Package selection and M-Pesa payment in one step.",
+      "Automatic session management.",
+      "Revenue reporting per property, per package.",
+      "Separate dashboards for multiple properties."
+    ],
+    "steps": []
+  }
+]

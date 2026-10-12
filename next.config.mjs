@@ -79,6 +79,7 @@ const nextConfig = {
         '/customer/:path*', '/hotspot/:path*', '/portal/:path*', '/api/:path*',
         '/support/:path*', '/login', '/register', '/company-registration', '/netilysystempayment',
         '/internal-api/:path*', '/lead-submit', '/r/:path*',
+        '/landing-page/:path*',
         ...['dashboard', 'referrals', 'analytics', 'payouts', 'marketing', 'payment-settings',
           'tiers', 'guide', 'login', 'verify', 'admin-access'].map((path) => `/affiliate/${path}/:path*`),
       ].map((source) => ({ source, headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }] })),
@@ -139,6 +140,8 @@ const withPWA = withPWAInit({
       {
         urlPattern: ({ url }) =>
           url.pathname === "/netilysystempayment" ||
+          url.pathname === "/landing-page" ||
+          url.pathname.startsWith("/landing-page/") ||
           url.pathname.startsWith("/api/netily-system-payment") ||
           url.hostname === "api.netily.co.ke",
         handler: "NetworkOnly",
