@@ -1429,12 +1429,10 @@ export default function StaffManagementPage() {
       setIsLoading(true)
       const data = await adminApi.getStaffUsers({ staff_only: "true" })
       const rawUsers = Array.isArray(data) ? data : Array.isArray((data as any).results) ? (data as any).results : []
-      const hiddenEmails = ["peter@netily.co.ke", "mark@netily.co.ke", "admin@netily.co.ke"]
       setStaffUsers(
         rawUsers.filter((u: any) => {
-          const email = u.email?.toLowerCase?.() || ""
           const role = String(u.role || "").toLowerCase()
-          return !hiddenEmails.includes(email) && role !== "customer"
+          return role !== "customer" && !u.is_superuser
         })
       )
 
