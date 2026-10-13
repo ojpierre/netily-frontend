@@ -39,7 +39,7 @@ import {
   type PageAction,
   type RouteAccessRule,
 } from "@/lib/rbac"
-import type { User, StaffRole, Gender, CreateStaffUserRequest } from "@/lib/types"
+import type { User, StaffRole, StaffGender, CreateStaffUserRequest } from "@/lib/types"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -150,10 +150,10 @@ const STAFF_ACCESS_CHOICES: Array<{
   },
 ]
 
-const GENDER_OPTIONS: { value: Gender; label: string }[] = [
-  { value: "male", label: "Male" },
-  { value: "female", label: "Female" },
-  { value: "other", label: "Other" },
+const GENDER_OPTIONS: { value: StaffGender; label: string }[] = [
+  { value: "M", label: "Male" },
+  { value: "F", label: "Female" },
+  { value: "O", label: "Other" },
 ]
 
 // Action icons for the permission editor
@@ -268,7 +268,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     role: "" as StaffAccessChoice | "",
     phone_number: "",
     id_number: "",
-    gender: "" as Gender | "",
+    gender: "" as StaffGender | "",
     date_of_birth: "",
   })
   const [customAllowedPaths, setCustomAllowedPaths] = useState<string[]>([])
@@ -357,13 +357,12 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         role: formData.role === "custom" ? "staff" : formData.role as StaffRole,
-        is_staff: true,
         custom_allowed_paths: formData.role === "custom" ? normalizedCustomAllowedPaths : null,
       }
 
       if (formData.phone_number?.trim()) payload.phone_number = normalizePhoneNumber(formData.phone_number)
       if (formData.id_number?.trim()) payload.id_number = formData.id_number.trim()
-      if (formData.gender) payload.gender = formData.gender as Gender
+      if (formData.gender) payload.gender = formData.gender as StaffGender
       if (formData.date_of_birth) payload.date_of_birth = formData.date_of_birth
 
       const response = await adminApi.createStaffUser(payload)
@@ -1626,8 +1625,11 @@ export default function StaffManagementPage() {
                     </TableRow>
                   ) : filteredStaff.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                        No staff members found.
+                      <TableCell colSpan={5} className="py-10 text-center">
+                        <p className="font-semibold text-foreground">No additional staff accounts</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          The principal administrator is not listed here. Customer accounts are managed from Users.
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (

@@ -194,11 +194,17 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
           </button>
           <div className="hidden lg:block" />
 
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" className="h-12 gap-2 px-3 text-slate-200 hover:bg-slate-800 hover:text-white">
-              <Link href="/admin/brand-guide">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <Button asChild variant="ghost" className="h-12 min-w-12 gap-2 px-3 text-slate-200 hover:bg-slate-800 hover:text-white">
+              <Link href="/admin/brand-guide" aria-label="Open brand guide" title="Brand guide">
                 <Palette className="h-4 w-4" aria-hidden="true" />
-                Brand guide
+                <span className="hidden md:inline">Brand guide</span>
+              </Link>
+            </Button>
+            <Button asChild className="h-12 min-w-12 gap-2 bg-violet-600 px-3 text-white hover:bg-violet-500">
+              <Link href="/admin/selfie" aria-label="Register a new tenant" title="Register tenant">
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden md:inline">Register tenant</span>
               </Link>
             </Button>
             <Badge variant="outline" className="border-violet-500/50 text-violet-300 hidden sm:flex">

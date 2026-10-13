@@ -7,12 +7,18 @@ import { detailPages, marketingIndexes, pageName } from "./content"
 const siteUrl = "https://netily.co.ke"
 const home = {
   title: "ISP Billing System | MikroTik, Hotspot & WiFi Billing | Internetily",
-  intro: "Connect M-Pesa payments, MikroTik access, subscriber management, invoices, and renewals with Internetily. Explore ISP billing and book a demo for your network.",
+  intro: "Automate MikroTik PPPoE and hotspot billing, M-Pesa payments, invoices and renewals with Internetily. Explore pricing or book an ISP demo.",
+}
+
+const servedMarkets = ["Kenya", "Uganda", "Tanzania", "South Africa", "United Kingdom", "United States", "Australia", "New Zealand"]
+
+function pageFor(path: string) {
+  const key = path.replace(/^\//, "")
+  return path ? marketingIndexes[key] || detailPages.find((item) => item.path === path) : home
 }
 
 export function marketingMetadata(path = ""): Metadata {
-  const key = path.replace(/^\//, "")
-  const page = path ? marketingIndexes[key] || detailPages.find((item) => item.path === path) : home
+  const page = pageFor(path)
   if (!page) notFound()
   const title = path ? `${pageName(path)} | Internetily ISP Management` : home.title
   const url = `${siteUrl}${path || "/"}`
@@ -29,17 +35,24 @@ export function marketingMetadata(path = ""): Metadata {
 
 export function MarketingStructuredData({ path = "" }: { path?: string }) {
   const url = `${siteUrl}${path || "/"}`
-  const graph = path ? [{
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Internetily", item: `${siteUrl}/` },
-      ...path.slice(1).split("/").map((part, index, parts) => ({
-        "@type": "ListItem", position: index + 2, name: pageName(part), item: `${siteUrl}/${parts.slice(0, index + 1).join("/")}`,
-      })),
-    ],
-  }] : [
-    { "@type": "Organization", "@id": `${siteUrl}/#organization`, name: "Internetily", alternateName: "Netily", url: siteUrl, logo: `${siteUrl}/internetily-logo-320.webp` },
-    { "@type": "WebSite", "@id": `${siteUrl}/#website`, name: "Internetily", alternateName: "Netily", url, publisher: { "@id": `${siteUrl}/#organization` } },
+  const page = pageFor(path)
+  if (!page) return null
+  const organization = { "@type": "Organization", "@id": `${siteUrl}/#organization`, name: "Internetily", alternateName: "Netily", url: siteUrl, logo: `${siteUrl}/internetily-logo-320.webp`, email: "sales@netily.co.ke", contactPoint: { "@type": "ContactPoint", contactType: "sales", telephone: "+254100034307", availableLanguage: ["English", "Swahili"] } }
+  const webPage = { "@type": "WebPage", "@id": `${url}#webpage`, url, name: path ? pageName(path) : home.title, description: page.intro, isPartOf: { "@id": `${siteUrl}/#website` }, about: { "@id": `${siteUrl}/#software` } }
+  const graph = [
+    organization,
+    { "@type": "WebSite", "@id": `${siteUrl}/#website`, name: "Internetily", alternateName: "Netily", url: siteUrl, publisher: { "@id": `${siteUrl}/#organization` }, inLanguage: "en" },
+    { "@type": "SoftwareApplication", "@id": `${siteUrl}/#software`, name: "Internetily", alternateName: "Netily", applicationCategory: "BusinessApplication", applicationSubCategory: "ISP billing and network management software", operatingSystem: "Web", description: home.intro, provider: { "@id": `${siteUrl}/#organization` }, areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })), offers: { "@type": "Offer", priceCurrency: "KES", price: "500", description: "Monthly minimum; usage-based billing applies." } },
+    webPage,
+    ...(path ? [{
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Internetily", item: `${siteUrl}/` },
+        ...path.slice(1).split("/").map((part, index, parts) => ({
+          "@type": "ListItem", position: index + 2, name: pageName(part), item: `${siteUrl}/${parts.slice(0, index + 1).join("/")}`,
+        })),
+      ],
+    }] : []),
   ]
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@graph": graph }).replace(/</g, "\\u003c") }} />
 }

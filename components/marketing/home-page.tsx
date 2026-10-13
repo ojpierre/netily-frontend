@@ -8,7 +8,7 @@ import s from "./marketing.module.css"
 
 export default function MarketingHomePage() {
   return <>
-    <Hero home label="ISP billing & network management" title="Internetily" intro="M-Pesa billing, MikroTik access, invoices, and renewals in one workflow. Built for ISPs in Kenya and East Africa." />
+    <Hero home label="Internetily" title="Internetily ISP billing system" intro="Automate MikroTik PPPoE, hotspot and WiFi billing, M-Pesa payments, subscriber access, invoices, and renewals in one connected workflow." />
     <section className={s.compatibility}><div className={s.container}><p>Works with the routers you already own.</p><div>{["MikroTik", "Ubiquiti", "TP-Link", "Tenda", "Cambium", "Huawei", "Starlink", "FreeRADIUS"].map((name) => <span key={name}>{name}</span>)}</div><Link href={marketingHref("/integrations")}>Find the right connection for your setup <ArrowRight size={15} /></Link></div></section>
     <section id="problem" className={s.section}><div className={s.container}><SectionHeading label="Less busywork" title="Every hour on manual billing is an hour not spent growing." /><div className={s.threeColumns}>{[
       { icon: Unplug, title: "Manual reconnections", text: "Someone checks M-Pesa, opens the router, unblocks the user. Three steps that should be zero." },

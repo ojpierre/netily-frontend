@@ -13,7 +13,7 @@
 .site a { text-decoration: none; }
 .site button { cursor: pointer; }
 .site button:disabled { opacity: .65; cursor: wait; }
-.site :is(a, button, input, textarea):focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
+.site :is(a, button, input, select, textarea):focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
 .site section[id] { scroll-margin-top: 100px; }
 .container { width: min(1200px, calc(100% - 64px)); margin: 0 auto; }
 .section { padding: 88px 0; }
@@ -82,7 +82,7 @@
 .cardGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .featureCard { border: 1px solid var(--line); border-radius: 8px; padding: 26px; display: flex; flex-direction: column; background: var(--paper); transition: border-color .15s; min-width: 0; }
 .featureCard:hover { border-color: var(--blue); }
-.featureCard h3 { font-size: 25px; }
+.cardTitle { display: block; font-family: var(--font-outfit), Arial, sans-serif; font-size: 25px; font-weight: 500; line-height: 1.12; margin: 16px 0 12px; text-wrap: balance; }
 .featureCard p { font-size: 14px; margin-bottom: 24px; }
 .cardLabel { color: var(--blue); font-size: 12px; font-weight: 600; }
 .cardArrow { display: flex; align-items: center; justify-content: space-between; color: var(--blue); font-size: 13px; margin-top: auto; }
@@ -107,13 +107,20 @@
 .form { display: flex; flex-direction: column; gap: 20px; }
 .formRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .form label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
-.form input, .form textarea, .calculator input { width: 100%; min-width: 0; min-height: 48px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; color: var(--ink); font-size: 16px; }
+.form input, .form select, .form textarea, .calculator input { width: 100%; min-width: 0; min-height: 48px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; color: var(--ink); font-size: 16px; }
+.form select:disabled { opacity: .8; cursor: not-allowed; }
 .form textarea { resize: vertical; }
 .small { font-size: 12px; }
 .small a { text-decoration: underline; }
 .error { color: #cc3434 !important; font-size: 14px; }
 .success { display: flex; flex-direction: column; gap: 18px; justify-content: center; align-items: flex-start; min-height: 360px; }
 .success svg { color: #24a077; }
+.successActions { display: flex; flex-wrap: wrap; gap: 12px; }
+.successActions .button svg { color: currentColor; }
+.textButton { min-height: 48px; padding: 8px 0; color: var(--blue); background: transparent; border: 0; font-weight: 600; }
+.referralNotice { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid #24a07766; border-radius: 6px; background: color-mix(in srgb, #24a077 10%, var(--paper)); font-size: 13px; }
+.referralNotice svg { flex-shrink: 0; color: #24a077; }
+.referralNotice strong { display: block; margin-bottom: 2px; }
 .spinner { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .ctaBand { padding: 64px 0; background: var(--mint); }
@@ -121,7 +128,7 @@
 .ctaBand .button { flex-shrink: 0; }
 .footer { background: #0d171d; color: #e5eef3; padding: 60px 0 24px; }
 .footerGrid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap: 36px; }
-.footerGrid h2 { font-family: var(--font-plus-jakarta-sans), sans-serif; font-size: 14px; margin-bottom: 20px; }
+.footerHeading { color: #e5eef3 !important; font-family: var(--font-plus-jakarta-sans), sans-serif; font-size: 14px !important; font-weight: 700; margin-bottom: 20px; }
 .footerGrid a { display: block; font-size: 13px; color: #c2ced6; min-height: 40px; padding-block: 8px; }
 .footerGrid a:hover { color: #77c6ff; }
 .footerGrid p { font-size: 13px; color: #9fafba; }
@@ -191,6 +198,8 @@
   .compatibility span { font-size: 18px; }
   .threeColumns, .workflow, .cardGrid, .editorial, .priceGrid, .contactGrid, .detailPoints, .calculator { grid-template-columns: 1fr; }
   .formRow { grid-template-columns: 1fr; }
+  .successActions { width: 100%; flex-direction: column; }
+  .successActions :is(.button, .secondary) { width: 100%; }
   .priceMain { padding-right: 0; padding-bottom: 32px; border-right: 0; border-bottom: 1px solid var(--line); }
   .price { font-size: 38px; }
   .ctaBand .container { flex-direction: column; align-items: flex-start; }

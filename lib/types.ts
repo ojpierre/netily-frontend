@@ -10,6 +10,7 @@
 
 // Staff role types supported by backend
 export type StaffRole = 'staff' | 'technician' | 'accountant' | 'support'
+export type StaffGender = 'M' | 'F' | 'O'
 export type UserRole = 'admin' | 'customer' | StaffRole
 
 export type Gender = 'male' | 'female' | 'other'
@@ -23,7 +24,7 @@ export interface User {
   role?: UserRole
   phone_number?: string
   id_number?: string
-  gender?: Gender
+  gender?: StaffGender
   date_of_birth?: string
   is_staff: boolean
   is_superuser: boolean
@@ -64,11 +65,8 @@ export interface CreateStaffUserRequest {
   role: StaffRole
   phone_number?: string
   id_number?: string
-  gender?: Gender
+  gender?: StaffGender
   date_of_birth?: string
-  is_active?: boolean
-  is_verified?: boolean
-  is_staff?: boolean
   custom_allowed_paths?: string[] | null
 }
 
