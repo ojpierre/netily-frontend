@@ -4,7 +4,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const DEFAULT_PUBLIC_API_BASE = "https://api.netily.co.ke"
-const STATUS_PATH = "/api/v1/core/companies/register/status/"
+const STATUS_PATH = "/api/v1/superadmin/tenants/register/status/"
 
 function normalizeBaseUrl(value?: string | null) {
   if (!value) return null
@@ -17,7 +17,7 @@ function normalizeBaseUrl(value?: string | null) {
   } catch {
     return null
   }
-  return trimmed || null
+  return trimmed.replace(/\/api\/v1$/i, "") || null
 }
 
 function getStatusUrl(searchParams: URLSearchParams) {

@@ -4,7 +4,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const DEFAULT_PUBLIC_API_BASE = "https://api.netily.co.ke"
-const REGISTER_PATH = "/api/v1/core/companies/register/"
+const REGISTER_PATH = "/api/v1/superadmin/tenants/register/"
 const REGISTRATION_TIMEOUT_MS = 5 * 60 * 1000
 
 function normalizeBaseUrl(value?: string | null) {
@@ -18,7 +18,7 @@ function normalizeBaseUrl(value?: string | null) {
   } catch {
     return null
   }
-  return trimmed || null
+  return trimmed.replace(/\/api\/v1$/i, "") || null
 }
 
 function buildCandidateUrls() {
