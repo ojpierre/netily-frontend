@@ -578,8 +578,13 @@ export default function AdminSelfiePage() {
           window.location.assign(fallbackUrl)
           return
         } catch {
-          const gatewayMessage =
-            "Registration service is temporarily unavailable (gateway/server restart). Please retry in 30-60 seconds."
+          const requestId = error?.errors?.request_id
+          const detail =
+            error?.errors?.detail ||
+            "Tenant provisioning is unavailable. Please retry once."
+          const gatewayMessage = requestId
+            ? `${detail} Request ID: ${requestId}`
+            : detail
           setGeneralError(gatewayMessage)
           toast.error(gatewayMessage)
         }

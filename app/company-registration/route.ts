@@ -24,6 +24,7 @@ function normalizeBaseUrl(value?: string | null) {
 function buildCandidateUrls() {
   const candidates = [
     normalizeBaseUrl(process.env.API_INTERNAL_URL),
+    normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL),
     normalizeBaseUrl(process.env.API_BASE_URL),
     normalizeBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
     "http://web:8000",
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       detail:
-        "Registration service is temporarily unavailable. Please retry in 30-60 seconds.",
+        "Tenant provisioning could not reach the backend service. Please retry once, then share the request ID with support.",
       request_id: requestId,
     },
     {

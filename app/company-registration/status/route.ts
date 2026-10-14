@@ -23,6 +23,7 @@ function normalizeBaseUrl(value?: string | null) {
 function getStatusUrl(searchParams: URLSearchParams) {
   const candidates = [
     normalizeBaseUrl(process.env.API_INTERNAL_URL),
+    normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL),
     normalizeBaseUrl(process.env.API_BASE_URL),
     normalizeBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
     "http://web:8000",
