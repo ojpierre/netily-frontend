@@ -37,6 +37,17 @@ function getStatusUrl(searchParams: URLSearchParams) {
 }
 
 export async function GET(request: NextRequest) {
+  const platformToken =
+    request.cookies.get("superadminToken")?.value ||
+    request.cookies.get("supportToken")?.value
+
+  if (!platformToken) {
+    return NextResponse.json(
+      { detail: "A platform session is required to check tenant registration." },
+      { status: 401 },
+    )
+  }
+
   const companyName = request.nextUrl.searchParams.get("company_name") || ""
   const companyEmail = request.nextUrl.searchParams.get("company_email") || ""
 
@@ -58,6 +69,7 @@ export async function GET(request: NextRequest) {
       method: "GET",
       headers: {
         Accept: "application/json",
+        Authorization: `Bearer ${platformToken}`,
       },
       cache: "no-store",
       signal: AbortSignal.timeout(15000),

@@ -42,6 +42,17 @@ function getRegistrationUrl() {
 }
 
 export async function POST(request: NextRequest) {
+  const platformToken =
+    request.cookies.get("superadminToken")?.value ||
+    request.cookies.get("supportToken")?.value
+
+  if (!platformToken) {
+    return NextResponse.json(
+      { detail: "Sign in to the Superadmin or Support dashboard before registering a tenant." },
+      { status: 401 },
+    )
+  }
+
   let payload: unknown
 
   try {
@@ -70,6 +81,7 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        Authorization: `Bearer ${platformToken}`,
         "X-Registration-Proxy": "netily-frontend",
         "X-Request-ID": requestId,
       },

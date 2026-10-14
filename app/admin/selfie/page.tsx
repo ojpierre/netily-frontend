@@ -483,15 +483,6 @@ export default function AdminSelfiePage() {
 
       const response = await registerCompany(submitData)
 
-      // Store tokens for auto-login
-      const scoped = (k: string) => `${k}:${window.location.hostname}`
-      localStorage.setItem(scoped("adminToken"), response.access)
-      localStorage.setItem(scoped("adminRefreshToken"), response.refresh)
-      localStorage.setItem(scoped("adminUser"), JSON.stringify(response.user))
-
-      // Set cookie for middleware auth check
-      document.cookie = `adminToken=${response.access}; path=/; max-age=${86400 * 7}; SameSite=Lax`
-
       // Store trial start date
       const trialStartDate = new Date().toISOString()
       localStorage.setItem("trialStartDate", trialStartDate)
@@ -517,13 +508,15 @@ export default function AdminSelfiePage() {
       const welcomeProvider = response?.welcome_email?.provider
       const welcomeSent = response?.welcome_email?.sent
       const warnings = Array.isArray(response?.warnings) ? response.warnings : []
-      const emailMessage = welcomeSent
+      const emailMessage = welcomeSent === true
         ? `Welcome email sent${welcomeProvider ? ` via ${String(welcomeProvider).toUpperCase()}` : ""}.`
-        : "Workspace created, but the welcome email was not delivered."
+        : welcomeSent === false
+          ? "Workspace created, but the welcome email was not delivered."
+          : "Workspace created. The tenant can now sign in."
       setCompletionNote(emailMessage)
-      setWarningNote(warnings[0] || (!welcomeSent ? "You can still continue directly to the tenant dashboard and fix mail delivery afterward." : null))
+      setWarningNote(warnings[0] || (welcomeSent === false ? "You can still continue directly to the tenant dashboard and fix mail delivery afterward." : null))
 
-      if (welcomeSent) {
+      if (welcomeSent !== false) {
         toast.success(emailMessage)
       } else {
         toast.warning(emailMessage)
@@ -543,13 +536,19 @@ export default function AdminSelfiePage() {
       }
 
       // Wait a moment to show the success animation
-      await new Promise((resolve) => setTimeout(resolve, welcomeSent ? 1200 : 2000))
+      await new Promise((resolve) => setTimeout(resolve, welcomeSent === false ? 2000 : 1200))
 
       // Redirect to the tenant's admin dashboard
       window.location.assign(tenantAdminUrl)
     } catch (error: any) {
       setLoading(false)
-      if (error.status === 400 && error.errors) {
+      if (error.status === 401 || error.status === 403) {
+        const accessMessage =
+          error?.errors?.detail ||
+          "Your platform session has expired or cannot register tenants. Sign in again and retry."
+        setGeneralError(String(accessMessage))
+        toast.error(String(accessMessage))
+      } else if (error.status === 400 && error.errors) {
         // Map backend validation errors to form fields
         setErrors(error.errors)
         const firstError = Object.values(error.errors).flat()[0] as string
