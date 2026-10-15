@@ -279,18 +279,27 @@ export default function RoutersPage() {
   const handleUpdate = async () => {
     if (!selectedRouter) return
 
+    const name = (formData.name || "").trim()
+    const location = (formData.location || "").trim()
+    if (!name) {
+      toast.error("Router name is required")
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      const updatedRouter = await adminApi.updateRouter(selectedRouter.id, formData)
-      setRouters(routers.map(r => r.id === selectedRouter.id ? updatedRouter : r))
+      // Only name + location are editable — never send the full form
+      const updated = await adminApi.updateRouter(selectedRouter.id, { name, location })
+      // Merge so live metrics / active_users already fetched aren't lost
+      setRouters(prev => prev.map(r =>
+        r.id === selectedRouter.id ? { ...r, name: updated.name, location: updated.location } : r
+      ))
       toast.success("Router updated successfully")
-      
       setIsEditDialogOpen(false)
       setSelectedRouter(null)
       resetForm()
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Failed to update router:', error)
       toast.error(errorMessage || "Failed to update router")
     } finally {
       setIsSubmitting(false)
@@ -1127,8 +1136,8 @@ export default function RoutersPage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="admin-theme-dialog max-w-lg rounded-2xl backdrop-blur-sm bg-card/95 border-border">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Details Overview</DialogTitle>
-            <DialogDescription>Router configuration details (read-only)</DialogDescription>
+            <DialogTitle className="text-xl font-bold">Edit Router</DialogTitle>
+            <DialogDescription>You can edit the name and location. Other details are read-only.</DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
@@ -1137,9 +1146,10 @@ export default function RoutersPage() {
                 <Label htmlFor="edit-name">Router Name</Label>
                 <Input
                   id="edit-name"
-                  value={formData.name}
-                  readOnly
-                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
+                  value={formData.name || ""}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  maxLength={255}
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1221,9 +1231,10 @@ export default function RoutersPage() {
               <Label htmlFor="edit-location">Location</Label>
               <Input
                 id="edit-location"
-                value={formData.location}
-                readOnly
-                className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
+                value={formData.location || ""}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                maxLength={255}
+                className="rounded-xl"
               />
             </div>
             
@@ -1242,6 +1253,10 @@ export default function RoutersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedRouter(null); resetForm() }} className="rounded-xl">
               Close
+            </Button>
+            <Button onClick={handleUpdate} disabled={isSubmitting} className="rounded-xl">
+              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
