@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   Loader2,
@@ -51,6 +50,7 @@ import {
   slugifyCompanyName,
 } from "@/lib/subdomain"
 import { supportApi } from "@/lib/support-api"
+import { lookupTenantRegistration, registerTenant } from "@/lib/platform-registration"
 
 // ==========================================
 // LOADING STEPS - Fun messages during account creation
@@ -130,6 +130,15 @@ interface RegisterFormData {
   admin_password_confirm: string
 }
 
+interface RegistrationResult {
+  subdomain?: string
+  login_url?: string
+  dashboard_url?: string
+  user?: { company?: { slug?: string; subdomain?: string } }
+  welcome_email?: { sent?: boolean; provider?: string }
+  warnings?: string[]
+}
+
 // ==========================================
 // VALIDATION HELPERS
 // ==========================================
@@ -158,49 +167,6 @@ const validatePassword = (password: string): { valid: boolean; errors: string[] 
 // ==========================================
 // API SERVICE
 // ==========================================
-
-async function registerCompany(data: Omit<RegisterFormData, "admin_password_confirm">) {
-  const response = await fetch("/company-registration", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  })
-
-  const result = await response.json().catch(async () => {
-    const text = await response.text().catch(() => "")
-    return {
-      detail: text || `Request failed with status ${response.status}`,
-    }
-  })
-
-  if (!response.ok) {
-    throw { status: response.status, errors: result }
-  }
-
-  return result
-}
-
-async function lookupRegistrationStatus(companyName: string, companyEmail: string) {
-  const params = new URLSearchParams({
-    company_name: companyName,
-    company_email: companyEmail,
-  })
-
-  const response = await fetch(`/company-registration/status?${params.toString()}`, {
-    method: "GET",
-    cache: "no-store",
-  })
-
-  const result = await response.json().catch(() => ({}))
-
-  if (!response.ok) {
-    throw { status: response.status, errors: result }
-  }
-
-  return result
-}
 
 // ==========================================
 // LOADING OVERLAY COMPONENT
@@ -332,7 +298,6 @@ function CreatingAccountOverlay({
 // ==========================================
 
 export default function AdminSelfiePage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [isSetupComplete, setIsSetupComplete] = useState(false)
@@ -481,7 +446,7 @@ export default function AdminSelfiePage() {
       // Remove confirm password before sending
       const { admin_password_confirm, ...submitData } = formData
 
-      const response = await registerCompany(submitData)
+      const response = await registerTenant<RegistrationResult>(submitData)
 
       // Store trial start date
       const trialStartDate = new Date().toISOString()
@@ -492,7 +457,7 @@ export default function AdminSelfiePage() {
       const tenantSubdomain = 
         response.user?.company?.slug || 
         response.user?.company?.subdomain ||
-        (response as any).subdomain ||
+        response.subdomain ||
         slugifyCompanyName(formData.company_name) // Fallback to generated slug
       
       console.log('Registration success, tenant subdomain:', tenantSubdomain)
@@ -553,6 +518,12 @@ export default function AdminSelfiePage() {
         setErrors(error.errors)
         const firstError = Object.values(error.errors).flat()[0] as string
         toast.error(firstError || "Please fix the errors in the form")
+      } else if (error.status === 404) {
+        const missingRouteMessage =
+          error?.errors?.detail ||
+          "Tenant registration is unavailable on this deployment. Contact Netily support."
+        setGeneralError(String(missingRouteMessage))
+        toast.error(String(missingRouteMessage))
       } else if (error.status === 500) {
         const backendDetail =
           error?.errors?.detail ||
@@ -562,7 +533,7 @@ export default function AdminSelfiePage() {
         toast.error(String(backendDetail))
       } else if (error.status === 502 || error.status === 503 || error.status === 504) {
         try {
-          const statusResult = await lookupRegistrationStatus(
+          const statusResult = await lookupTenantRegistration<RegistrationResult>(
             formData.company_name,
             formData.company_email,
           )
@@ -581,7 +552,7 @@ export default function AdminSelfiePage() {
           const requestId = error?.errors?.request_id
           const detail =
             error?.errors?.detail ||
-            "Tenant provisioning is unavailable. Please retry once."
+            "We could not confirm whether the workspace was created. Check the tenant list before trying again."
           const gatewayMessage = requestId
             ? `${detail} Request ID: ${requestId}`
             : detail

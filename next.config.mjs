@@ -77,7 +77,7 @@ const nextConfig = {
       ...[
         '/admin/:path*', '/superadmin/:path*', '/dashboard/:path*',
         '/customer/:path*', '/hotspot/:path*', '/portal/:path*', '/api/:path*',
-        '/support/:path*', '/login', '/register', '/company-registration', '/netilysystempayment',
+        '/support/:path*', '/login', '/register', '/netilysystempayment',
         '/internal-api/:path*', '/lead-submit', '/r/:path*',
         '/landing-page/:path*',
         ...['dashboard', 'referrals', 'analytics', 'payouts', 'marketing', 'payment-settings',
