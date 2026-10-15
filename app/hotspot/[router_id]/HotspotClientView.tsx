@@ -347,6 +347,7 @@ async function redeemVoucher(data: {
   plan_id?: string
   mac_address: string
   tenant: string
+  target_device?: "this" | "tv"   // NEW
 }): Promise<VoucherRedeemResponse> {
   const response = await fetchWithRetry(
     `${getApiBase()}/hotspot/voucher-redeem/`,
@@ -1378,6 +1379,7 @@ export default function HotspotClientView({
         router_id: finalRouter,
         mac_address: finalMac,
         tenant: getTenant(),
+        target_device: targetDevice,     // NEW
       })
 
       setAccessCode(result.access_code)
