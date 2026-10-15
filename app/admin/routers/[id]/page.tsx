@@ -112,6 +112,7 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { Router as RouterData, RouterType, RouterStatus, RouterEvent, RouterVPNStatus } from "@/lib/types"
 import { Separator } from "@/components/ui/separator"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 
 // Demo data generator
 const generateDemoRouterData = (id: string): RouterData => {
@@ -276,6 +277,7 @@ export default function RouterDetailPage() {
     const [isAuthScriptDialogOpen, setIsAuthScriptDialogOpen] = useState(false)
   const params = useParams()
   const router = useRouter()
+  const perms = usePagePermissions("/admin/routers")
   const routerId = params.id as string
   const hasFetchedRef = React.useRef(false)
   
@@ -586,15 +588,39 @@ export default function RouterDetailPage() {
   }
 
   const handleSave = async () => {
+    const name = editForm.name.trim()
+    const location = editForm.location.trim()
+
+    if (!name) {
+      toast.error("Router name is required")
+      return
+    }
+    if (name.length > 255 || location.length > 255) {
+      toast.error("Name and location must be 255 characters or fewer")
+      return
+    }
+    if (name === routerData?.name && location === (routerData?.location || "")) {
+      toast.info("No changes to save")
+      return
+    }
+
     setIsSaving(true)
     try {
       if (isUsingDemoData) {
-        await new Promise(r => setTimeout(r, 1000))
-        setRouterData(prev => prev ? { ...prev, ...editForm } : null)
+        await new Promise(r => setTimeout(r, 600))
+        setRouterData(prev => prev ? { ...prev, name, location } : null)
         toast.success("Router updated (Demo Mode)")
       } else {
-        const updated = await adminApi.updateRouter(parseInt(routerId), editForm)
-        setRouterData(updated)
+        // ONLY send name + location — never the full form (would blank api_password)
+        const updated = await adminApi.updateRouter(parseInt(routerId), { name, location })
+        setRouterData(prev =>
+          prev ? { ...prev, name: updated.name, location: updated.location } : updated
+        )
+        setEditForm(prev => ({
+          ...prev,
+          name: updated.name,
+          location: updated.location || "",
+        }))
         toast.success("Router updated successfully")
       }
     } catch (error: unknown) {
@@ -803,6 +829,11 @@ export default function RouterDetailPage() {
       </div>
     )
   }
+
+  const isBasicsDirty =
+    editForm.name.trim() !== routerData.name ||
+    editForm.location.trim() !== (routerData.location || "")
+  const canEditBasics = perms.canEdit
 
   return (
     <div className="admin-theme-route admin-router-detail-route space-y-6">
@@ -1872,26 +1903,27 @@ export default function RouterDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Configuration Tab (read-only) */}
+        {/* Configuration Tab (name + location editable) */}
         <TabsContent value="edit" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Router Configuration</CardTitle>
-              <CardDescription>Current router configuration — read only. Contact support to make changes.</CardDescription>
+              <CardDescription>Router name and location can be edited. Other connection settings are locked — contact support to change them.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 flex items-start gap-3">
                 <Shield className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                <p className="text-sm text-warning">Router configuration is locked to prevent accidental changes. Please contact <strong>Netily Support</strong> if you need to update any of these values.</p>
+                <p className="text-sm text-warning">Only <strong>Router Name</strong> and <strong>Location</strong> can be edited. Connection and credential settings are locked to prevent accidental changes — contact <strong>Netily Support</strong> to update them.</p>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-500">Router Name</Label>
+                  <Label htmlFor="name">Router Name</Label>
                   <Input
                     id="name"
                     value={editForm.name}
-                    disabled
-                    className="bg-slate-50 text-slate-600 cursor-not-allowed"
+                    onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                    maxLength={255}
+                    disabled={!canEditBasics || isSaving}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1970,12 +2002,14 @@ export default function RouterDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location" className="text-slate-500">Location</Label>
+                <Label htmlFor="location">Location</Label>
                 <Input
                   id="location"
-                  value={editForm.location || "—"}
-                  disabled
-                  className="bg-slate-50 text-slate-600 cursor-not-allowed"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                  maxLength={255}
+                  placeholder="e.g. Nairobi CBD - HQ"
+                  disabled={!canEditBasics || isSaving}
                 />
               </div>
 
@@ -1998,6 +2032,26 @@ export default function RouterDetailPage() {
                 />
                 <Label htmlFor="is_active" className="text-slate-500">Active</Label>
               </div>
+
+              {canEditBasics && (
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    disabled={!isBasicsDirty || isSaving}
+                    onClick={() => setEditForm(prev => ({
+                      ...prev,
+                      name: routerData.name,
+                      location: routerData.location || "",
+                    }))}
+                  >
+                    Reset
+                  </Button>
+                  <Button onClick={handleSave} disabled={!isBasicsDirty || isSaving}>
+                    {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Save Changes
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
