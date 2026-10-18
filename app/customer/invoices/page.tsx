@@ -16,6 +16,8 @@ import {
   CreditCard,
 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 import { MpesaPaymentModal } from "@/components/mpesa-payment-modal"
 
 interface InvoiceRecord {
@@ -44,6 +46,7 @@ const statusConfig: Record<string, { color: string; bg: string }> = {
 }
 
 export default function CustomerInvoicesPage() {
+  const { locale } = useCustomerPaymentLocale()
   const router = useRouter()
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -155,11 +158,11 @@ export default function CustomerInvoicesPage() {
                     </div>
                     <div className="mt-2 flex items-center gap-4 text-sm">
                       <span>
-                        Total: <strong>KSh {parseFloat(invoice.total_amount).toLocaleString()}</strong>
+                        Total: <strong>{formatPaymentAmount(invoice.total_amount, locale.currency)}</strong>
                       </span>
                       {invoice.balance_due && parseFloat(invoice.balance_due) > 0 && (
                         <span className="text-destructive dark:text-destructive">
-                          Balance: KSh {parseFloat(invoice.balance_due).toLocaleString()}
+                          Balance: {formatPaymentAmount(invoice.balance_due, locale.currency)}
                         </span>
                       )}
                     </div>

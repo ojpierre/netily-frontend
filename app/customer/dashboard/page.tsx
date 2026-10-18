@@ -20,10 +20,13 @@ import {
   User,
 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 import { MpesaPaymentModal } from "@/components/mpesa-payment-modal"
 import type { CustomerDashboardData } from "@/lib/types"
 
 export default function CustomerDashboardPage() {
+  const { locale } = useCustomerPaymentLocale()
   const router = useRouter()
   const [dashboardData, setDashboardData] = useState<CustomerDashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -136,7 +139,7 @@ export default function CustomerDashboardPage() {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Balance</p>
                 <p className="text-2xl font-bold">
-                  KSh {parseFloat(data.customer.balance || "0").toLocaleString()}
+                  {formatPaymentAmount(data.customer.balance || "0", locale.currency)}
                 </p>
               </div>
               <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center">
@@ -314,7 +317,7 @@ export default function CustomerDashboardPage() {
                 </div>
                 <div className="flex justify-between p-2 bg-muted rounded">
                   <span className="text-muted-foreground text-sm">Price</span>
-                  <span className="font-medium text-sm">KSh {parseFloat(data.current_plan.price).toLocaleString()}</span>
+                  <span className="font-medium text-sm">{formatPaymentAmount(data.current_plan.price, locale.currency)}</span>
                 </div>
                 {data.current_plan.expiry_date && (
                   <div className="flex justify-between p-2 bg-muted rounded">
@@ -362,7 +365,7 @@ export default function CustomerDashboardPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">
-                        KSh {parseFloat(payment.amount).toLocaleString()}
+                        {formatPaymentAmount(payment.amount, locale.currency)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {payment.method} • {new Date(payment.created_at).toLocaleDateString()}

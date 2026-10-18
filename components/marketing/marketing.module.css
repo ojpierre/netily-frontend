@@ -15,6 +15,10 @@
 .site button:disabled { opacity: .65; cursor: wait; }
 .site :is(a, button, input, select, textarea):focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
 .site section[id] { scroll-margin-top: 100px; }
+.motionRoot { min-height: 1px; }
+.motionRoot[data-motion-ready="true"] [data-marketing-reveal]:not([data-reveal-state="visible"]) { opacity: 0; transform: translateY(18px); }
+.motionRoot [data-marketing-reveal] { transition: opacity .55s cubic-bezier(.22, 1, .36, 1) var(--reveal-delay, 0ms), transform .55s cubic-bezier(.22, 1, .36, 1) var(--reveal-delay, 0ms); }
+.motionRoot [data-marketing-reveal][data-reveal-state="visible"] { opacity: 1; transform: translateY(0); }
 .container { width: min(1200px, calc(100% - 64px)); margin: 0 auto; }
 .section { padding: 88px 0; }
 .tinted { background: var(--wash); border-block: 1px solid var(--line); }
@@ -36,7 +40,9 @@
 .headerActions { display: flex; align-items: center; gap: 10px; }
 .headerActions .button { white-space: nowrap; }
 .themeToggle { width: 48px; height: 48px; border-radius: 6px; color: var(--ink); }
-.button, .secondary, .heroSecondary { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 48px; padding: 12px 22px; border-radius: 6px; font-size: 14px; font-weight: 600; transition: background .15s; }
+.button, .secondary, .heroSecondary { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 48px; padding: 12px 22px; border-radius: 6px; font-size: 14px; font-weight: 600; transition: background .2s, border-color .2s, color .2s, transform .2s; }
+.button:hover, .secondary:hover, .heroSecondary:hover { transform: translateY(-2px); }
+.button:active, .secondary:active, .heroSecondary:active { transform: translateY(0); }
 .button { background: #0874cf; color: #fff; border: 1px solid #0874cf; }
 .button:hover { background: #075faa; }
 .secondary { color: var(--ink); border: 1px solid var(--line); background: var(--paper); }
@@ -80,8 +86,10 @@
 .workflowStep > div { display: flex; justify-content: space-between; align-items: center; color: var(--blue); }
 .workflowStep span, .stepNumber { font-family: var(--font-outfit), sans-serif; font-size: 38px; color: var(--blue); }
 .cardGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.featureCard { border: 1px solid var(--line); border-radius: 8px; padding: 26px; display: flex; flex-direction: column; background: var(--paper); transition: border-color .15s; min-width: 0; }
-.featureCard:hover { border-color: var(--blue); }
+.featureCard { border: 1px solid var(--line); border-radius: 8px; padding: 26px; display: flex; flex-direction: column; background: var(--paper); transition: border-color .2s, transform .25s cubic-bezier(.22, 1, .36, 1), box-shadow .25s; min-width: 0; }
+.featureCard:hover { border-color: var(--blue); transform: translateY(-4px); box-shadow: 0 14px 30px #071b2012; }
+.featureCard .cardArrow svg, .textLink svg { transition: transform .2s; }
+.featureCard:hover .cardArrow svg, .textLink:hover svg { transform: translateX(3px); }
 .cardTitle { display: block; font-family: var(--font-outfit), Arial, sans-serif; font-size: 25px; font-weight: 500; line-height: 1.12; margin: 16px 0 12px; text-wrap: balance; }
 .featureCard p { font-size: 14px; margin-bottom: 24px; }
 .cardLabel { color: var(--blue); font-size: 12px; font-weight: 600; }
@@ -211,7 +219,10 @@
   .calculator { padding: 22px; gap: 24px; }
   .calculator dl { font-size: 14px; }
 }
-@media (prefers-reduced-motion: reduce) { .site * { transition: none !important; animation-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) {
+  .site * { transition: none !important; animation-duration: .01ms !important; }
+  .motionRoot [data-marketing-reveal] { opacity: 1 !important; transform: none !important; }
+}
 @media (max-width: 360px) {
   .headerInner { gap: 4px; }
   .logo, .logo img { width: 64px; }

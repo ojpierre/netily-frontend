@@ -41,6 +41,8 @@ export interface Company {
   id: number
   name: string
   email: string
+  country?: string
+  base_currency?: string
 }
 
 export interface FeatureRequest {
@@ -2033,6 +2035,7 @@ export interface BillingCycleSummary {
 // ==========================================
 
 export type PaymentMethodType =
+  | 'IOTEC_MOMO'
   | 'MPESA'
   | 'MPESA_NUMBER'
   | 'MPESA_STK'
@@ -2053,6 +2056,32 @@ export type PaymentMethodType =
   | 'STRIPE'
   | 'OTHER'
 
+export interface IotecConfiguration {
+  id: number
+  name: string
+  client_id: string
+  wallet_id: string
+  is_sandbox: boolean
+  transaction_charges_category: 'ChargeWallet' | 'ChargeCustomer'
+  is_active: boolean
+  has_client_secret: boolean
+  validation_status: 'PENDING' | 'VALID' | 'INVALID'
+  validation_error?: string | null
+  last_validated_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface IotecConfigurationInput {
+  name?: string
+  client_id: string
+  client_secret?: string
+  wallet_id: string
+  is_sandbox: boolean
+  transaction_charges_category: 'ChargeWallet' | 'ChargeCustomer'
+  is_active: boolean
+}
+
 export interface PaymentMethod {
   id: number
   name: string
@@ -2064,6 +2093,7 @@ export interface PaymentMethod {
   payhero_channel_id?: number
   // M-Pesa Daraja configuration fields
   mpesa_configuration?: number | null
+  iotec_configuration?: number | null
   mpesa_configuration_details?: {
     id: number
     business_shortcode: string
@@ -3566,20 +3596,25 @@ export interface CustomerPaymentInitiateRequest {
 }
 
 export interface CustomerPaymentInitiateResponse {
-  status: 'success' | 'error'
+  status: 'pending' | 'success' | 'failed' | 'error'
   payment_id: number
-  checkout_request_id: string
-  merchant_request_id: string
-  message: string
+  checkout_request_id?: string
+  merchant_request_id?: string
+  message?: string
+  error?: string
+  payment_number?: string
+  payhero_response?: { checkout_request_id?: string }
+  tuma_response?: { payment_id?: number; checkout_request_id?: string; message?: string }
 }
 
 export interface CustomerPaymentStatus {
   payment_id: number
-  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
   amount: string
   reference?: string
-  completed_at?: string
+  message?: string
   error_message?: string
+  completed_at?: string
 }
 
 export interface CustomerPlan {

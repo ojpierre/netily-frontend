@@ -180,9 +180,11 @@ function findTarget(selector?: string) {
 export function AdminOnboardingTour({
   user,
   disabled = false,
+  country = "KE",
 }: {
   user?: AdminOnboardingUser | null
   disabled?: boolean
+  country?: string
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -191,9 +193,22 @@ export function AdminOnboardingTour({
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [targetMissing, setTargetMissing] = useState(false)
 
-  const step = steps[index]
+  const tourSteps = useMemo(() => country === "UG" ? steps.map((step) => {
+    if (step.id === "welcome") return { ...step, hint: "Have your router details, plan prices, iotec wallet details, and SMS preference nearby." }
+    if (step.id === "plan-form") return { ...step, hint: "Choose prices in UGX. Hotspot plans need at least UGX 500 for Mobile Money payments." }
+    if (step.id === "payment-methods") return { ...step, target: "[data-onboarding='nav-payment-methods'], [data-onboarding='payment-methods-iotec-card']", body: "Connect your iotec wallet so customers can pay with MTN MoMo or Airtel Money." }
+    if (step.id === "daraja-form") return {
+      ...step, target: "[data-onboarding='payment-methods-iotec-card'], [data-onboarding='iotec-config-form']",
+      event: "netily:onboarding:open-iotec", eyebrow: "Mobile Money setup",
+      title: "Add your iotec wallet details.",
+      body: "Save your client ID, client secret, and wallet ID. Test the connection, then activate Mobile Money.",
+      primary: "Open Mobile Money setup",
+    }
+    return step
+  }) : steps, [country])
+  const step = tourSteps[index]
   const Icon = step.icon
-  const progress = Math.round(((index + 1) / steps.length) * 100)
+  const progress = Math.round(((index + 1) / tourSteps.length) * 100)
 
   useEffect(() => {
     if (disabled || !isPrincipalAdmin(user) || typeof window === "undefined") return
@@ -211,7 +226,7 @@ export function AdminOnboardingTour({
     }
 
     const savedIndex = Number(window.localStorage.getItem(scopedKey(user, "step")) || "0")
-    setIndex(Number.isFinite(savedIndex) ? Math.min(Math.max(savedIndex, 0), steps.length - 1) : 0)
+    setIndex(Number.isFinite(savedIndex) ? Math.min(Math.max(savedIndex, 0), tourSteps.length - 1) : 0)
     const timer = window.setTimeout(() => setActive(true), 700)
     return () => window.clearTimeout(timer)
   }, [disabled, user])
@@ -281,7 +296,7 @@ export function AdminOnboardingTour({
     if (step.event && typeof window !== "undefined" && (!step.route || pathname === step.route)) {
       window.dispatchEvent(new CustomEvent(step.event))
     }
-    if (index >= steps.length - 1) {
+    if (index >= tourSteps.length - 1) {
       close(true)
       return
     }
@@ -354,7 +369,7 @@ export function AdminOnboardingTour({
           </div>
         </div>
         <p className="mt-3 text-center text-[11px] text-muted-foreground">
-          {index + 1} of {steps.length}
+          {index + 1} of {tourSteps.length}
         </p>
       </div>
     </div>

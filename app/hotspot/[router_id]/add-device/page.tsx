@@ -1,13 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { Tv, Loader2, CheckCircle2, XCircle, RefreshCw, Smartphone } from "lucide-react"
 
 /**
  * Smart TV / Limited Device — Pairing Code Page
  * 
- * Cloud Controller flow for devices that can't do M-Pesa STK Push:
+ * Cloud Controller flow for devices that cannot complete a payment prompt:
  * 1. Smart TV connects to hotspot → redirected here
  * 2. This page requests a 6-digit pairing code from the backend
  * 3. TV displays the code + polls for authorization
@@ -20,7 +20,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v
 
 type PairingStatus = "loading" | "showing_code" | "authorized" | "expired" | "error"
 
-export default function AddDevicePage({ params }: { params: { router_id: string } }) {
+export default function AddDevicePage() {
+  const params = useParams<{ router_id: string }>()
   const routerId = params.router_id
   const searchParams = useSearchParams()
   const macAddress = searchParams.get("mac") || "00:00:00:00:00:00"
@@ -195,7 +196,7 @@ export default function AddDevicePage({ params }: { params: { router_id: string 
         {/* Content */}
         <div className="p-8 text-center">
           <p className="text-gray-600 mb-6">
-            This device can&apos;t process M-Pesa payments directly. 
+            This device can&apos;t complete mobile payments directly.
             Use your phone to authorize it.
           </p>
 

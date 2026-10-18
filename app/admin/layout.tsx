@@ -687,7 +687,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [topbarNow, setTopbarNow] = useState(() => new Date())
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout, loading } = useAdminAuth()
+  const { user, logout, loading, country, localeLoading } = useAdminAuth()
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -1851,7 +1851,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <SessionInactivityGuard onLogout={logout} areaLabel="tenant dashboard" />
         )}
         <NetilySupportChat />
-        <AdminOnboardingTour user={user} disabled={isDemoMode || isPublicPage || loading} />
+        <AdminOnboardingTour user={user} country={country} disabled={isDemoMode || isPublicPage || loading || localeLoading} />
       </div>
     </div>
   )

@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, CheckCircle2, XCircle, Smartphone, CreditCard } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount, isValidPaymentPhone, normalizePaymentPhone } from "@/lib/tenant-locale"
 
 interface MpesaPaymentModalProps {
   open: boolean
@@ -35,44 +37,26 @@ export function MpesaPaymentModal({
   billingPeriod = "monthly",
   onSuccess,
 }: MpesaPaymentModalProps) {
+  const { locale, ready } = useCustomerPaymentLocale()
   const [phoneNumber, setPhoneNumber] = useState("")
   const [status, setStatus] = useState<PaymentStatus>("idle")
   const [error, setError] = useState<string | null>(null)
-  const [transactionId, setTransactionId] = useState<string | null>(null)
+  const [paymentMessage, setPaymentMessage] = useState("")
+  const [paymentId, setPaymentId] = useState<number | null>(null)
   const [pollCount, setPollCount] = useState(0)
 
   const maxPolls = 30 // 30 * 3s = 90 seconds max wait
-
-  // Format phone number to 254XXXXXXXXX
-  const formatPhoneNumber = (phone: string): string => {
-    let cleaned = phone.replace(/\D/g, "")
-    
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.substring(1)
-    } else if (cleaned.startsWith("+")) {
-      cleaned = cleaned.substring(1)
-    } else if (!cleaned.startsWith("254")) {
-      cleaned = "254" + cleaned
-    }
-    
-    return cleaned
-  }
-
-  // Validate phone number
-  const isValidPhone = (phone: string): boolean => {
-    const formatted = formatPhoneNumber(phone)
-    return /^254[17]\d{8}$/.test(formatted)
-  }
 
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
       setStatus("idle")
       setError(null)
-      setTransactionId(null)
+      setPaymentMessage("")
+      setPaymentId(null)
       setPollCount(0)
       // Try to get saved phone number
-      const savedPhone = localStorage.getItem("customerPhone")
+      const savedPhone = localStorage.getItem(`customerPhone:${window.location.hostname}`)
       if (savedPhone) {
         setPhoneNumber(savedPhone)
       }
@@ -81,11 +65,11 @@ export function MpesaPaymentModal({
 
   // Poll for payment status
   useEffect(() => {
-    if (status !== "polling" || !transactionId) return
+    if (status !== "polling" || !paymentId) return
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await customerApi.getPaymentStatus(transactionId)
+        const response = await customerApi.getIspPaymentStatus(paymentId)
         
         // Ensure we force the status to lowercase to match perfectly
         const backendStatus = String(response.status).toLowerCase()
@@ -94,21 +78,22 @@ export function MpesaPaymentModal({
           setStatus("success")
           clearInterval(pollInterval)
           // Save phone for future use
-          localStorage.setItem("customerPhone", phoneNumber)
+          localStorage.setItem(`customerPhone:${window.location.hostname}`, phoneNumber)
           setTimeout(() => {
             onSuccess?.()
             onClose()
           }, 2000)
         } else if (backendStatus === "failed" || backendStatus === "cancelled") {
           setStatus("failed")
-          setError(response.message || "Payment failed")
+          setError(response.message || response.error_message || "Payment failed")
           clearInterval(pollInterval)
         } else {
+          if (response.message) setPaymentMessage(response.message)
           // Still pending
           setPollCount((prev) => {
             if (prev >= maxPolls) {
               setStatus("failed")
-              setError("Payment timeout. Please try again or check your M-Pesa messages.")
+              setError("We could not confirm the payment yet. If you approved it, check your payment history before trying again.")
               clearInterval(pollInterval)
             }
             return prev + 1
@@ -122,13 +107,14 @@ export function MpesaPaymentModal({
     }, 3000)
 
     return () => clearInterval(pollInterval)
-  }, [status, transactionId, phoneNumber, onSuccess, onClose])
+  }, [status, paymentId, phoneNumber, onSuccess, onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!isValidPhone(phoneNumber)) {
-      setError("Please enter a valid Safaricom phone number")
+    if (!ready) return
+    if (!isValidPaymentPhone(phoneNumber, locale)) {
+      setError("Please enter a valid phone number")
       return
     }
 
@@ -136,15 +122,15 @@ export function MpesaPaymentModal({
     setError(null)
 
     try {
-      const formattedPhone = formatPhoneNumber(phoneNumber)
-      const response = await customerApi.initiatePayment({
-        plan_id: planId,
+      const formattedPhone = normalizePaymentPhone(phoneNumber, locale)
+      const response = await customerApi.initiateIspPayment({
         phone_number: formattedPhone,
-        billing_period: billingPeriod,
-        amount: amount,
+        amount: Number(amount),
       })
 
-      setTransactionId(response.transaction_id || response.checkout_request_id)
+      if (!response.payment_id) throw new Error("Payment started, but its tracking reference is missing. Check payment history before trying again.")
+      setPaymentId(response.payment_id)
+      setPaymentMessage(response.tuma_response?.message || response.message || "Check your phone and approve the request.")
       setStatus("waiting")
       
       // Start polling after a short delay
@@ -152,7 +138,6 @@ export function MpesaPaymentModal({
         setStatus("polling")
       }, 3000)
     } catch (err: any) {
-      console.error("Payment initiation error:", err)
       setStatus("failed")
       setError(err.message || "Failed to initiate payment")
     }
@@ -161,7 +146,7 @@ export function MpesaPaymentModal({
   const handleClose = () => {
     if (status === "waiting" || status === "polling") {
       // Don't close during payment, but allow cancel
-      if (window.confirm("Are you sure you want to cancel? Check your M-Pesa if you've already entered PIN.")) {
+      if (window.confirm("Close this window? If you approved the payment, check your payment history before paying again.")) {
         onClose()
       }
     } else {
@@ -175,23 +160,23 @@ export function MpesaPaymentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-success" />
-            M-Pesa Payment
+            {locale.provider} Payment
           </DialogTitle>
           <DialogDescription>
-            Pay KSh {parseFloat(amount).toLocaleString()} for {planName}
+            Pay {formatPaymentAmount(amount, locale.currency)} for {planName}
           </DialogDescription>
         </DialogHeader>
 
         {status === "idle" && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Safaricom Phone Number</Label>
+              <Label htmlFor="phone">{locale.paymentNumberLabel}</Label>
               <div className="relative">
                 <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="0712345678"
+                  placeholder={locale.phonePlaceholder}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="pl-10"
@@ -199,7 +184,7 @@ export function MpesaPaymentModal({
                 />
               </div>
               <p className="text-xs text-slate-500">
-                You will receive an STK push on this number
+                You will receive a payment request on this number
               </p>
             </div>
 
@@ -221,9 +206,9 @@ export function MpesaPaymentModal({
               <Button
                 type="submit"
                 className="flex-1 bg-success hover:bg-green-700"
-                disabled={!phoneNumber.trim()}
+                disabled={!ready || !phoneNumber.trim()}
               >
-                Pay KSh {parseFloat(amount).toLocaleString()}
+                Pay {formatPaymentAmount(amount, locale.currency)}
               </Button>
             </div>
           </form>
@@ -234,7 +219,7 @@ export function MpesaPaymentModal({
             <Loader2 className="w-12 h-12 animate-spin mx-auto text-success mb-4" />
             <p className="font-medium text-slate-900">Initiating payment...</p>
             <p className="text-sm text-slate-500 mt-1">
-              Please wait while we connect to M-Pesa
+              Please wait while we connect to {locale.provider}
             </p>
           </div>
         )}
@@ -246,7 +231,7 @@ export function MpesaPaymentModal({
             </div>
             <p className="font-medium text-slate-900">Check your phone</p>
             <p className="text-sm text-slate-500 mt-1">
-              Enter your M-Pesa PIN when prompted
+              {paymentMessage || `Approve the request on your phone and enter your ${locale.provider} PIN`}
             </p>
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-400">
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -254,7 +239,7 @@ export function MpesaPaymentModal({
             </div>
             {pollCount > 10 && (
               <p className="text-xs text-warning mt-2">
-                Taking longer than expected. Please check your M-Pesa messages.
+                Taking longer than expected. Please check your phone.
               </p>
             )}
           </div>

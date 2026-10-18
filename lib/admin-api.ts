@@ -24,6 +24,8 @@ import type {
   InvoiceItem,
   Payment,
   MpesaConfiguration,
+  IotecConfiguration,
+  IotecConfigurationInput,
   MpesaTransaction,
   Technician,
   DispatchJob,
@@ -1140,7 +1142,7 @@ async activateService(
     })
   }
 
-  async getTenantBranding(): Promise<{ id: number; name: string; logo?: string; logo_url?: string | null }> {
+  async getTenantBranding(): Promise<{ id: number; name: string; logo?: string; logo_url?: string | null; country?: string; base_currency?: string }> {
     return this.request('/core/branding/')
   }
 
@@ -2762,6 +2764,7 @@ async activateService(
       payhero_channel_id: item?.payhero_channel_id ?? item?.channel_id,
       mpesa_configuration: item?.mpesa_configuration ?? null,           // ADD
       mpesa_configuration_details: item?.mpesa_configuration_details ?? null, // ADD
+      iotec_configuration: item?.iotec_configuration ?? null,
       tuma_configuration: item?.tuma_configuration ?? null,             // ADD
       config,
       is_active: typeof item?.is_active === 'boolean' ? item.is_active : item?.status === 'ACTIVE',
@@ -2879,6 +2882,38 @@ async activateService(
     return this.request<{ success: boolean; message: string }>(`/billing/payment-methods/${id}/test_connection/`, {
       method: 'POST',
     })
+  }
+
+  async getIotecConfigurations(): Promise<IotecConfiguration[]> {
+    return this.request<IotecConfiguration[]>('/billing/iotec-config/')
+  }
+
+  async createIotecConfiguration(data: IotecConfigurationInput): Promise<IotecConfiguration> {
+    return this.request<IotecConfiguration>('/billing/iotec-config/', {
+      method: 'POST', body: JSON.stringify(data),
+    })
+  }
+
+  async updateIotecConfiguration(id: number, data: Partial<IotecConfigurationInput>): Promise<IotecConfiguration> {
+    return this.request<IotecConfiguration>(`/billing/iotec-config/${id}/`, {
+      method: 'PATCH', body: JSON.stringify(data),
+    })
+  }
+
+  async deleteIotecConfiguration(id: number): Promise<void> {
+    await this.request(`/billing/iotec-config/${id}/`, { method: 'DELETE' })
+  }
+
+  async testIotecConfiguration(id: number): Promise<{ success: boolean; message: string; balance?: unknown }> {
+    return this.request(`/billing/iotec-config/${id}/test-connection/`, { method: 'POST' })
+  }
+
+  async activateIotecConfiguration(id: number): Promise<{ message?: string }> {
+    return this.request(`/billing/iotec-config/${id}/activate-as-primary/`, { method: 'POST' })
+  }
+
+  async toggleIotecConfiguration(id: number): Promise<{ message?: string; is_active?: boolean }> {
+    return this.request(`/billing/iotec-config/${id}/toggle-active/`, { method: 'POST' })
   }
 
   // ------------------------------------------

@@ -43,8 +43,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { useAdminAuth } from "@/app/admin/admin-auth-context"
+import { IotecSettingsDialog } from "./iotec-settings-dialog"
 import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
-import type { PaymentMethod, PaymentDashboardStats } from "@/lib/types"
+import type { PaymentMethod, PaymentDashboardStats, IotecConfiguration } from "@/lib/types"
 
 // =============================================================================
 // CONSTANTS
@@ -96,6 +98,9 @@ function summaryForChannel(kind: ChannelKind, m?: PaymentMethod) {
 // PAGE
 // =============================================================================
 export default function PaymentMethodsPage() {
+  const { user, country, baseCurrency, localeLoading } = useAdminAuth()
+  const isUganda = country === "UG"
+  const canManageIotec = !!user && (user.is_superuser || user.role === "admin")
   const [methods, setMethods] = useState<PaymentMethod[]>([])
   const [methodsLoading, setMethodsLoading] = useState(true)
   const [methodsError, setMethodsError] = useState<string | null>(null)
@@ -110,6 +115,16 @@ export default function PaymentMethodsPage() {
   const [kopoOpen, setKopoOpen] = useState(false)
 
   const [kopoConfig, setKopoConfig] = useState<Record<string, string>>({})
+  const [iotecConfigs, setIotecConfigs] = useState<IotecConfiguration[]>([])
+  const [iotecOpen, setIotecOpen] = useState(false)
+  const [iotecBusy, setIotecBusy] = useState(false)
+  const [iotecError, setIotecError] = useState<string | null>(null)
+
+  const fetchIotec = useCallback(async () => {
+    if (country !== "UG" || !canManageIotec) return
+    try { setIotecConfigs(await adminApi.getIotecConfigurations()); setIotecError(null) }
+    catch (error) { setIotecError(error instanceof Error ? error.message : "Could not load Mobile Money settings") }
+  }, [country, canManageIotec])
 
   const fetchMethods = useCallback(async () => {
     try {
@@ -136,27 +151,37 @@ export default function PaymentMethodsPage() {
 
   useEffect(() => {
     const openDarajaSetup = () => setDarajaOpen(true)
+    const openIotecSetup = () => setIotecOpen(true)
     window.addEventListener("netily:onboarding:open-daraja", openDarajaSetup)
-    return () => window.removeEventListener("netily:onboarding:open-daraja", openDarajaSetup)
+    window.addEventListener("netily:onboarding:open-iotec", openIotecSetup)
+    return () => {
+      window.removeEventListener("netily:onboarding:open-daraja", openDarajaSetup)
+      window.removeEventListener("netily:onboarding:open-iotec", openIotecSetup)
+    }
   }, [])
 
   useEffect(() => {
     fetchMethods()
     fetchStats()
-    adminApi.getKopoKopoConfig().then((d: any) => setKopoConfig(d || {})).catch(() => {})
   }, [fetchMethods, fetchStats])
+
+  useEffect(() => {
+    if (localeLoading) return
+    if (isUganda) void fetchIotec()
+    else adminApi.getKopoKopoConfig().then((d: any) => setKopoConfig(d || {})).catch(() => {})
+  }, [isUganda, localeLoading, fetchIotec])
 
   // ── Split by gateway. Now that the backend actually returns
   // mpesa_configuration, this correctly excludes Daraja-linked methods
   // from the Tuma-backed channel cards. ──
   const darajaMethods = methods.filter((m) => !!m.mpesa_configuration)
-  const tumaMethods = methods.filter((m) => !m.mpesa_configuration)
+  const tumaMethods = methods.filter((m) => !m.mpesa_configuration && m.method_type !== "IOTEC_MOMO")
 
   const bankMethod = tumaMethods.find((m) => m.method_type === "BANK_TRANSFER")
   const tillMethod = tumaMethods.find((m) => m.method_type === "MPESA_TILL")
   const paybillMethod = tumaMethods.find((m) => m.method_type === "MPESA_PAYBILL")
 
-  const activeMethod = methods.find((m) => m.is_active)
+  const activeMethod = methods.find((m) => m.is_active && (!isUganda || m.method_type === "IOTEC_MOMO"))
   const activeDaraja = darajaMethods.find((m) => m.is_active)
   const darajaSummary = activeDaraja?.mpesa_configuration_details
     ? `${activeDaraja.mpesa_configuration_details.shortcode_type === "TILL" ? "Till" : "Paybill"}: ${activeDaraja.mpesa_configuration_details.business_shortcode}`
@@ -175,12 +200,7 @@ export default function PaymentMethodsPage() {
     try {
       const result = await adminApi.togglePaymentMethodActive(method.id)
       const channel = result.settlement_channel || method.name
-      toast.success(`${method.name} activated`, {
-        description:
-          result.tuma_synced !== false
-            ? `Subscribers now pay via ${channel}.`
-            : `Activated locally. Sync pending${result.tuma_error ? `: ${result.tuma_error}` : "."}`,
-      })
+      toast.success(`${method.name} activated. ${result.tuma_synced !== false ? `Subscribers now pay via ${channel}.` : `Sync pending${result.tuma_error ? `: ${result.tuma_error}` : "."}`}`)
       fetchMethods()
       fetchStats()
     } catch (err: any) {
@@ -191,15 +211,26 @@ export default function PaymentMethodsPage() {
   }
 
   const connectedCount =
+    isUganda ? (iotecConfigs.length > 0 || methods.some((m) => m.method_type === "IOTEC_MOMO") ? 1 : 0) :
     (bankMethod ? 1 : 0) + (tillMethod ? 1 : 0) + (paybillMethod ? 1 : 0) +
     (darajaMethods.length > 0 ? 1 : 0) + (kopoConfigured ? 1 : 0)
 
-  if (methodsLoading) {
+  const iotecConfig = iotecConfigs[0]
+  const iotecMethod = methods.find((m) => m.method_type === "IOTEC_MOMO")
+  const refreshPaymentData = async () => { await Promise.all([fetchMethods(), fetchStats(), fetchIotec()]) }
+  const runIotecAction = async (action: () => Promise<unknown>, success: string) => {
+    setIotecBusy(true)
+    try { await action(); toast.success(success); await refreshPaymentData() }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Mobile Money action failed") }
+    finally { setIotecBusy(false) }
+  }
+
+  if (methodsLoading || localeLoading) {
     return (
       <div className="flex flex-col gap-6 p-6">
         <Skeleton className="h-8 w-56" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+          {Array.from({ length: isUganda ? 1 : 5 }, (_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
         </div>
       </div>
     )
@@ -245,11 +276,32 @@ export default function PaymentMethodsPage() {
           )}
 
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            5 gateways available · {connectedCount} connected
-            {statsLoading ? "" : stats ? ` · KES ${Number(stats.amount_this_month || stats.total_amount || 0).toLocaleString()} this month` : ""}
+            {isUganda ? 1 : 5} gateway{isUganda ? "" : "s"} available · {connectedCount} connected
+            {statsLoading ? "" : stats ? ` · ${new Intl.NumberFormat("en-KE", { style: "currency", currency: baseCurrency, maximumFractionDigits: baseCurrency === "UGX" ? 0 : 2 }).format(Number(stats.amount_this_month || stats.total_amount || 0))} this month` : ""}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {isUganda ? (
+              <Card data-onboarding="payment-methods-iotec-card" className="border-primary/30">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3"><Smartphone className="h-5 w-5 text-primary" /><CardTitle className="text-sm">iotec Mobile Money</CardTitle><Badge variant="outline">Uganda</Badge></div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2"><Badge variant="outline">MTN MoMo</Badge><Badge variant="outline">Airtel Money</Badge>
+                    {iotecConfig && <Badge variant={iotecConfig.is_active ? "default" : "secondary"}>{iotecConfig.is_active ? "Active" : "Connected"}</Badge>}
+                    {iotecConfig && <Badge variant={iotecConfig.validation_status === "INVALID" ? "destructive" : "outline"}>{iotecConfig.validation_status}</Badge>}
+                  </div>
+                  {iotecConfig && <p className="text-sm text-muted-foreground">{iotecConfig.is_sandbox ? "Sandbox" : "Live"} · Wallet ending {iotecConfig.wallet_id.slice(-6)}</p>}
+                  {iotecConfig?.validation_status === "INVALID" && iotecConfig.validation_error && <p className="text-xs text-destructive">{iotecConfig.validation_error}</p>}
+                  <p className="text-xs text-muted-foreground">Settlement: directly to your iotec wallet</p>
+                  {iotecError && <div role="alert" className="flex items-center gap-2 text-xs text-destructive"><span>{iotecError}</span><Button size="sm" variant="ghost" onClick={() => void fetchIotec()}>Retry</Button></div>}
+                  {canManageIotec ? <div className="flex flex-wrap gap-2 pt-2 border-t">
+                    <Button size="sm" variant="outline" disabled={!!iotecError} onClick={() => setIotecOpen(true)}>{iotecConfig ? "Edit" : "Configure"}</Button>
+                    {iotecConfig && <Button size="sm" variant="secondary" disabled={iotecBusy} onClick={() => void runIotecAction(() => iotecConfig.is_active ? adminApi.toggleIotecConfiguration(iotecConfig.id) : adminApi.activateIotecConfiguration(iotecConfig.id), iotecConfig.is_active ? "Mobile Money deactivated" : "Mobile Money activated")}>{iotecConfig.is_active ? "Deactivate" : "Activate"}</Button>}
+                  </div> : <p className="text-xs text-muted-foreground">Only tenant administrators can manage this gateway.</p>}
+                </CardContent>
+              </Card>
+            ) : <>
             <GatewayCard
               icon={Landmark}
               title="Bank Account"
@@ -320,8 +372,11 @@ export default function PaymentMethodsPage() {
               iconColor="text-amber-600"
               iconBg="bg-amber-50 dark:bg-amber-950/30"
             />
+            </>}
           </div>
         </div>
+
+        {isUganda && canManageIotec && <IotecSettingsDialog open={iotecOpen} onOpenChange={setIotecOpen} config={iotecConfig} onChanged={refreshPaymentData} />}
 
         {/* Bank / Till / Paybill edit dialog */}
         <ChannelFormDialog
@@ -511,9 +566,7 @@ function ChannelFormDialog({
         toast.success(`${meta.title} updated`)
       } else {
         await adminApi.createPaymentMethod(payload)
-        toast.success(`${meta.title} saved`, {
-          description: "Activate it on the card to start collecting payments here.",
-        })
+        toast.success(`${meta.title} saved. Activate it on the card to start collecting payments here.`)
       }
       onSaved()
     } catch (err: any) {

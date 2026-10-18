@@ -1,10 +1,11 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { MessageCircle, X, Send, Loader2 } from "lucide-react"
+import type { PaymentLocale } from "@/lib/tenant-locale"
 
 interface Msg { id: number; sender_type: string; sender_name: string; body: string; created_at: string }
 
-export default function ChatWidget({ routerId, tenant, theme }: { routerId: string; tenant: string; theme: any }) {
+export default function ChatWidget({ routerId, tenant, theme, locale }: { routerId: string; tenant: string; theme: any; locale: PaymentLocale }) {
   const [open, setOpen] = useState(false)
   const [phone, setPhone] = useState("")
   const [verified, setVerified] = useState(false)
@@ -104,7 +105,7 @@ export default function ChatWidget({ routerId, tenant, theme }: { routerId: stri
             </p>
             <input
               type="tel"
-              placeholder="07XX XXX XXX"
+              placeholder={locale.phonePlaceholder}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"

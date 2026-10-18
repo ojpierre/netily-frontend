@@ -2,6 +2,7 @@
 
 import { AlertCircle, Clock, Database, Phone, Zap } from "lucide-react"
 import type { HotspotPlan, PortalConfig } from "./HotspotClientView"
+import { formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
 
 // Local PhoneInput (original)
 function PhoneInputLocal({
@@ -9,22 +10,24 @@ function PhoneInputLocal({
   phoneError,
   onPhoneChange,
   theme,
+  locale,
 }: {
   phoneNumber: string
   phoneError: string | null
   onPhoneChange: (v: string) => void
   theme: any
+  locale: PaymentLocale
 }) {
   return (
     <div className="mb-6">
       <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
-        M-Pesa Phone Number
+        {locale.paymentNumberLabel}
       </label>
       <div className="relative">
         <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
         <input
           type="tel"
-          placeholder="0712 345 678"
+          placeholder={locale.phonePlaceholder}
           value={phoneNumber}
           onChange={(e) => onPhoneChange(e.target.value)}
           className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${
@@ -50,6 +53,7 @@ interface PaymentModalProps {
   theme: any
   branding: any
   portalConfig: PortalConfig | null
+  locale: PaymentLocale
   targetDevice: "this" | "tv"
   tvMacVerified: boolean
   onPhoneChange: (value: string) => void
@@ -65,6 +69,7 @@ export default function PaymentModal({
   theme,
   branding,
   portalConfig,
+  locale,
   targetDevice,
   tvMacVerified,
   onPhoneChange,
@@ -111,7 +116,7 @@ export default function PaymentModal({
             )}
           </div>
           <div className={`text-2xl font-bold mt-2 ${theme.planPrice}`} style={brandingPriceStyle}>
-            {selectedPlan.currency || "KES"} {selectedPlan.price}
+            {formatPaymentAmount(selectedPlan.price, selectedPlan.currency || locale.currency)}
           </div>
         </div>
 
@@ -121,6 +126,7 @@ export default function PaymentModal({
           phoneError={phoneError}
           onPhoneChange={onPhoneChange}
           theme={theme}
+          locale={locale}
         />
 
         {/* Inline Error */}
@@ -138,7 +144,7 @@ export default function PaymentModal({
           className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
           style={brandingCtaStyle}
         >
-          Pay {selectedPlan.currency || "KES"} {selectedPlan.price} with M-Pesa
+          Pay {formatPaymentAmount(selectedPlan.price, selectedPlan.currency || locale.currency)} with {locale.provider}
         </button>
 
         <p className={`text-center text-xs mt-3 ${theme.footerText}`}>

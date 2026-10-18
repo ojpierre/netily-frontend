@@ -107,12 +107,11 @@ import {
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
+import { useAdminAuth } from "@/app/admin/admin-auth-context"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 import type { Plan, PlanType, PlanDashboardStats, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse, Router } from "@/lib/types"
 
-const formatCurrency = (amount: string | number) => {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount
-  return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(num || 0)
-}
+const formatCurrency = (amount: string | number, currency: string) => formatPaymentAmount(amount, currency)
 
 const getPlanSubscriberCount = (plan?: Plan | null) => {
   const raw: unknown =
@@ -238,8 +237,9 @@ const HOTSPOT_PRESETS: HotspotPreset[] = [
 ]
 
 // Reusable PlanCard component
-function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deletingId, canEdit = true, canDelete = true }: {
+function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, togglingId, deletingId, canEdit = true, canDelete = true }: {
   plan: Plan
+  currency: string
   onView: (p: Plan) => void
   onEdit: (p: Plan) => void
   onToggle: (p: Plan) => void
@@ -343,7 +343,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
       <CardContent className="space-y-4">
         <div className="text-center py-4 bg-muted rounded-lg">
           <p className="text-3xl font-bold">
-            {isFreeTrial ? 'FREE' : formatCurrency(plan.price ?? plan.base_price)}
+            {isFreeTrial ? 'FREE' : formatCurrency(plan.price ?? plan.base_price, currency)}
           </p>
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
             {(() => {
@@ -428,6 +428,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
 
 export default function PlansPage() {
   const perms = usePagePermissions("/admin/plans")
+  const { country, baseCurrency, localeLoading } = useAdminAuth()
   // ── States ──to prevent duplicate fetches
   const hasFetchedRef = useRef(false)
 
@@ -922,8 +923,13 @@ export default function PlansPage() {
 
   // Create plan
   const handleCreate = async () => {
+    if (localeLoading) return
     if (!planForm.name || !planForm.price) {
       toast.error('Name and price are required')
+      return
+    }
+    if (country === 'UG' && planForm.plan_type === 'HOTSPOT' && Number(planForm.price) < 500) {
+      toast.error('Mobile Money requires a minimum hotspot plan price of UGX 500.')
       return
     }
 
@@ -1094,6 +1100,11 @@ export default function PlansPage() {
 
   const handleUpdate = async () => {
     if (!selectedPlan) return
+    if (localeLoading) return
+    if (country === 'UG' && planForm.plan_type === 'HOTSPOT' && Number(planForm.price) < 500) {
+      toast.error('Mobile Money requires a minimum hotspot plan price of UGX 500.')
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -1217,6 +1228,11 @@ export default function PlansPage() {
 
   // Hotspot quick-create from preset — updated to support 'all' routers with is_global_template
   const handleHotspotPresetCreate = async (preset: HotspotPreset) => {
+    if (localeLoading) return
+    if (country === 'UG' && preset.config.base_price < 500) {
+      toast.error('Mobile Money requires a minimum hotspot plan price of UGX 500.')
+      return
+    }
     if (!selectedRouterId) {
       toast.error('Please select a router first')
       return
@@ -1273,8 +1289,13 @@ export default function PlansPage() {
 
   // Hotspot custom create/edit handler — UPDATED with is_tv_plan
   const handleHotspotCustomCreate = async () => {
+    if (localeLoading) return
     if (!hotspotForm.name || !hotspotForm.price) {
       toast.error('Name and price are required')
+      return
+    }
+    if (country === 'UG' && !hotspotForm.is_free_trial && Number(hotspotForm.price) < 500) {
+      toast.error('Mobile Money requires a minimum hotspot plan price of UGX 500.')
       return
     }
     setHotspotCreating(true)
@@ -1639,7 +1660,7 @@ export default function PlansPage() {
                       key={preset.id}
                       type="button"
                       onClick={() => handleHotspotPresetCreate(preset)}
-                      disabled={hotspotCreating}
+                      disabled={hotspotCreating || localeLoading || (country === 'UG' && preset.config.base_price < 500)}
                       className="group relative flex flex-col items-center p-4 rounded-xl border-2 border-dashed border-muted hover:border-primary/50 hover:bg-primary/5 transition-all text-center disabled:opacity-50"
                     >
                       <div className={`w-10 h-10 rounded-full ${preset.color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
@@ -1648,7 +1669,7 @@ export default function PlansPage() {
                       <span className="font-semibold text-sm">{preset.name}</span>
                       <span className="text-xs text-muted-foreground mt-0.5">{preset.description}</span>
                       <span className="text-sm font-bold text-primary mt-1">
-                        KES {preset.config.base_price.toLocaleString()}
+                        {formatCurrency(preset.config.base_price, baseCurrency)}
                       </span>
                       <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
                         <Gauge className="w-3 h-3" />
@@ -1685,7 +1706,7 @@ export default function PlansPage() {
           ) : viewMode === "grid" ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6">
               {filteredPlans.map(plan => (
-                <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
+                <PlanCard key={plan.id} plan={plan} currency={baseCurrency} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
             </div>
           ) : (
@@ -1717,7 +1738,7 @@ export default function PlansPage() {
                               {plan.is_popular && <Zap className="w-3 h-3 text-warning" />}
                             </div>
                           </TableCell>
-                          <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price)}</TableCell>
+                          <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price, baseCurrency)}</TableCell>
                           <TableCell>
                             <span className="flex items-center gap-1 text-sm">
                               {(() => { const Icon = getValidityIcon(plan); return <Icon className="w-3.5 h-3.5 text-muted-foreground" /> })()}
@@ -1796,7 +1817,7 @@ export default function PlansPage() {
           ) : viewMode === "grid" ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6">
               {filteredPlans.map(plan => (
-                <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
+                <PlanCard key={plan.id} plan={plan} currency={baseCurrency} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
             </div>
           ) : (
@@ -1830,7 +1851,7 @@ export default function PlansPage() {
                             </div>
                           </TableCell>
                           <TableCell>{getTypeBadge(plan.plan_type)}</TableCell>
-                          <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price)}</TableCell>
+                          <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price, baseCurrency)}</TableCell>
                           <TableCell>
                             <span className="flex items-center gap-1 text-sm">
                               {(() => { const Icon = getValidityIcon(plan); return <Icon className="w-3.5 h-3.5 text-muted-foreground" /> })()}
@@ -2054,7 +2075,7 @@ export default function PlansPage() {
 
             {/* Price */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Price (KES)</Label>
+              <Label className="text-sm font-medium">Price ({baseCurrency})</Label>
               <Input
                 type="number"
                 value={planForm.price}
@@ -2264,7 +2285,7 @@ export default function PlansPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Price (KES) *</Label>
+                  <Label>Price ({baseCurrency}) *</Label>
                   <Input
                     type="number"
                     value={planForm.price}
@@ -2655,7 +2676,7 @@ export default function PlansPage() {
 
             {/* ─── PRICE FIELD WITH FREE TRIAL VISUAL HINT ─── */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Price (KES)</Label>
+              <Label className="text-sm font-medium">Price ({baseCurrency})</Label>
               <div className="relative">
                 <Input 
                   type="number" 
@@ -2675,6 +2696,9 @@ export default function PlansPage() {
                 <p className="text-xs text-green-600 mt-1">
                   Free trial uses the <span className="font-semibold">validity period</span> above — no separate duration needed.
                 </p>
+              )}
+              {country === 'UG' && !hotspotForm.is_free_trial && Number(hotspotForm.price) < 500 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">Mobile Money requires a minimum plan price of UGX 500.</p>
               )}
             </div>
 
@@ -2933,7 +2957,7 @@ export default function PlansPage() {
 
               <div className="text-center py-6 bg-muted rounded-lg">
                 <p className="text-4xl font-bold">
-                  {(selectedPlan as any).is_free_trial ? 'FREE' : formatCurrency(selectedPlan.price ?? selectedPlan.base_price)}
+                  {(selectedPlan as any).is_free_trial ? 'FREE' : formatCurrency(selectedPlan.price ?? selectedPlan.base_price, baseCurrency)}
                 </p>
                 <p className="text-muted-foreground flex items-center justify-center gap-1">
                   {(() => {
@@ -2975,7 +2999,7 @@ export default function PlansPage() {
                 {selectedPlan.setup_fee && (
                   <div>
                     <p className="text-muted-foreground">Setup Fee</p>
-                    <p className="font-medium">{formatCurrency(selectedPlan.setup_fee)}</p>
+                    <p className="font-medium">{formatCurrency(selectedPlan.setup_fee, baseCurrency)}</p>
                   </div>
                 )}
               </div>

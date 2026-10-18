@@ -17,12 +17,16 @@ import {
   Loader2,
 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 
 interface PaymentRecord {
   id: number
   payment_number: string
   amount: string
-  payment_method: string
+  currency?: string
+  payment_method: string | number
+  payment_method_name?: string
   status: string
   reference_number?: string
   mpesa_receipt?: string
@@ -40,6 +44,7 @@ const statusConfig: Record<string, { icon: React.ElementType; color: string; bg:
 }
 
 export default function CustomerPaymentsPage() {
+  const { locale } = useCustomerPaymentLocale()
   const router = useRouter()
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -130,7 +135,7 @@ export default function CustomerPaymentsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">
-                        KSh {parseFloat(payment.amount).toLocaleString()}
+                        {formatPaymentAmount(payment.amount, payment.currency || locale.currency)}
                       </p>
                       <Badge variant="outline" className={`text-xs ${config.color} ${config.bg}`}>
                         {payment.status}
@@ -144,9 +149,8 @@ export default function CustomerPaymentsPage() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}</span>
-                      <span className="capitalize">{payment.payment_method?.replace("_", " ")}</span>
-                      {payment.mpesa_receipt && <span>Receipt: {payment.mpesa_receipt}</span>}
-                      {payment.transaction_id && <span>Ref: {payment.transaction_id}</span>}
+                      <span className="capitalize">{payment.payment_method_name || String(payment.payment_method).replace(/_/g, " ")}</span>
+                      {(payment.mpesa_receipt || payment.transaction_id || payment.payment_number) && <span>Ref: {payment.mpesa_receipt || payment.transaction_id || payment.payment_number}</span>}
                       {payment.invoice_number && <span>Invoice: {payment.invoice_number}</span>}
                     </div>
                   </div>

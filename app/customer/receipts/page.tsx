@@ -16,6 +16,8 @@ import {
   FileText,
 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 
 interface ReceiptPayment {
   id: number
@@ -31,6 +33,7 @@ interface ReceiptPayment {
 }
 
 export default function CustomerReceiptsPage() {
+  const { locale } = useCustomerPaymentLocale()
   const router = useRouter()
   const [receipts, setReceipts] = useState<ReceiptPayment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -108,7 +111,7 @@ export default function CustomerReceiptsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-bold text-lg">
-                      KSh {parseFloat(receipt.amount).toLocaleString()}
+                      {formatPaymentAmount(receipt.amount, locale.currency)}
                     </p>
                     <Badge className="bg-success/15 dark:bg-green-950 text-success dark:text-success text-xs">
                       Paid

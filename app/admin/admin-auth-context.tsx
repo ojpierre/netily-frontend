@@ -45,6 +45,10 @@ interface AdminUser {
 interface AdminAuthContextType {
   user: AdminUser | null
   loading: boolean
+  country: string
+  baseCurrency: string
+  localeLoading: boolean
+  refreshTenantLocale: () => Promise<void>
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   establishSession: (response: AdminLoginResponse, rememberMe?: boolean) => void
   logout: () => void
@@ -108,7 +112,37 @@ const hostScopedKey = (base: string): string => {
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [country, setCountry] = useState("KE")
+  const [baseCurrency, setBaseCurrency] = useState("KES")
+  const [localeLoading, setLocaleLoading] = useState(true)
   const router = useRouter()
+
+  const refreshTenantLocale = async () => {
+    try {
+      const branding = await adminApi.getTenantBranding()
+      const reportedCountry = String(branding.country || "KE").toUpperCase()
+      const nextCountry = ["KE", "UG", "TZ", "GH", "NG"].includes(reportedCountry) ? reportedCountry : "KE"
+      const currencyByCountry: Record<string, string> = { KE: "KES", UG: "UGX", TZ: "TZS", GH: "GHS", NG: "NGN" }
+      setCountry(nextCountry)
+      setBaseCurrency(branding.base_currency || currencyByCountry[nextCountry])
+    } catch {
+      setCountry("KE")
+      setBaseCurrency("KES")
+    } finally {
+      setLocaleLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user?.id) {
+      setLocaleLoading(true)
+      void refreshTenantLocale()
+    } else if (!loading) {
+      setCountry("KE")
+      setBaseCurrency("KES")
+      setLocaleLoading(false)
+    }
+  }, [user?.id, loading])
 
   useEffect(() => {
     loadUser()
@@ -450,7 +484,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AdminAuthContext.Provider value={{ user, loading, login, establishSession, logout, refreshAuth, refreshToken }}>
+    <AdminAuthContext.Provider value={{ user, loading, country, baseCurrency, localeLoading, refreshTenantLocale, login, establishSession, logout, refreshAuth, refreshToken }}>
       {children}
     </AdminAuthContext.Provider>
   )

@@ -6,6 +6,7 @@ import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 import dynamic from "next/dynamic"
 import { getTheme, type ThemeStyles } from "./theme-engine"
 import { fetchWithRetry } from "./fetchWithRetry"
+import { getPaymentLocale, normalizePaymentPhone, isValidPaymentPhone, formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -50,6 +51,8 @@ export interface HotspotPlan {
 }
 
 export interface PortalConfig {
+  country?: string
+  currency?: string
   template_id: number
   hotspot_name: string
   support_phone: string
@@ -277,7 +280,7 @@ async function initiatePurchase(data: {
       cache: "no-store",
     },
     // 🔥 FIX: No retries for mutating endpoints - prevent duplicate charges
-    { timeoutMs: 5000, retries: 0, retryDelayMs: 0 }
+    { timeoutMs: 20000, retries: 0, retryDelayMs: 0 }
   )
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Payment initiation failed" }))
@@ -665,18 +668,6 @@ function formatData(mb: number | null): string {
   return `${(mb / 1000).toFixed(1)} GB`
 }
 
-function formatPhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/\D/g, "")
-  if (cleaned.startsWith("0")) cleaned = "254" + cleaned.slice(1)
-  else if (cleaned.startsWith("+254")) cleaned = cleaned.slice(1)
-  else if (!cleaned.startsWith("254")) cleaned = "254" + cleaned
-  return cleaned
-}
-
-function isValidKenyanPhone(phone: string): boolean {
-  return /^254[17]\d{8}$/.test(formatPhoneNumber(phone))
-}
-
 function getMacAddress(): string {
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search)
@@ -712,22 +703,24 @@ export function PhoneInput({
   phoneError,
   onPhoneChange,
   theme,
+  locale,
 }: {
   phoneNumber: string
   phoneError: string | null
   onPhoneChange: (v: string) => void
   theme: ThemeStyles
+  locale: PaymentLocale
 }) {
   return (
     <div className="mb-6">
       <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
-        M-Pesa Phone Number
+        {locale.paymentNumberLabel}
       </label>
       <div className="relative">
         <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
         <input
           type="tel"
-          placeholder="0712 345 678"
+          placeholder={locale.phonePlaceholder}
           value={phoneNumber}
           onChange={(e) => onPhoneChange(e.target.value)}
           className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${
@@ -780,6 +773,7 @@ export default function HotspotClientView({
   // ==========================================
   const [plans, setPlans] = useState<HotspotPlan[]>(initialPlans)
   const [portalConfig, setPortalConfig] = useState<PortalConfig | null>(initialPortalConfig)
+  const paymentLocale = getPaymentLocale(portalConfig?.country, portalConfig?.currency)
   const [branding, setBranding] = useState<BrandingConfig | null>(initialBranding)
   const [loading, setLoading] = useState(initialPlans.length === 0)
   const [error, setError] = useState<string | null>(initialRouterError)
@@ -1172,7 +1166,7 @@ export default function HotspotClientView({
   // Phone validation
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value)
-    setPhoneError(value && !isValidKenyanPhone(value) ? "Enter a valid Safaricom number" : null)
+    setPhoneError(value && !isValidPaymentPhone(value, paymentLocale) ? "Enter a valid phone number" : null)
   }
 
   // ── TV MAC verification handlers ──
@@ -1297,7 +1291,7 @@ export default function HotspotClientView({
   const handlePay = async () => {
     if (!selectedPlan) return
     if (!phoneNumber) { setPhoneError("Phone number is required"); return }
-    if (!isValidKenyanPhone(phoneNumber)) { setPhoneError("Enter a valid Safaricom or Airtel number"); return }
+    if (!isValidPaymentPhone(phoneNumber, paymentLocale)) { setPhoneError("Enter a valid phone number"); return }
     
     if (targetDevice === "tv" && !tvMacVerified) { setTvMacError("Please verify the TV device first"); return }
 
@@ -1324,7 +1318,7 @@ export default function HotspotClientView({
       const result = await initiatePurchase({
         router_id: finalRouter,
         plan_id: selectedPlan.id,
-        phone_number: formatPhoneNumber(phoneNumber),
+        phone_number: normalizePaymentPhone(phoneNumber, paymentLocale),
         mac_address: finalMac,
         tenant: getTenant(),
         tv_code: undefined,
@@ -1334,7 +1328,7 @@ export default function HotspotClientView({
       setPaymentStatus("waiting")
     } catch (err: unknown) {
       setPaymentStatus("failed")
-      setError(err instanceof Error ? err.message : "Failed to initiate payment")
+      setError(err instanceof Error ? `${err.message} If a prompt reached your phone, approve it and use Already paid? Reconnect before trying again.` : "Could not confirm the request. Check your phone before trying again.")
     }
   }
 
@@ -1410,7 +1404,7 @@ export default function HotspotClientView({
       duration_display: `${result.remaining_minutes} min remaining`,
       speed_display: '',
       price: 0,
-      currency: 'KES',
+      currency: paymentLocale.currency,
       validity_type: 'MINUTES',
       validity_value: result.remaining_minutes,
       download_speed: 0,
@@ -1434,15 +1428,15 @@ export default function HotspotClientView({
 
   const handlePhoneReconnect = async () => {
     const phone = reconnectPhone.trim()
-    if (!phone || !/^0[17]\d{8}$/.test(phone)) {
-      setReconnectPhoneError('Enter a valid number: 07XX or 01XX (10 digits)')
+    if (!phone || !isValidPaymentPhone(phone, paymentLocale)) {
+      setReconnectPhoneError('Enter a valid phone number')
       return
     }
     setReconnectPhoneLoading(true)
     setReconnectPhoneError(null)
     try {
       const result = await phoneReconnect({
-        phone_number: phone,
+        phone_number: normalizePaymentPhone(phone, paymentLocale),
         router_id: routerId,
         mac_address: getMacAddress(),
         tenant: getTenant(),
@@ -1512,7 +1506,7 @@ export default function HotspotClientView({
         duration_display: `${result.reward_minutes} minutes`,
         speed_display: '5 Mbps',
         price: 0,
-        currency: 'KES',
+        currency: paymentLocale.currency,
         validity_type: 'MINUTES',
         validity_value: result.reward_minutes,
         download_speed: 5,
@@ -1567,7 +1561,7 @@ export default function HotspotClientView({
         duration_display: `${reward.reward_minutes} minutes (reward)`,
         speed_display: `${reward.reward_speed_mbps} Mbps`,
         price: 0,
-        currency: 'KES',
+        currency: paymentLocale.currency,
         validity_type: 'MINUTES',
         validity_value: reward.reward_minutes,
         download_speed: Number(reward.reward_speed_mbps),
@@ -1724,7 +1718,7 @@ export default function HotspotClientView({
           {paymentStatus === "sending" ? (
             <>
               <Loader2 className="w-16 h-16 animate-spin text-green-500 mx-auto mb-4" />
-              <h2 className={`text-xl font-bold mb-2 ${theme.planTitle}`}>Sending STK Push...</h2>
+              <h2 className={`text-xl font-bold mb-2 ${theme.planTitle}`}>{paymentLocale.country === "UG" ? "Sending payment request..." : "Sending STK Push..."}</h2>
               <p className={theme.mutedText}>Please wait while we send the payment request to your phone.</p>
             </>
           ) : (
@@ -1732,7 +1726,7 @@ export default function HotspotClientView({
               <Phone className="w-16 h-16 text-green-500 mx-auto mb-4 animate-pulse" />
               <h2 className={`text-xl font-bold mb-2 ${theme.planTitle}`}>Check Your Phone</h2>
               <p className={`mb-4 ${theme.bodyText}`}>
-                Enter your M-Pesa PIN on your phone to complete the payment.
+                {paymentLocale.country === "UG" ? "Approve the payment on your phone and enter your Mobile Money PIN." : "Enter your M-Pesa PIN on your phone to complete the payment."}
               </p>
 
               <div className="bg-amber-50 rounded-xl p-4 mb-4">
@@ -1746,13 +1740,13 @@ export default function HotspotClientView({
               </div>
 
               {/* NEW: STK cancel warning */}
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+              {paymentLocale.showCancellationWarning && <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-red-600 text-left">
                   Do not cancel this M-Pesa prompt more than 3 times. Repeated cancellations
                   may permanently block you from making further purchases.
                 </p>
-              </div>
+              </div>}
 
               <div className={`${theme.planBg} rounded-xl p-4 text-left space-y-2 border ${theme.planBorder}`}>
                 <div className="flex justify-between">
@@ -1761,7 +1755,7 @@ export default function HotspotClientView({
                 </div>
                 <div className="flex justify-between">
                   <span className={theme.mutedText}>Amount</span>
-                  <span className="font-bold text-green-600">KES {selectedPlan?.price}</span>
+                  <span className="font-bold text-green-600">{selectedPlan && formatPaymentAmount(selectedPlan.price, selectedPlan.currency || paymentLocale.currency)}</span>
                 </div>
               </div>
             </>
@@ -1786,7 +1780,7 @@ export default function HotspotClientView({
           </h1>
           <p className={`mb-6 ${theme.mutedText}`}>
             {paymentStatus === "timeout"
-              ? "The payment request expired. Please try again."
+              ? "The request timed out here. If you approved it, reconnect to restore your connection."
               : error || "Something went wrong. Please try again."}
           </p>
           <button
@@ -1796,6 +1790,7 @@ export default function HotspotClientView({
             <RefreshCw className="w-5 h-5" />
             Try Again
           </button>
+          {paymentStatus === "timeout" && <button onClick={() => { handleRetry(); setShowPhoneModal(true) }} className={`block mx-auto mt-3 px-5 py-3 font-semibold ${theme.bodyText}`}>Already paid? Reconnect</button>}
         </div>
       </div>
     )
@@ -2175,7 +2170,7 @@ export default function HotspotClientView({
           )}
 
           <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
-            {welcomeMessage || "Select a plan and pay with M-Pesa to get connected"}
+            {welcomeMessage || `Select a plan and pay with ${paymentLocale.provider} to get connected`}
           </p>
 
           {/* Plan Cards - Layout varies by theme */}
@@ -2235,7 +2230,7 @@ export default function HotspotClientView({
                         </div>
                       </div>
                       <span className={`text-2xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
-                        {plan.currency || "KES"} {plan.price}
+                        {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
                       </span>
                     </div>
                   </button>
@@ -2282,7 +2277,7 @@ export default function HotspotClientView({
                       )}
                     </div>
                     <div className={`text-lg font-bold mt-2 ${theme.planPrice}`} style={brandingPriceStyle}>
-                      {plan.currency || "KES"} {plan.price}
+                      {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
                     </div>
                   </div>
                 ) : theme.layoutType === "compact" ? (
@@ -2291,7 +2286,7 @@ export default function HotspotClientView({
                     <span className={`font-semibold text-sm block ${theme.planTitle}`}>{plan.name}</span>
                     <span className={`text-xs ${theme.planSub}`}>{plan.duration_display}</span>
                     <div className={`text-lg font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
-                      {plan.currency || "KES"} {plan.price}
+                      {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
                     </div>
                     {selectedPlan?.id === plan.id && <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto mt-1" />}
                   </div>
@@ -2366,7 +2361,7 @@ export default function HotspotClientView({
                   </div>
                   <div className="text-right ml-3">
                     <span className={`text-xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
-                      {plan.currency || "KES"} {plan.price}
+                      {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
                     </span>
                   </div>
                 </div>
@@ -2398,6 +2393,7 @@ export default function HotspotClientView({
           theme={theme}
           branding={branding}
           portalConfig={portalConfig}
+          locale={paymentLocale}
           targetDevice={targetDevice}
           tvMacVerified={tvMacVerified}
           onPhoneChange={handlePhoneChange}
@@ -2443,6 +2439,7 @@ export default function HotspotClientView({
           reconnectPhoneError={reconnectPhoneError}
           reconnectPhoneLoading={reconnectPhoneLoading}
           theme={theme}
+          locale={paymentLocale}
           onPhoneChange={(value) => {
             setReconnectPhone(value)
             setReconnectPhoneError(null)
@@ -2455,7 +2452,7 @@ export default function HotspotClientView({
       )}
 
       {/* ━━━ HOTSPOT SUPPORT CHAT WIDGET ━━━ */}
-      <ChatWidget routerId={routerId} tenant={getTenant()} theme={theme} />
+      <ChatWidget routerId={routerId} tenant={getTenant()} theme={theme} locale={paymentLocale} />
     </div>
   )
 }

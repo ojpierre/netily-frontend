@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Collapsible,
   CollapsibleContent,
@@ -113,6 +114,7 @@ interface RegisterFormData {
   // Company Details (Required)
   company_name: string
   company_email: string
+  company_country: string
   // Company Details (Optional)
   company_phone: string
   company_address: string
@@ -149,9 +151,8 @@ const validateEmail = (email: string): boolean => {
 }
 
 const validatePhone = (phone: string): boolean => {
-  // Kenyan phone number format: +254XXXXXXXXX
-  const phoneRegex = /^\+254\d{9}$/
-  return phone === "" || phoneRegex.test(phone)
+  const value = phone.replace(/[\s()-]/g, "")
+  return value === "" || /^\+[1-9]\d{7,14}$/.test(value)
 }
 
 const validatePassword = (password: string): { valid: boolean; errors: string[] } => {
@@ -318,6 +319,7 @@ export default function AdminSelfiePage() {
     // Company Details
     company_name: "",
     company_email: "",
+    company_country: "KE",
     company_phone: "",
     company_address: "",
     company_city: "",
@@ -408,7 +410,7 @@ export default function AdminSelfiePage() {
     if (!formData.admin_phone.trim()) {
       newErrors.admin_phone = ["Phone number is required"]
     } else if (!validatePhone(formData.admin_phone)) {
-      newErrors.admin_phone = ["Please enter a valid phone number (+254XXXXXXXXX)"]
+      newErrors.admin_phone = ["Enter a phone number with its country code, such as +256772123456"]
     }
     if (!formData.admin_password) {
       newErrors.admin_password = ["Password is required"]
@@ -421,7 +423,7 @@ export default function AdminSelfiePage() {
 
     // Optional field validation
     if (formData.company_phone && !validatePhone(formData.company_phone)) {
-      newErrors.company_phone = ["Please enter a valid phone number (+254XXXXXXXXX)"]
+      newErrors.company_phone = ["Enter a phone number with its country code"]
     }
     if (formData.company_website && !formData.company_website.startsWith("http")) {
       newErrors.company_website = ["Website must start with http:// or https://"]
@@ -484,7 +486,7 @@ export default function AdminSelfiePage() {
       if (welcomeSent !== false) {
         toast.success(emailMessage)
       } else {
-        toast.warning(emailMessage)
+        toast.info(emailMessage)
       }
 
       if (localStorage.getItem("supportToken") || sessionStorage.getItem("supportToken")) {
@@ -658,6 +660,20 @@ export default function AdminSelfiePage() {
                 </div>
               </div>
 
+              <div className="space-y-2 max-w-sm">
+                <Label htmlFor="company_country">Country <span className="text-destructive">*</span></Label>
+                <Select value={formData.company_country} onValueChange={(value) => setFormData((current) => ({ ...current, company_country: value }))}>
+                  <SelectTrigger id="company_country"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KE">Kenya</SelectItem>
+                    <SelectItem value="UG">Uganda</SelectItem>
+                    <SelectItem value="TZ">Tanzania</SelectItem>
+                    <SelectItem value="GH">Ghana</SelectItem>
+                    <SelectItem value="NG">Nigeria</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Optional Company Fields */}
               <Collapsible open={showOptionalFields} onOpenChange={setShowOptionalFields}>
                 <CollapsibleTrigger asChild>
@@ -681,7 +697,7 @@ export default function AdminSelfiePage() {
                         <Input
                           id="company_phone"
                           name="company_phone"
-                          placeholder="+254712345678"
+                          placeholder={formData.company_country === "UG" ? "+256772123456" : "+254712345678"}
                           value={formData.company_phone}
                           onChange={handleInputChange}
                           className={`pl-10 ${getFieldError("company_phone") ? "border-destructive" : ""}`}
@@ -850,7 +866,7 @@ export default function AdminSelfiePage() {
                     <Input
                       id="admin_phone"
                       name="admin_phone"
-                      placeholder="+254700123456"
+                      placeholder={formData.company_country === "UG" ? "+256772123456" : "+254700123456"}
                       value={formData.admin_phone}
                       onChange={handleInputChange}
                       className={`pl-10 ${getFieldError("admin_phone") ? "border-destructive" : ""}`}

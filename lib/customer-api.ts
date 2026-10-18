@@ -320,6 +320,16 @@ class CustomerApiService {
     return this.request<CustomerPaymentStatus>(`/self-service/payments/${paymentId}/status/`)
   }
 
+  async initiateIspPayment(data: { amount: number; phone_number: string; invoice_id?: number }): Promise<CustomerPaymentInitiateResponse> {
+    return this.request<CustomerPaymentInitiateResponse>('/billing/payments/initiate/', {
+      method: 'POST', body: JSON.stringify(data),
+    })
+  }
+
+  async getIspPaymentStatus(paymentId: number): Promise<CustomerPaymentStatus> {
+    return this.request<CustomerPaymentStatus>(`/billing/payments/${paymentId}/status/`)
+  }
+
   /**
    * Get payment history
    */

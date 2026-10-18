@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { User, Phone, Mail, MapPin, Wifi, Calendar, Loader2 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 import { toast } from "sonner"
 
 interface ProfileData {
@@ -28,6 +30,7 @@ interface ProfileData {
 }
 
 export default function CustomerProfilePage() {
+  const { locale } = useCustomerPaymentLocale()
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   // UPDATED: Only email is editable
@@ -242,7 +245,7 @@ export default function CustomerProfilePage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-3xl font-bold">
-              KSh {parseFloat(profile.balance || "0").toLocaleString()}
+              {formatPaymentAmount(profile.balance || "0", locale.currency)}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {profile.category && `${profile.category} account`}

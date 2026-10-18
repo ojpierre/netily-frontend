@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { AlertCircle, KeyRound, Loader2, Phone } from "lucide-react"
+import { isValidPaymentPhone, type PaymentLocale } from "@/lib/tenant-locale"
 
 interface PhoneReconnectModalProps {
   reconnectPhone: string
   reconnectPhoneError: string | null
   reconnectPhoneLoading: boolean
   theme: any
+  locale: PaymentLocale
   onPhoneChange: (value: string) => void
   onReconnect: () => void
   onCredentialReconnect: (username: string, password: string) => void
@@ -22,6 +24,7 @@ export default function PhoneReconnectModal({
   reconnectPhoneError,
   reconnectPhoneLoading,
   theme,
+  locale,
   onPhoneChange,
   onReconnect,
   onCredentialReconnect,
@@ -42,7 +45,7 @@ export default function PhoneReconnectModal({
 
   const canSubmit =
     mode === "phone"
-      ? reconnectPhone.length >= 10
+      ? isValidPaymentPhone(reconnectPhone, locale)
       : username.trim().length >= 4 && password.trim().length > 0
 
   const submit = () => {
@@ -70,7 +73,7 @@ export default function PhoneReconnectModal({
         <h3 className={`text-lg font-bold mb-1 ${theme.planTitle}`}>Connect This Device</h3>
         <p className={`text-sm mb-4 ${theme.mutedText}`}>
           {mode === "phone"
-            ? "Enter the M-Pesa number used to pay. If your plan supports multiple devices, this device will be connected automatically."
+            ? "Enter the number used to pay. If your plan supports multiple devices, this device will be connected automatically."
             : "Enter the username and password sent to you by SMS after payment."}
         </p>
 
@@ -90,7 +93,7 @@ export default function PhoneReconnectModal({
               <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
               <input
                 type="tel"
-                placeholder="07XX or 01XX"
+                placeholder={locale.phonePlaceholder}
                 value={reconnectPhone}
                 onChange={(e) => onPhoneChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 onKeyDown={(e) => e.key === "Enter" && submit()}

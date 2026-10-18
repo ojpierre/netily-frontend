@@ -18,11 +18,14 @@ import {
   HardDrive,
 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 import { MpesaPaymentModal } from "@/components/mpesa-payment-modal"
 import { toast } from "sonner"
 import type { CustomerPlan, CustomerDashboardData } from "@/lib/types"
 
 export default function CustomerPlansPage() {
+  const { locale } = useCustomerPaymentLocale()
   const router = useRouter()
   const [plans, setPlans] = useState<CustomerPlan[]>([])
   const [dashboard, setDashboard] = useState<CustomerDashboardData | null>(null)
@@ -118,7 +121,7 @@ export default function CustomerPlansPage() {
                 Your Current Plan: {dashboard.current_plan.name}
               </p>
               <p className="text-sm text-primary dark:text-primary/80">
-                {dashboard.current_plan.speed_down} Mbps &middot; KSh {parseFloat(dashboard.current_plan.price).toLocaleString()}/mo
+                {dashboard.current_plan.speed_down} Mbps &middot; {formatPaymentAmount(dashboard.current_plan.price, locale.currency)}/mo
                 {dashboard.current_plan.days_remaining !== null && (
                   <> &middot; {dashboard.current_plan.days_remaining} days left</>
                 )}
@@ -179,7 +182,7 @@ export default function CustomerPlansPage() {
                   {/* Price */}
                   <div className="mb-5">
                     <span className="text-3xl font-bold">
-                      KSh {planPrice.toLocaleString()}
+                      {formatPaymentAmount(planPrice, locale.currency)}
                     </span>
                     {plan.validity_display && (
                       <span className="text-muted-foreground text-sm ml-1">

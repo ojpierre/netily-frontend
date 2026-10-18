@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAdminAuth } from "@/app/admin/admin-auth-context"
+import { formatPaymentAmount } from "@/lib/tenant-locale"
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -406,6 +408,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
 }
 
 export default function CreatePlanPage() {
+  const { country, baseCurrency, localeLoading } = useAdminAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [features, setFeatures] = useState<string[]>([])
@@ -598,6 +601,11 @@ export default function CreatePlanPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (localeLoading) return
+    if (country === "UG" && formData.plan_type === "HOTSPOT" && Number(formData.base_price) < 500) {
+      toast.error("Hotspot plans must cost at least UGX 500 for Mobile Money payments.")
+      return
+    }
     setIsLoading(true)
     
     try {
@@ -749,7 +757,7 @@ export default function CreatePlanPage() {
                   <div className="font-semibold text-foreground">{preset.name}</div>
                   <div className="text-xs text-slate-500 mt-1">{preset.description}</div>
                   <div className="text-sm font-bold text-primary mt-2">
-                    KSh {preset.config.base_price.toLocaleString()}
+                    {formatPaymentAmount(preset.config.base_price, baseCurrency)}
                   </div>
                   {selectedPreset === preset.id && (
                     <div className="absolute top-2 right-2">
@@ -838,7 +846,7 @@ export default function CreatePlanPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="base_price">Price (KSh)</Label>
+                <Label htmlFor="base_price">Price ({baseCurrency})</Label>
                 <Input
                   id="base_price"
                   type="number"
@@ -847,6 +855,7 @@ export default function CreatePlanPage() {
                   placeholder="0"
                   required
                 />
+                {country === "UG" && formData.plan_type === "HOTSPOT" && Number(formData.base_price) < 500 && <p className="text-sm text-amber-700 dark:text-amber-400">Mobile Money requires a minimum plan price of UGX 500.</p>}
               </div>
               
               <div className="space-y-2">

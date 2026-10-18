@@ -18,6 +18,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { customerApi } from "@/lib/customer-api"
 import { ParticleBackground } from "@/components/auth/particle-background"
 import { LogoStrandBadge } from "@/components/auth/logo-strand-badge"
+import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
+import { isValidPaymentPhone, normalizePaymentPhone } from "@/lib/tenant-locale"
 
 export default function CustomerLoginPage() {
   const router = useRouter()
@@ -26,6 +28,7 @@ export default function CustomerLoginPage() {
   const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { locale, ready } = useCustomerPaymentLocale()
 
   const [mouse, setMouse] = useState({ x: 0, y: 0 })
   const cardRef = useRef<HTMLDivElement>(null)
@@ -49,6 +52,9 @@ export default function CustomerLoginPage() {
   }
 
   const isValidLocalPhone = (phone: string) => /^(07|01)\d{8}$/.test(normalizeLocalPhone(phone))
+  const isValidPhone = (phone: string) => locale.country === "UG"
+    ? isValidPaymentPhone(phone, locale)
+    : isValidLocalPhone(phone)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,9 +62,15 @@ export default function CustomerLoginPage() {
     setIsLoading(true)
 
     try {
-      const phoneNumber = normalizeLocalPhone(identifier)
-      if (!isValidLocalPhone(phoneNumber)) {
-        setError("Enter a valid 10-digit number starting with 07 or 01.")
+      if (!ready) {
+        setError("Checking your account settings. Please try again.")
+        return
+      }
+      const phoneNumber = locale.country === "UG"
+        ? normalizePaymentPhone(identifier, locale)
+        : normalizeLocalPhone(identifier)
+      if (!isValidPhone(identifier)) {
+        setError("Enter a valid phone number.")
         setIsLoading(false)
         return
       }
@@ -133,7 +145,7 @@ export default function CustomerLoginPage() {
                 type="text"
                 inputMode="numeric"
                 autoComplete="tel"
-                placeholder="0712345678"
+                placeholder={locale.phonePlaceholder}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 disabled={isLoading}
@@ -176,7 +188,7 @@ export default function CustomerLoginPage() {
             <Button
               type="submit"
               className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
-              disabled={isLoading || !isValidLocalPhone(identifier) || !password.trim()}
+              disabled={isLoading || !ready || !isValidPhone(identifier) || !password.trim()}
             >
               {isLoading ? (
                 <>
