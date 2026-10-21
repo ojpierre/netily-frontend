@@ -1,18 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, Lock, CheckCircle2, ShoppingBag, Plus, CreditCard, Smartphone } from "lucide-react"
-import { Button } from "@/shop-ui/components/ui/button"
+import { motion } from "framer-motion"
+import { ChevronLeft, Lock, CheckCircle2, ShoppingBag, Smartphone, Loader2 } from "lucide-react"
 import { Input } from "@/shop-ui/components/ui/input"
 import { Label } from "@/shop-ui/components/ui/label"
 import { useCart } from "@/shop-ui/lib/cart-context"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { shopApi, ShopApiError } from "@/shop-ui/lib/shop-api"
 
 type Step = "shipping" | "payment" | "success"
+type PayState = "idle" | "waiting" | "failed" | "delayed"
+
+const PENDING_KEY = "netily_shop_pending_order"
 
 interface ShippingForm {
   firstName: string
@@ -29,20 +31,22 @@ interface ShippingForm {
 }
 
 export default function CheckoutPage() {
-  const { items, total, clearCart, addItem } = useCart()
-  const router = useRouter()
+  const { items, total, clearCart } = useCart()
+  const clearCartRef = useRef(clearCart)
+  clearCartRef.current = clearCart
   const [step, setStep] = useState<Step>("shipping")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "mpesa">("mpesa")
   const [orderRef, setOrderRef] = useState<string>("")
-  const [authReady, setAuthReady] = useState(false)
+  const [order, setOrder] = useState<{ reference: string; token: string; amountKes: number } | null>(null)
+  const [payState, setPayState] = useState<PayState>("idle")
+  const [payMessage, setPayMessage] = useState("")
 
   const [form, setForm] = useState<ShippingForm>({
     firstName: "",
     lastName: "",
     company: "",
     email: "",
-    phone: "+254 712 345 678",
+    phone: "",
     address: "",
     apartment: "",
     city: "Nairobi",
@@ -54,15 +58,61 @@ export default function CheckoutPage() {
   const shipping = 0
   const orderTotal = total + shipping
 
+  const errMsg = (e: unknown) => (e instanceof ShopApiError || e instanceof Error ? e.message : "Something went wrong.")
+
+  // Restore an in-flight order after a refresh
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const session = window.localStorage.getItem("netily_shop_customer_session")
-    if (session !== "authenticated") {
-      router.replace("/shop/login?next=/shop/checkout")
-      return
+    try {
+      const raw = sessionStorage.getItem(PENDING_KEY)
+      if (!raw) return
+      const saved = JSON.parse(raw)
+      if (saved?.reference && saved?.token) {
+        setOrder(saved)
+        setOrderRef(saved.reference)
+        setStep("payment")
+        setPayState("waiting")
+        setPayMessage("Checking your payment...")
+      }
+    } catch {}
+  }, [])
+
+  // Poll payment status
+  useEffect(() => {
+    if (!order || payState !== "waiting") return
+    let stopped = false
+    const started = Date.now()
+    let timer: ReturnType<typeof setTimeout>
+
+    const tick = async () => {
+      try {
+        const s = await shopApi.getOrderStatus(order.reference, order.token)
+        if (stopped) return
+        if (s.payment_status === "paid") {
+          try { sessionStorage.removeItem(PENDING_KEY) } catch {}
+          clearCartRef.current()
+          setStep("success")
+          toast.success("Payment received. Order confirmed!")
+          return
+        }
+        if (s.payment_status === "failed" || s.status === "expired" || s.status === "cancelled") {
+          setPayState("failed")
+          setPayMessage(s.payment_failure_reason || "Payment was not completed.")
+          return
+        }
+      } catch {
+        /* transient network error: keep polling */
+      }
+      if (stopped) return
+      if (Date.now() - started > 3 * 60 * 1000) {
+        // Don't mark failed: the customer may have paid and the callback may be late.
+        setPayState("delayed")
+        return
+      }
+      timer = setTimeout(tick, 3000)
     }
-    setAuthReady(true)
-  }, [router])
+    timer = setTimeout(tick, 2500)
+    return () => { stopped = true; clearTimeout(timer) }
+  }, [order, payState])
 
   function handleFormChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.id]: e.target.value }))
@@ -73,54 +123,61 @@ export default function CheckoutPage() {
     setStep("payment")
   }
 
-  function handleCompletePayment() {
+  async function handleCompletePayment() {
+    if (isProcessing || items.length === 0) return
     setIsProcessing(true)
-    const generatedRef = `NTL-${Date.now().toString().slice(-6)}`
-    setOrderRef(generatedRef)
-
-    setTimeout(() => {
+    setPayMessage("")
+    try {
+      const res = await shopApi.checkout({
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        company: form.company.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        apartment: form.apartment.trim(),
+        city: form.city.trim(),
+        state: form.state,
+        zip_code: form.zip,
+        country: form.country,
+        payment_method: "mpesa",
+        mpesa_phone: form.phone.trim(),
+        items: items.map((i) => ({
+          product_id: i.id,
+          quantity: i.quantity,
+          selected_storage: i.selectedStorage || "",
+          selected_color: i.selectedColor || "",
+        })),
+      })
+      const saved = { reference: res.reference, token: res.tracking_token, amountKes: res.amount_kes }
+      setOrder(saved)
+      setOrderRef(res.reference)
+      try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(saved)) } catch {}
+      setPayMessage(res.payment.message)
+      setPayState(res.payment.initiated ? "waiting" : "failed")
+    } catch (e) {
+      toast.error(errMsg(e))
+      setPayMessage(errMsg(e))
+    } finally {
       setIsProcessing(false)
-      clearCart()
-      setStep("success")
-      toast.success("Order placed successfully!")
-    }, 1000)
+    }
   }
 
-  function handleLoadSamplePackage() {
-    addItem({
-      id: "mikrotik-ccr2004-16g-2s",
-      name: "MikroTik Cloud Core Router CCR2004-16G-2S+PC",
-      price: 495,
-      image: "/shop-assets/products/mikrotik_router.jpg",
-      category: "Routers & Gateways",
-      selectedStorage: "Standard 1U Rackmount",
-      selectedColor: "Matte Black",
-    })
-    addItem({
-      id: "netily-cat6a-outdoor-305m",
-      name: "Netily UltraGrade Cat6A Outdoor 305m Drum",
-      price: 215,
-      image: "/shop-assets/products/cat6a_cable.jpg",
-      category: "Cabling & Infrastructure",
-      selectedStorage: "305m Wooden Spool (23AWG)",
-      selectedColor: "Black UV-Resistant PE",
-    })
-    toast.success("Sample hardware starter kit loaded into bag!")
+  async function handleRetryPayment() {
+    if (!order || isProcessing) return
+    setIsProcessing(true)
+    try {
+      const r = await shopApi.retryPayment(order.reference, order.token, form.phone.trim())
+      setPayState("waiting")
+      setPayMessage(r.message)
+    } catch (e) {
+      toast.error(errMsg(e))
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
-  if (!authReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center text-foreground">
-        <div>
-          <Lock className="mx-auto mb-4 h-8 w-8 text-muted-foreground" />
-          <h1 className="font-serif text-2xl">Checking checkout access</h1>
-          <p className="mt-2 text-sm text-muted-foreground">You will sign in before placing an order.</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (items.length === 0 && step !== "success") {
+  if (items.length === 0 && step !== "success" && !order) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-6">
@@ -132,13 +189,6 @@ export default function CheckoutPage() {
             Add routers, cables, tools, or other equipment to your cart before checkout.
           </p>
           <div className="space-y-3">
-            <button
-              onClick={handleLoadSamplePackage}
-              className="w-full py-4 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90 flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Load Sample Hardware Package ($710)
-            </button>
             <Link href="/shop/catalog" className="block">
               <button className="w-full py-4 text-xs tracking-[0.2em] uppercase border border-border text-foreground hover:bg-muted">
                 Browse Full Catalog
@@ -208,7 +258,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between py-1 border-b border-border/50">
                 <span className="text-muted-foreground uppercase tracking-wider">Payment Method:</span>
-                <span className="uppercase tracking-wider font-medium">{paymentMethod}</span>
+                <span className="uppercase tracking-wider font-medium">M-PESA</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground uppercase tracking-wider">Delivery Update:</span>
@@ -221,7 +271,7 @@ export default function CheckoutPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/shop/account/orders">
+              <Link href={`/shop/track?ref=${encodeURIComponent(orderRef)}&token=${encodeURIComponent(order?.token || "")}`}>
                 <button className="w-full sm:w-auto px-8 py-4 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90">
                   Track in Orders
                 </button>
@@ -431,111 +481,77 @@ export default function CheckoutPage() {
                     <p className="text-muted-foreground">
                       {form.address}{form.apartment ? `, ${form.apartment}` : ""}, {form.city}, {form.country}
                     </p>
-                    <button
-                      onClick={() => setStep("shipping")}
-                      className="text-muted-foreground underline underline-offset-2 hover:text-foreground pt-1"
-                    >
-                      Edit delivery details
-                    </button>
-                  </div>
-
-                  {/* Method options */}
-                  <div className="space-y-3 mb-8">
-                    {[
-                      {
-                        id: "card",
-                        title: "Pay by Card",
-                        desc: "Use a debit or credit card. Your order will be confirmed after payment is approved.",
-                        icon: CreditCard,
-                      },
-                      {
-                        id: "mpesa",
-                        title: "Pay by M-Pesa STK Push",
-                        desc: "Enter your M-Pesa number and approve the prompt on your phone.",
-                        icon: Smartphone,
-                      },
-                    ].map((opt) => (
-                      <div
-                        key={opt.id}
-                        onClick={() => setPaymentMethod(opt.id as "card" | "mpesa")}
-                        className={`rounded-2xl border p-4 cursor-pointer transition-colors ${
-                          paymentMethod === opt.id
-                            ? "border-foreground bg-muted/40"
-                            : "border-border hover:border-foreground/50"
-                        }`}
+                    {!order && (
+                      <button
+                        onClick={() => setStep("shipping")}
+                        className="text-muted-foreground underline underline-offset-2 hover:text-foreground pt-1"
                       >
-                        <div className="flex items-center justify-between gap-4 mb-1">
-                          <span className="flex items-center gap-3 font-serif text-base">
-                            <opt.icon className="h-4 w-4 text-muted-foreground" />
-                            {opt.title}
-                          </span>
-                          <span
-                            className={`h-4 w-4 rounded-full border flex items-center justify-center ${
-                              paymentMethod === opt.id ? "border-foreground bg-foreground" : "border-border"
-                            }`}
-                          >
-                            {paymentMethod === opt.id && <span className="h-1.5 w-1.5 rounded-full bg-background" />}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
-                      </div>
-                    ))}
+                        Edit delivery details
+                      </button>
+                    )}
                   </div>
 
-                  {paymentMethod === "card" && (
-                    <div className="mb-8 rounded-2xl border border-border bg-card p-4">
-                      <p className="mb-4 text-sm font-medium">Card details</p>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="cardName" className="text-xs uppercase tracking-wider text-muted-foreground">Name on card</Label>
-                          <Input id="cardName" placeholder="Jane Otieno" className="mt-1.5 rounded-xl border-border" />
-                        </div>
-                        <div>
-                          <Label htmlFor="cardNumber" className="text-xs uppercase tracking-wider text-muted-foreground">Card number</Label>
-                          <Input id="cardNumber" inputMode="numeric" placeholder="1234 1234 1234 1234" className="mt-1.5 rounded-xl border-border" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="expiry" className="text-xs uppercase tracking-wider text-muted-foreground">Expiry</Label>
-                            <Input id="expiry" placeholder="MM / YY" className="mt-1.5 rounded-xl border-border" />
-                          </div>
-                          <div>
-                            <Label htmlFor="cvc" className="text-xs uppercase tracking-wider text-muted-foreground">CVC</Label>
-                            <Input id="cvc" inputMode="numeric" placeholder="123" className="mt-1.5 rounded-xl border-border" />
-                          </div>
-                        </div>
-                      </div>
+                  <div className="mb-6 rounded-2xl border border-foreground bg-muted/40 p-4">
+                    <span className="flex items-center gap-3 font-serif text-base">
+                      <Smartphone className="h-4 w-4 text-muted-foreground" />
+                      Pay by M-Pesa STK Push
+                    </span>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      You are charged in KES{order ? ` (KES ${order.amountKes.toLocaleString()})` : ""}. Approve the prompt on your phone.
+                    </p>
+                  </div>
+
+                  <div className="mb-6 rounded-2xl border border-border bg-card p-4">
+                    <p className="mb-2 text-sm font-medium">M-Pesa phone number</p>
+                    <Input
+                      id="mpesaPhone"
+                      type="tel"
+                      placeholder="0712345678"
+                      value={form.phone}
+                      onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      className="rounded-xl border-border"
+                    />
+                  </div>
+
+                  {payState === "waiting" && (
+                    <div className="mb-6 flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 text-xs">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{payMessage || "Check your phone and enter your M-Pesa PIN."}</span>
                     </div>
                   )}
-
-                  {paymentMethod === "mpesa" && (
-                    <div className="mb-8 rounded-2xl border border-border bg-card p-4">
-                      <p className="mb-2 text-sm font-medium">M-Pesa phone number</p>
-                      <p className="mb-4 text-xs leading-5 text-muted-foreground">We will send an STK push to this number. Confirm the prompt on your phone to complete payment.</p>
-                      <Input
-                        id="mpesaPhone"
-                        type="tel"
-                        value={form.phone}
-                        onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-                        className="rounded-xl border-border"
-                      />
-                    </div>
+                  {payState === "failed" && (
+                    <p className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{payMessage}</p>
+                  )}
+                  {payState === "delayed" && order && (
+                    <p className="mb-6 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed">
+                      We haven&apos;t received confirmation yet. If you already paid, don&apos;t pay again. Your order will update
+                      automatically.{" "}
+                      <Link className="underline" href={`/shop/track?ref=${encodeURIComponent(order.reference)}&token=${encodeURIComponent(order.token)}`}>
+                        Track this order
+                      </Link>
+                    </p>
                   )}
 
                   <button
-                    onClick={handleCompletePayment}
-                    disabled={isProcessing}
+                    onClick={order ? handleRetryPayment : handleCompletePayment}
+                    disabled={isProcessing || payState === "delayed"}
                     className="w-full py-5 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
                   >
-                    {isProcessing ? "Processing..." : `Place Order - $${orderTotal.toLocaleString()} USD`}
+                    {isProcessing
+                      ? "Processing..."
+                      : order
+                        ? "Resend M-Pesa prompt"
+                        : `Pay with M-Pesa - $${orderTotal.toLocaleString()} USD`}
                   </button>
 
-                  <button
-                    onClick={() => setStep("shipping")}
-                    className="w-full mt-4 text-center text-xs tracking-wider uppercase text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Back to delivery details
-                  </button>
+                  {!order && (
+                    <button
+                      onClick={() => setStep("shipping")}
+                      className="w-full mt-4 text-center text-xs tracking-wider uppercase text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Back to delivery details
+                    </button>
+                  )}
                 </motion.div>
               )}
             </div>

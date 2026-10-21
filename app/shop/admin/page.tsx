@@ -1,2 +1,2 @@
-import { ShopManagement } from "@/shop-ui/components/shop-management"
-export default function Page() { return <ShopManagement /> }
+import { redirect } from "next/navigation"
+export default function Page() { redirect("/superadmin/shop") }

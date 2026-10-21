@@ -11,44 +11,47 @@ import { SizeSelector } from "@/shop-ui/components/size-selector"
 import { ColorSelector } from "@/shop-ui/components/color-selector"
 import { ProductDetailsAccordion } from "@/shop-ui/components/product-details-accordion"
 import { RelatedProducts } from "@/shop-ui/components/related-products"
-import { getProductById, getRelatedProducts, type Product } from "@/shop-ui/lib/products"
+import type { Product } from "@/shop-ui/lib/products"
+import { shopApi } from "@/shop-ui/lib/shop-api"
 import { useCart } from "@/shop-ui/lib/cart-context"
 import { ChevronRight, ShoppingBag, Check } from "lucide-react"
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [product, setProduct] = useState<Product | undefined>(() => getProductById(id))
-  const [mounted, setMounted] = useState(false)
+  const [product, setProduct] = useState<Product | null | undefined>(undefined) // undefined = loading, null = 404
+  const [related, setRelated] = useState<Product[]>([])
+  const [loadError, setLoadError] = useState(false)
   const { addItem } = useCart()
   const [addedToCart, setAddedToCart] = useState(false)
   const [selectedStorage, setSelectedStorage] = useState<string>("")
   const [selectedColor, setSelectedColor] = useState<string>("")
 
   useEffect(() => {
-    setMounted(true)
-    const found = getProductById(id)
-    setProduct(found)
-
-    const handleUpdate = () => {
-      setProduct(getProductById(id))
-    }
-    window.addEventListener("netily_products_updated", handleUpdate)
-    return () => window.removeEventListener("netily_products_updated", handleUpdate)
+    let cancelled = false
+    setProduct(undefined)
+    setLoadError(false)
+    shopApi.getProduct(id)
+      .then((p) => !cancelled && setProduct(p))
+      .catch(() => !cancelled && setLoadError(true))
+    shopApi.getRelatedProducts(id, 4)
+      .then((r) => !cancelled && setRelated(r))
+      .catch(() => {})
+    return () => { cancelled = true }
   }, [id])
 
-  if (!product && !mounted) {
+  if (loadError) {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Could not load this product. Please refresh.</div>
+  }
+  if (product === undefined) {
     return <div className="min-h-screen bg-background" />
   }
-
-  if (!product && mounted) {
+  if (product === null) {
     notFound()
   }
 
-  const p = product!
+  const p = product
   const effectiveStorage = selectedStorage || p.sizes.find((s) => s.available)?.size || p.sizes[0]?.size || "Standard"
   const effectiveColor = selectedColor || p.colors.find((c) => c.available)?.name || p.colors[0]?.name || "Default"
-
-  const relatedProducts = getRelatedProducts(id, 4)
 
   const accordionItems = [
     { title: "Specifications", content: p.details },
@@ -164,17 +167,20 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             )}
 
             {/* Storage / Configuration Selector */}
-            <SizeSelector
-              sizes={p.sizes}
-              // @ts-ignore
-              selectedSize={effectiveStorage}
-              onSelect={setSelectedStorage}
-            />
+            {p.sizes.length > 0 && (
+              <SizeSelector
+                sizes={p.sizes}
+                // @ts-ignore
+                selectedSize={effectiveStorage}
+                onSelect={setSelectedStorage}
+              />
+            )}
 
             {/* Add to Bag */}
             <motion.button
               onClick={handleAddToCart}
-              className={`flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-sm uppercase transition-all duration-300 ${
+              disabled={p.inStock === false}
+              className={`flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-sm uppercase transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
                 addedToCart
                   ? "bg-emerald-700 text-white"
                   : "bg-foreground text-background hover:bg-foreground/90"
@@ -202,7 +208,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     className="flex items-center gap-2"
                   >
                     <ShoppingBag className="h-4 w-4" />
-                    Add to Bag
+                    {p.inStock === false ? "Out of Stock" : "Add to Bag"}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -233,7 +239,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       </section>
 
       {/* Related Products */}
-      <RelatedProducts products={relatedProducts} />
+      <RelatedProducts products={related} />
 
       <PremiumFooter />
     </main>

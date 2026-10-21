@@ -1907,6 +1907,50 @@ class SuperadminApiService {
       body: JSON.stringify(data),
     })
   }
+
+  // ── Shop ──
+  async getShopStats(): Promise<Record<string, number>> {
+    return this.request("/shop/admin/orders/stats/")
+  }
+  async getShopOrders(params?: Record<string, string>): Promise<{ count: number; next: string | null; previous: string | null; results: any[] }> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/shop/admin/orders/${qs}`)
+  }
+  async getShopOrder(reference: string): Promise<any> {
+    return this.request(`/shop/admin/orders/${encodeURIComponent(reference)}/`)
+  }
+  async setShopOrderStatus(reference: string, status: string): Promise<any> {
+    return this.request(`/shop/admin/orders/${encodeURIComponent(reference)}/status/`, {
+      method: "POST", body: JSON.stringify({ status }),
+    })
+  }
+  async markShopOrderPaid(reference: string, receipt?: string): Promise<any> {
+    return this.request(`/shop/admin/orders/${encodeURIComponent(reference)}/mark-paid/`, {
+      method: "POST", body: JSON.stringify({ receipt: receipt || "" }),
+    })
+  }
+  async getShopProducts(params?: Record<string, string>): Promise<{ count: number; results: any[] }> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/shop/admin/products/${qs}`)
+  }
+  async createShopProduct(data: Record<string, unknown>): Promise<any> {
+    return this.request("/shop/admin/products/", { method: "POST", body: JSON.stringify(data) })
+  }
+  async updateShopProduct(slug: string, data: Record<string, unknown>): Promise<any> {
+    return this.request(`/shop/admin/products/${encodeURIComponent(slug)}/`, { method: "PATCH", body: JSON.stringify(data) })
+  }
+  async deleteShopProduct(slug: string): Promise<void> {
+    await this.request(`/shop/admin/products/${encodeURIComponent(slug)}/`, { method: "DELETE" })
+  }
+  async getShopCategories(): Promise<{ count: number; results: any[] }> {
+    return this.request("/shop/admin/categories/?page_size=200")
+  }
+  async createShopCategory(data: { name: string; sort_order?: number; is_active?: boolean }): Promise<any> {
+    return this.request("/shop/admin/categories/", { method: "POST", body: JSON.stringify(data) })
+  }
+  async updateShopCategory(id: number, data: Record<string, unknown>): Promise<any> {
+    return this.request(`/shop/admin/categories/${id}/`, { method: "PATCH", body: JSON.stringify(data) })
+  }
 }
 
 export const superadminApi = new SuperadminApiService()

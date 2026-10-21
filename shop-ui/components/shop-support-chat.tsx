@@ -21,7 +21,7 @@ export function ShopSupportChat() {
       toast.error("Type a short message first")
       return
     }
-    toast.success("Support message captured")
+    window.open(`https://wa.me/254100034307?text=${encodeURIComponent(message.trim())}`, "_blank", "noopener,noreferrer")
     setMessage("")
   }
 
@@ -87,7 +87,7 @@ export function ShopSupportChat() {
 
       <button
         onClick={() => setOpen((value) => !value)}
-        className="flex min-h-14 items-center gap-3 rounded-full bg-[#0b42d8] px-5 text-sm font-semibold text-white shadow-xl transition hover:bg-[#0736b8]"
+        className="flex min-h-14 items-center gap-3 rounded-full bg-[#0b42d8] px-5 text-sm font-semibold text-whiteshadow-xl transition hover:bg-[#0736b8]"
         aria-label="Open shop support"
       >
         <MessageCircle className="h-5 w-5" />

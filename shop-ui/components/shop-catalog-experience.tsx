@@ -6,30 +6,10 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Search, SlidersHorizontal, Truck } from "lucide-react"
-import {
-  categories,
-  getStoredOfferSlides,
-  getStoredProducts,
-  type Product,
-  type ShopOfferSlide,
-} from "@/shop-ui/lib/products"
-
-const CATEGORY_ALIASES: Record<string, string[]> = {
-  "Fiber Optics & OLT": ["Fiber Optics & OLT", "Fiber Optics & FTTH", "ONTs & Subscriber CPE"],
-  "ONTs & Subscriber CPE": ["Fiber Optics & OLT", "ONTs & Subscriber CPE"],
-  "Structured Cabling": ["Cabling & Infrastructure", "Structured Cabling"],
-  "Access Points & Wi-Fi": ["Access Points & Wi-Fi", "Wireless & Backhaul"],
-  "Power Backup & UPS": ["Power Backup & UPS", "Racks & Power"],
-  "Tools & Test Equipment": ["Tools & Test Equipment", "Cabling & Infrastructure"],
-}
+import { defaultOfferSlides } from "@/shop-ui/lib/products"
+import { useShopCatalog } from "@/shop-ui/lib/use-shop-catalog"
 
 const stockFilters = ["All Stock", "In Stock", "Out of Stock"] as const
-
-function matchesCategory(product: Product, category: string) {
-  if (category === "All") return true
-  const allowed = CATEGORY_ALIASES[category] || [category]
-  return allowed.includes(product.category)
-}
 
 function formatPrice(price: number) {
   return `$${Number(price).toLocaleString()} USD`
@@ -40,30 +20,15 @@ export function ShopCatalogExperience() {
   const initialCategory = searchParams.get("cat") || "All"
   const initialQuery = searchParams.get("q") || ""
 
-  const [products, setProducts] = useState<Product[]>(getStoredProducts)
-  const [offers, setOffers] = useState<ShopOfferSlide[]>(getStoredOfferSlides)
+  const { products, categories, loading, error } = useShopCatalog()
+  const categoryNames = useMemo(() => ["All", ...categories.map((c) => c.name)], [categories])
+  const offers = defaultOfferSlides
+
   const [activeSlide, setActiveSlide] = useState(0)
   const [activeCategory, setActiveCategory] = useState(initialCategory)
   const [searchTerm, setSearchTerm] = useState(initialQuery)
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured")
   const [stockFilter, setStockFilter] = useState<(typeof stockFilters)[number]>("All Stock")
-
-  useEffect(() => {
-    const syncProducts = () => setProducts(getStoredProducts())
-    const syncOffers = () => setOffers(getStoredOfferSlides())
-    syncProducts()
-    syncOffers()
-    window.addEventListener("netily_products_updated", syncProducts)
-    window.addEventListener("netily_shop_offers_updated", syncOffers)
-    window.addEventListener("storage", syncProducts)
-    window.addEventListener("storage", syncOffers)
-    return () => {
-      window.removeEventListener("netily_products_updated", syncProducts)
-      window.removeEventListener("netily_shop_offers_updated", syncOffers)
-      window.removeEventListener("storage", syncProducts)
-      window.removeEventListener("storage", syncOffers)
-    }
-  }, [])
 
   useEffect(() => {
     if (offers.length <= 1) return
@@ -88,7 +53,7 @@ export function ShopCatalogExperience() {
           product.category.toLowerCase().includes(query) ||
           product.description.toLowerCase().includes(query) ||
           (product.brand || "").toLowerCase().includes(query)
-        return matchesCategory(product, activeCategory) && matchesStock && matchesSearch
+        return (activeCategory === "All" || product.category === activeCategory) && matchesStock && matchesSearch
       })
       .sort((a, b) => {
         if (sortBy === "price-asc") return a.price - b.price
@@ -225,7 +190,7 @@ export function ShopCatalogExperience() {
                 <div>
                   <label className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Categories</label>
                   <div className="grid gap-1.5">
-                    {categories.map((category) => (
+                    {categoryNames.map((category) => (
                       <button
                         key={category}
                         type="button"
@@ -278,6 +243,9 @@ export function ShopCatalogExperience() {
                 </p>
               </div>
 
+              {loading && <p className="py-10 text-center text-sm text-muted-foreground">Loading products...</p>}
+              {error && <p className="py-10 text-center text-sm text-red-700">{error}</p>}
+
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`${activeCategory}-${searchTerm}-${sortBy}-${stockFilter}`}
@@ -327,7 +295,7 @@ export function ShopCatalogExperience() {
                 </motion.div>
               </AnimatePresence>
 
-              {filteredProducts.length === 0 && (
+              {!loading && !error && filteredProducts.length === 0 && (
                 <div className="rounded-2xl border border-border bg-white p-10 text-center">
                   <h3 className="text-xl font-semibold">No matching products</h3>
                   <p className="mt-2 text-sm text-muted-foreground">Try another category, search term, or stock filter.</p>

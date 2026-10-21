@@ -15,10 +15,9 @@ export function PremiumFooter() {
       { label: "Tools & Test Equipment", href: "/shop/catalog?cat=Tools+%26+Test+Equipment" },
     ],
     account: [
-      { label: "B2B Proforma Quotes", href: "/shop/login?next=/shop/checkout" },
-      { label: "Customer Account", href: "/shop/login?next=/shop/account/profile" },
-      { label: "Orders & Invoices", href: "/shop/login?next=/shop/account/orders" },
-      { label: "Catalog Admin", href: "/shop/admin/login" },
+      { label: "Browse Catalog", href: "/shop/catalog" },
+      { label: "Request a Bulk Quote", href: "mailto:netilysupport@gmail.com?subject=Bulk%20quote%20request" },
+      { label: "WhatsApp Sales", href: "https://wa.me/254100034307" },
     ],
     policy: [
       { label: "Shopping Privacy Policy", href: "/shop/policies/privacy" },

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Minus, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/shop-ui/components/ui/button"
 import Link from "next/link"
-import { useCart } from "@/shop-ui/lib/cart-context"
+import { useCart, cartItemKey } from "@/shop-ui/lib/cart-context"
 
 interface MiniCartProps {
   isOpen: boolean
@@ -78,7 +78,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                 <div className="space-y-6">
                   {items.map((item) => (
                     <motion.div
-                      key={`${item.id}-${item.selectedStorage}-${item.selectedColor}`}
+                      key={cartItemKey(item)}
                       layout
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -100,7 +100,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                         <div className="flex justify-between items-start gap-2 mb-1">
                           <h3 className="font-serif text-sm leading-tight">{item.name}</h3>
                           <button
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(cartItemKey(item))}
                             className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                             aria-label="Remove item"
                           >
@@ -116,7 +116,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                         <div className="flex items-center justify-between mt-3">
                           <div className="flex items-center rounded-full border border-border">
                             <button
-                              onClick={() => decrement(item.id)}
+                              onClick={() => decrement(cartItemKey(item))}
                               className="p-1.5 hover:bg-muted transition-colors"
                               aria-label="Decrease quantity"
                             >
@@ -124,7 +124,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                             </button>
                             <span className="text-xs w-6 text-center font-mono">{item.quantity}</span>
                             <button
-                              onClick={() => increment(item.id)}
+                              onClick={() => increment(cartItemKey(item))}
                               className="p-1.5 hover:bg-muted transition-colors"
                               aria-label="Increase quantity"
                             >
@@ -150,7 +150,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                   <span className="font-serif text-lg">${total.toLocaleString()} USD</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Shipping and taxes calculated at checkout</p>
-                <Link href="/shop/login?next=/shop/checkout" onClick={onClose}>
+                <Link href="/shop/checkout" onClick={onClose}>
                   <Button className="w-full rounded-2xl py-6 text-sm uppercase">
                     Proceed to Checkout
                   </Button>

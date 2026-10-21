@@ -110,7 +110,7 @@ export function Navigation() {
               ))}
             </div>
 
-            {/* Logo — centered luxury editorial */}
+            {/* Logo â€” centered luxury editorial */}
             <Link
               href="/shop"
               className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-colors duration-500 ${logoColor}`}
@@ -154,50 +154,8 @@ export function Navigation() {
                   aria-label="Search"
                   className={`p-2 transition-colors duration-500 ${iconColor}`}
                 >
-                  {isSearchOpen ? <X className="h-5 w-5 stroke-[1.5]" /> : <Search className="h-5 w-5 stroke-[1.5]" />}
+                  {isSearchOpen ? <X className="h-5 w-5 stroke-[1.5]" /> : <Search className="h-5 w-5 stroke-[1.5]"/>}
                 </button>
-              </div>
-
-              {/* Account Dropdown */}
-              <div ref={accountMenuRef} className="relative">
-                <button
-                  onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
-                  aria-label="Account"
-                  className={`p-2 hidden sm:block transition-colors duration-500 ${iconColor}`}
-                >
-                  <User className="h-5 w-5 stroke-[1.5]" />
-                </button>
-
-                <AnimatePresence>
-                  {isAccountMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 top-full mt-2 w-52 bg-background border border-border shadow-xl p-2 z-50"
-                    >
-                      <Link
-                        href="/shop/login"
-                        className="block px-3 py-2 text-xs uppercase tracking-[0.15em] hover:bg-muted transition-colors"
-                      >
-                        Customer Login
-                      </Link>
-                      <Link
-                        href="/shop/register"
-                        className="block px-3 py-2 text-xs uppercase tracking-[0.15em] hover:bg-muted transition-colors"
-                      >
-                        Register
-                      </Link>
-                      <Link
-                        href="/shop/admin/login"
-                        className="block px-3 py-2 text-xs uppercase tracking-[0.15em] text-foreground font-semibold hover:bg-muted transition-colors"
-                      >
-                        Admin Console
-                      </Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               <button
@@ -258,18 +216,6 @@ export function Navigation() {
                     {link.label}
                   </Link>
                 ))}
-                <div className="border-t border-border pt-6 mt-2">
-                  <p className="text-xs text-muted-foreground tracking-[0.15em] uppercase mb-4">Account</p>
-                  <Link href="/shop/login" className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground/60 hover:text-foreground mb-3">
-                    Customer Login
-                  </Link>
-                  <Link href="/shop/register" className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground/60 hover:text-foreground mb-3">
-                    Register
-                  </Link>
-                  <Link href="/shop/admin/login" className="block text-sm tracking-[0.15em] uppercase transition-colors text-foreground font-semibold">
-                    Admin Console
-                  </Link>
-                </div>
               </nav>
             </motion.div>
           </>
