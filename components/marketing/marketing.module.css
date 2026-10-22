@@ -109,10 +109,12 @@
 .reviewCard { min-height: 230px; border: 1px solid var(--line); border-radius: 8px; padding: 28px; display: flex; flex-direction: column; background: var(--paper); transition: transform .2s, border-color .2s; }
 .reviewCard:hover { transform: translateY(-4px); border-color: var(--blue); }
 .reviewCard strong { font-family: var(--font-outfit), sans-serif; font-size: 24px; line-height: 1.2; margin-block: 28px; }
-.reviewCard > span:last-child { display: flex; align-items: center; justify-content: space-between; margin-top: auto; color: var(--blue); font-size: 13px; font-weight: 700; }
 .reviewBrand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .reviewBrand svg { fill: #00b67a; color: #00b67a; }
 .googleG { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: #4285f4; border: 2px solid #4285f4; font-weight: 800; }
+.reviewActions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; }
+.reviewActions a { min-height: 48px; border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: inline-flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--blue); font-size: 13px; font-weight: 700; transition: border-color .2s, background-color .2s; }
+.reviewActions a:hover { border-color: var(--blue); background: var(--wash); }
 .editorial { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
 .editorialImage { position: relative; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; }
 .editorialImage img { object-fit: cover; }

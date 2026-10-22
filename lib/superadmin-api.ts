@@ -1321,7 +1321,10 @@ class SuperadminApiService {
   }
 
   async impersonateTenant(id: string): Promise<ImpersonateResult> {
-    return this.request(`/superadmin/tenants/${id}/impersonate/`, { method: "POST" })
+    return this.request(`/superadmin/tenants/${id}/impersonate/`, {
+      method: "POST",
+      body: JSON.stringify({ use_own_account: true }),
+    })
   }
 
   // ── Plans ──

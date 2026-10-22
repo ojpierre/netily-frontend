@@ -7,7 +7,8 @@ import { ContactForm } from "./contact-form"
 import s from "./marketing.module.css"
 
 const trustpilotProfileUrl = process.env.NEXT_PUBLIC_TRUSTPILOT_PROFILE_URL || "https://www.trustpilot.com/review/netily.co.ke"
-const googleReviewUrl = process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "https://www.google.com/maps/search/?api=1&query=Internetily"
+const trustpilotReviewUrl = process.env.NEXT_PUBLIC_TRUSTPILOT_REVIEW_URL || "https://www.trustpilot.com/evaluate/netily.co.ke"
+const googleReviewUrl = process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "https://g.page/r/CXBirwJlXb_0EAI/review"
 
 export default function MarketingHomePage() {
   return <>
@@ -40,7 +41,7 @@ export default function MarketingHomePage() {
       ["Connect the essentials", "Set up M-Pesa, connect MikroTik, and bring your subscriber records across."],
       ["Go live with support", "Check the full payment-to-connection flow together, then let your team take over."],
     ].map(([title, text], index) => <div className={s.plainItem} key={title}><span className={s.stepNumber}>0{index + 1}</span><h3>{title}</h3><p>{text}</p></div>)}</div></div></section>
-    <section className={`${s.section} ${s.reviewSection}`}><div className={`${s.container} ${s.reviewLayout}`}><SectionHeading label="Independent feedback" title="Already using Internetily? Tell the next operator what stood out.">Read public feedback before you book a walkthrough, or leave an honest review after working with the platform.</SectionHeading><div className={s.reviewGrid}><a className={s.reviewCard} href={trustpilotProfileUrl} target="_blank" rel="noopener noreferrer"><span className={s.reviewBrand}><Star size={22} /> Trustpilot</span><strong>Read or write an Internetily review</strong><span>Open Trustpilot <ArrowUpRight size={17} /></span></a><a className={s.reviewCard} href={googleReviewUrl} target="_blank" rel="noopener noreferrer"><span className={s.reviewBrand}><span className={s.googleG}>G</span> Google</span><strong>Share your experience on Google</strong><span>Open Google profile <ArrowUpRight size={17} /></span></a></div></div></section>
+    <section className={`${s.section} ${s.reviewSection}`}><div className={`${s.container} ${s.reviewLayout}`}><SectionHeading label="Independent feedback" title="Already using Internetily? Tell the next operator what stood out.">Read verified public feedback before you book a walkthrough, or share an honest review after working with the platform.</SectionHeading><div className={s.reviewGrid}><article className={s.reviewCard}><span className={s.reviewBrand}><Star size={22} /> Trustpilot</span><strong>See what customers say about Internetily</strong><div className={s.reviewActions}><a href={trustpilotProfileUrl} target="_blank" rel="noopener noreferrer">Read reviews <ArrowUpRight size={17} /></a><a href={trustpilotReviewUrl} target="_blank" rel="noopener noreferrer">Write a review <ArrowUpRight size={17} /></a></div></article><article className={s.reviewCard}><span className={s.reviewBrand}><span className={s.googleG}>G</span> Google</span><strong>Help another ISP choose with confidence</strong><div className={s.reviewActions}><a href={googleReviewUrl} target="_blank" rel="noopener noreferrer">Review us on Google <ArrowUpRight size={17} /></a></div></article></div></div></section>
     <section id="contact" className={`${s.section} ${s.tinted}`}><div className={s.container}><ContactForm /></div></section>
   </>
 }

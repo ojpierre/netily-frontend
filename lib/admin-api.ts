@@ -225,6 +225,16 @@ export interface AdminLoginOtpResendResponse {
 
 export interface AdminUser extends User {}
 
+export interface PaymentMethodPinStatus {
+  configured: boolean
+  unlocked: boolean
+  bypass: boolean
+  can_setup: boolean
+  locked_seconds: number
+  unlock_seconds: number
+  updated_at?: string | null
+}
+
 export interface AdminStats extends DashboardStats {}
 
 const ADMIN_ALLOWED_ROLES = ['admin', 'staff', 'technician', 'accountant', 'support', 'superadmin', 'super_admin']
@@ -424,6 +434,18 @@ class AdminApiService {
         throw demoError
       }
 
+      if (response.status === 403 && String(error.detail || '').includes('Payment Methods PIN')) {
+        const message = error.detail || 'Verify the Payment Methods PIN before continuing.'
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('netily-payment-pin-required', { detail: { message } }))
+        }
+        const pinError = new Error(message) as Error & { status?: number; code?: string; data?: unknown }
+        pinError.status = 403
+        pinError.code = 'PAYMENT_METHOD_PIN_REQUIRED'
+        pinError.data = error
+        throw pinError
+      }
+
       if (response.status === 403) {
         const message = error.detail || error.message || 'Your staff role is not allowed to perform this action.'
         if (typeof window !== 'undefined') {
@@ -463,6 +485,13 @@ class AdminApiService {
         conflictError.status = 409
         conflictError.data = error
         throw conflictError
+      }
+
+      if (response.status === 423) {
+        const lockedError = new Error(error.detail || 'This security check is temporarily locked.') as Error & { status?: number; data?: unknown }
+        lockedError.status = 423
+        lockedError.data = error
+        throw lockedError
       }
       
       // For 400 Bad Request, extract the specific backend message
@@ -721,6 +750,31 @@ class AdminApiService {
     return this.request<{ message: string; verified: boolean; bypass?: boolean }>('/core/auth/otp/verify/', {
       method: 'POST',
       body: JSON.stringify({ otp, ...(otpId ? { otp_id: otpId } : {}) }),
+    })
+  }
+
+  async getPaymentMethodPinStatus(): Promise<PaymentMethodPinStatus> {
+    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/status/')
+  }
+
+  async setupPaymentMethodPin(pin: string, pinConfirm: string): Promise<PaymentMethodPinStatus> {
+    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/setup/', {
+      method: 'POST',
+      body: JSON.stringify({ pin, pin_confirm: pinConfirm }),
+    })
+  }
+
+  async verifyPaymentMethodPin(pin: string): Promise<PaymentMethodPinStatus> {
+    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/verify/', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    })
+  }
+
+  async changePaymentMethodPin(currentPin: string, pin: string, pinConfirm: string): Promise<PaymentMethodPinStatus> {
+    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/change/', {
+      method: 'POST',
+      body: JSON.stringify({ current_pin: currentPin, pin, pin_confirm: pinConfirm }),
     })
   }
 

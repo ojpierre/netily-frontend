@@ -70,6 +70,7 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { useColorTheme, type ColorTheme } from "@/components/theme-provider"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
+import { PaymentMethodPinSettingsCard } from "@/components/settings/payment-method-pin-settings"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { canDo } from "@/lib/rbac"
 import {
@@ -1787,6 +1788,8 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          <PaymentMethodPinSettingsCard />
 
           {/* ── Passkey Management Card ── */}
           <PasskeyManagementCard />

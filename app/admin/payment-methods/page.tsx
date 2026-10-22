@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { InactivityGuard } from "@/components/inactivity-guard"
-import { OtpGuard } from "@/components/otp-guard"
+import { PaymentMethodPinGuard } from "@/components/payment-method-pin-guard"
 import {
   Card,
   CardContent,
@@ -98,6 +98,10 @@ function summaryForChannel(kind: ChannelKind, m?: PaymentMethod) {
 // PAGE
 // =============================================================================
 export default function PaymentMethodsPage() {
+  return <InactivityGuard timeoutMinutes={5}><PaymentMethodPinGuard><PaymentMethodsContent /></PaymentMethodPinGuard></InactivityGuard>
+}
+
+function PaymentMethodsContent() {
   const { user, country, baseCurrency, localeLoading } = useAdminAuth()
   const isUganda = country === "UG"
   const canManageIotec = !!user && (user.is_superuser || user.role === "admin")
@@ -237,12 +241,7 @@ export default function PaymentMethodsPage() {
   }
 
   return (
-    <InactivityGuard timeoutMinutes={5}>
-      <OtpGuard
-        title="Payment Methods Verification"
-        description="Verify your identity before managing payment methods and settlement channels."
-      >
-        <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
+        <><div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
@@ -414,9 +413,7 @@ export default function PaymentMethodsPage() {
             </DialogHeader>
             <KopoKopoSettings onSaved={(cfg) => setKopoConfig(cfg)} />
           </DialogContent>
-        </Dialog>
-      </OtpGuard>
-    </InactivityGuard>
+        </Dialog></>
   )
 }
 
