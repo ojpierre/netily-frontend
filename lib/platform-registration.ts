@@ -140,3 +140,49 @@ export function lookupTenantRegistration<T>(companyName: string, companyEmail: s
   const query = new URLSearchParams({ company_name: companyName, company_email: companyEmail })
   return requestRegistration<T>(`${REGISTRATION_PATH}status/?${query}`, "GET")
 }
+
+export type TenantActivationPayment = {
+  id: string
+  status: "pending" | "processing" | "completed" | "provisioning" | "consumed" | "failed" | "expired"
+  amount: string
+  currency: string
+  company_name: string
+  phone_number: string
+  receipt?: string | null
+  failure_reason?: string | null
+  can_set_password: boolean
+  account_created: boolean
+  created_at: string
+  completed_at?: string | null
+}
+
+export function startTenantActivation(
+  data: object,
+): Promise<TenantActivationPayment> {
+  return requestRegistration<TenantActivationPayment>(
+    `${REGISTRATION_PATH}activation/`,
+    "POST",
+    data,
+  )
+}
+
+export function getTenantActivation(
+  paymentId: string,
+): Promise<TenantActivationPayment> {
+  return requestRegistration<TenantActivationPayment>(
+    `${REGISTRATION_PATH}activation/${paymentId}/`,
+    "GET",
+  )
+}
+
+export function finishTenantActivation<T>(
+  paymentId: string,
+  password: string,
+  passwordConfirm: string,
+): Promise<T> {
+  return requestRegistration<T>(
+    `${REGISTRATION_PATH}activation/${paymentId}/finish/`,
+    "POST",
+    { admin_password: password, admin_password_confirm: passwordConfirm },
+  )
+}

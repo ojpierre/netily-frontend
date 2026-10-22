@@ -95,6 +95,24 @@
 .cardLabel { color: var(--blue); font-size: 12px; font-weight: 600; }
 .cardArrow { display: flex; align-items: center; justify-content: space-between; color: var(--blue); font-size: 13px; margin-top: auto; }
 .textLink { display: inline-flex; align-items: center; gap: 12px; color: var(--blue); min-height: 48px; margin-top: 24px; }
+.operationsBand { background: #0d2630; color: #eef8fb; }
+.operationsBand .eyebrow { color: #7fd0ff !important; }
+.operationsBand .sectionHeading p:last-child { color: #b9cbd3; }
+.capabilityGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #ffffff26; border-left: 1px solid #ffffff26; }
+.capabilityItem { min-width: 0; padding: 28px; border-right: 1px solid #ffffff26; border-bottom: 1px solid #ffffff26; }
+.capabilityItem svg { color: #7fd0ff; }
+.capabilityItem h3 { font-size: 21px; color: #fff; }
+.capabilityItem p { color: #b9cbd3; font-size: 14px; }
+.reviewSection { background: var(--paper); }
+.reviewLayout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 72px; align-items: start; }
+.reviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.reviewCard { min-height: 230px; border: 1px solid var(--line); border-radius: 8px; padding: 28px; display: flex; flex-direction: column; background: var(--paper); transition: transform .2s, border-color .2s; }
+.reviewCard:hover { transform: translateY(-4px); border-color: var(--blue); }
+.reviewCard strong { font-family: var(--font-outfit), sans-serif; font-size: 24px; line-height: 1.2; margin-block: 28px; }
+.reviewCard > span:last-child { display: flex; align-items: center; justify-content: space-between; margin-top: auto; color: var(--blue); font-size: 13px; font-weight: 700; }
+.reviewBrand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.reviewBrand svg { fill: #00b67a; color: #00b67a; }
+.googleG { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: #4285f4; border: 2px solid #4285f4; font-weight: 800; }
 .editorial { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
 .editorialImage { position: relative; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; }
 .editorialImage img { object-fit: cover; }
@@ -174,6 +192,8 @@
   .mega { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); box-shadow: none; border: 0; border-bottom: 1px solid var(--line); padding: 20px 0; max-height: none; }
   .menuWide { grid-template-columns: 1fr 1fr; }
   .cardGrid { grid-template-columns: 1fr 1fr; }
+  .capabilityGrid { grid-template-columns: 1fr 1fr; }
+  .reviewLayout { grid-template-columns: 1fr; gap: 24px; }
   .threeColumns, .workflow { gap: 24px; }
   .editorial { gap: 32px; }
   .priceGrid { gap: 32px; }
@@ -204,7 +224,7 @@
   .heroImage { object-position: 65% center; }
   .compatibility .container > div { gap: 12px 22px; }
   .compatibility span { font-size: 18px; }
-  .threeColumns, .workflow, .cardGrid, .editorial, .priceGrid, .contactGrid, .detailPoints, .calculator { grid-template-columns: 1fr; }
+  .threeColumns, .workflow, .cardGrid, .editorial, .priceGrid, .contactGrid, .detailPoints, .calculator, .capabilityGrid, .reviewGrid { grid-template-columns: 1fr; }
   .formRow { grid-template-columns: 1fr; }
   .successActions { width: 100%; flex-direction: column; }
   .successActions :is(.button, .secondary) { width: 100%; }

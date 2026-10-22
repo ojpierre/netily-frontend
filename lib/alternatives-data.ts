@@ -5,6 +5,7 @@ export type AlternativeSlug =
   | "jasiyo"
   | "pawanet"
   | "lipanet"
+  | "iterative-billing"
 
 export type AlternativePage = {
   slug: AlternativeSlug
@@ -31,6 +32,22 @@ const sharedKeywords = [
 ]
 
 export const alternativePages: AlternativePage[] = [
+  {
+    slug: "iterative-billing",
+    competitor: "Iterative Billing",
+    searchNames: ["Iterative billing alternative", "Iterative vs Internetily", "ISP billing app Kenya", "M-Pesa ISP billing software"],
+    headline: "Iterative Billing vs Internetily: which workflow fits your ISP?",
+    metaTitle: "Iterative Billing Alternative for ISPs | Internetily",
+    metaDescription:
+      "Compare Iterative Billing and Internetily for Kenyan ISP operations, including mobile administration, M-Pesa workflows, MikroTik access, hotspot billing, analytics, and customer self-service.",
+    intro:
+      "Iterative presents a mobile operator app for billing, renewals, payments, and staff permissions. Internetily is worth comparing when you also want payment-linked network access, hotspot operations, customer self-service, router analytics, inbuilt SMS, and a broader web dashboard.",
+    bestFor:
+      "ISP teams comparing a mobile-first billing app with a wider operating platform for payments, subscriber access, routers, hotspot locations, support, and reporting.",
+    netilyAngle:
+      "Internetily connects billing to PPPoE and hotspot access, supports regional payment methods, provides customer and captive portals, and brings router-level revenue, staff controls, reminders, and support into one workflow.",
+    keywords: ["Iterative billing alternative", "Iterative vs Internetily", "Iterative ISP billing", "ISP billing app Kenya", ...sharedKeywords],
+  },
   {
     slug: "centipid-billing",
     competitor: "ISP billing evaluation",
