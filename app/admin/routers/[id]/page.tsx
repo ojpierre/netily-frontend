@@ -274,6 +274,9 @@ export default function RouterDetailPage() {
     const [authScript, setAuthScript] = useState<string | null>(null)
     const [isScriptLoading, setIsScriptLoading] = useState(false)
     const [isAuthScriptDialogOpen, setIsAuthScriptDialogOpen] = useState(false)
+    const [authStep, setAuthStep] = useState<"choose" | "script">("choose")
+    const [vpnChoice, setVpnChoice] = useState<"wireguard" | "openvpn">("wireguard")
+    const [isSavingVpn, setIsSavingVpn] = useState(false)
   const params = useParams()
   const router = useRouter()
   const routerId = params.id as string
@@ -433,6 +436,31 @@ export default function RouterDetailPage() {
       navigator.clipboard.writeText(authScript)
       toast.success("Script copied to clipboard")
     }
+  }
+
+  // Handler for the "Continue" button on the Choose Connection Type step.
+  // Saves the protocol choice via API (which triggers perform_update on the
+  // backend → switch_protocol → deprovisions old tunnel + provisions new),
+  // then advances to the script step. If the choice is unchanged, just
+  // advances without a network call.
+  const handleContinueAuth = async () => {
+    if (!routerData) return
+    const current = (routerData.vpn_protocol as "wireguard" | "openvpn") || "wireguard"
+    if (vpnChoice !== current && !isUsingDemoData) {
+      setIsSavingVpn(true)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updated = await adminApi.updateRouter(routerData.id, { vpn_protocol: vpnChoice } as any)
+        setRouterData(updated)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (e: any) {
+        toast.error(e?.message || "Could not apply the connection type. Please try again.")
+        setIsSavingVpn(false)
+        return
+      }
+      setIsSavingVpn(false)
+    }
+    setAuthStep("script")
   }
 
   const handleRefresh = async () => {
@@ -819,70 +847,119 @@ export default function RouterDetailPage() {
               <Button
                   variant={routerData.is_authenticated ? "outline" : "secondary"}
                   size="sm"
-                  onClick={() => setIsAuthScriptDialogOpen(true)}
+                  onClick={() => {
+                    setVpnChoice(((routerData.vpn_protocol as any) || "wireguard"))
+                    setAuthStep(isUsingDemoData ? "script" : "choose")
+                    setIsAuthScriptDialogOpen(true)
+                  }}
                 >
                   <FileCode className="w-4 h-4 mr-2" />
                   {routerData.is_authenticated ? "View Auth Script" : "Authenticate Router"}
                 </Button>
             </div>
-      {/* Auth Script Dialog */}
+      {/* Auth Script Dialog — 2 steps: Choose Connection Type → Script */}
       {isAuthScriptDialogOpen && (
-        // Fix 2d: Updated DialogContent with max-w-lg and w-full
         <Dialog open={isAuthScriptDialogOpen} onOpenChange={setIsAuthScriptDialogOpen}>
           <DialogContent className="admin-theme-dialog max-w-lg w-full">
-            <DialogHeader>
-              <DialogTitle>Router Authentication Script</DialogTitle>
-              <DialogDescription>
-                One-time setup for secure router authentication.
-              </DialogDescription>
-              <Alert className="mb-4 mt-2">
-                <Shield className="h-4 w-4" />
-                <AlertTitle>Before you run this script</AlertTitle>
-                <AlertDescription>
-                  <ol className="list-decimal list-inside space-y-2 mt-1 text-sm">
-                    <li>Reset the router to factory defaults before running the script.</li>
-                    <li>
-                      If the device reports <span className="font-mono bg-slate-100 px-1 rounded text-xs">"device mode not allowed"</span>,
-                      open the MikroTik terminal and run{" "}
-                      <span className="font-mono bg-slate-100 px-1 rounded text-xs">/system/device-mode update mode=advanced</span>,
-                      then unplug the power cord for 10 seconds and restore power before retrying.
-                    </li>
-                  </ol>
-                </AlertDescription>
-              </Alert>
-            </DialogHeader>
-            {isScriptLoading ? (
-              <div className="p-4 text-center">Loading script...</div>
-            ) : authScript ? (
+            {authStep === "choose" ? (
               <>
-                {/* Fix 2d: Updated pre/code block with overflow handling */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded p-4 font-mono text-xs break-all overflow-x-auto max-h-48 overflow-y-auto mb-4">
-                  {authScript}
+                <DialogHeader>
+                  <DialogTitle>Choose Connection Type</DialogTitle>
+                  <DialogDescription>Select how this router connects to Netily.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                  {([
+                    { id: "wireguard" as const, title: "Standard — Fast Connect", badge: "Recommended" as const,
+                      desc: "Best speed and lowest latency. Works well on most internet uplinks." },
+                    { id: "openvpn" as const, title: "Stable Connect", badge: null,
+                      desc: "Use this if your uplinks are flaky or keep dropping." },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setVpnChoice(opt.id)}
+                      className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                        vpnChoice === opt.id ? "border-primary bg-primary/10" : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{opt.title}</span>
+                        {opt.badge && <Badge className="bg-success text-xs">{opt.badge}</Badge>}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{opt.desc}</p>
+                    </button>
+                  ))}
+                  {routerData.is_authenticated &&
+                    vpnChoice !== ((routerData.vpn_protocol as any) || "wireguard") && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          This router is already connected. Changing the type will disconnect it until you run the new script on it.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                 </div>
-                {routerData.is_authenticated && (
-                  <div className="flex items-center gap-2 text-success text-sm mb-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Authenticated on {formatDate(routerData.authenticated_at!)}
-                  </div>
-                )}
-                {isUsingDemoData && (
-                  <Badge variant="outline" className="text-warning mb-2">Demo Authentication</Badge>
-                )}
-                <div className="text-xs text-slate-500 mt-2">
-                  After running the script, click Refresh to update status.
-                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAuthScriptDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleContinueAuth} disabled={isSavingVpn}>
+                    {isSavingVpn && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Continue
+                  </Button>
+                </DialogFooter>
               </>
             ) : (
-              <div className="p-4 text-destructive">Failed to load script.</div>
+              <>
+                <DialogHeader>
+                  <DialogTitle>Router Authentication Script</DialogTitle>
+                  <DialogDescription>One-time setup for secure router authentication.</DialogDescription>
+                  <Alert className="mb-4 mt-2">
+                    <Shield className="h-4 w-4" />
+                    <AlertTitle>Before you run this script</AlertTitle>
+                    <AlertDescription>
+                      <ol className="list-decimal list-inside space-y-2 mt-1 text-sm">
+                        <li>Reset the router to factory defaults before running the script.</li>
+                        <li>
+                          If the device reports <span className="font-mono bg-slate-100 px-1 rounded text-xs">"device mode not allowed"</span>,
+                          open the MikroTik terminal and run{" "}
+                          <span className="font-mono bg-slate-100 px-1 rounded text-xs">/system/device-mode update mode=advanced</span>,
+                          then unplug the power cord for 10 seconds and restore power before retrying.
+                        </li>
+                      </ol>
+                    </AlertDescription>
+                  </Alert>
+                </DialogHeader>
+                {isScriptLoading ? (
+                  <div className="p-4 text-center">Loading script...</div>
+                ) : authScript ? (
+                  <>
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded p-4 font-mono text-xs break-all overflow-x-auto max-h-48 overflow-y-auto mb-4">
+                      {authScript}
+                    </div>
+                    {routerData.is_authenticated && (
+                      <div className="flex items-center gap-2 text-success text-sm mb-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Authenticated on {formatDate(routerData.authenticated_at!)}
+                      </div>
+                    )}
+                    {isUsingDemoData && (
+                      <Badge variant="outline" className="text-warning mb-2">Demo Authentication</Badge>
+                    )}
+                    <div className="text-xs text-slate-500 mt-2">
+                      After running the script, click Refresh to update status.
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 text-destructive">Failed to load script.</div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAuthStep("choose")}>Back</Button>
+                  <Button onClick={handleCopyAuthScript} disabled={!authScript}>
+                    <Copy className="w-4 h-4 mr-2" /> Copy Script
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsAuthScriptDialogOpen(false)}>Close</Button>
+                </DialogFooter>
+              </>
             )}
-            <DialogFooter>
-              <Button onClick={handleCopyAuthScript} disabled={!authScript}>
-                <Copy className="w-4 h-4 mr-2" /> Copy Script
-              </Button>
-              <Button variant="outline" onClick={() => setIsAuthScriptDialogOpen(false)}>
-                Close
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
@@ -1319,7 +1396,7 @@ export default function RouterDetailPage() {
                     <CloudCog className="w-6 h-6 text-primary" />
                     <div>
                       <CardTitle>Cloud Controller VPN</CardTitle>
-                      <CardDescription>OpenVPN tunnel between this router and Netily cloud</CardDescription>
+                      <CardDescription>Secure tunnel between this router and Netily cloud</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1500,97 +1577,7 @@ export default function RouterDetailPage() {
               </Card>
             )}
 
-            {/* Cloud Provision Script Card */}
-            <Card className="border-2 border-primary/20 bg-primary/10/50">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Code className="w-5 h-5 text-primary" />
-                    <CardTitle className="text-base">MikroTik Provisioning Script</CardTitle>
-                    <Badge className="bg-primary">Cloud Controller v4</Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isScriptDownloading}
-                      onClick={async () => {
-                        setIsScriptDownloading(true)
-                        try {
-                          const script = await adminApi.downloadRouterScript(routerData.id, 7)
-                          setCloudScript(typeof script === 'string' ? script : JSON.stringify(script))
-                          toast.success('Script loaded')
-                        } catch {
-                          toast.error('Failed to load script')
-                        } finally {
-                          setIsScriptDownloading(false)
-                        }
-                      }}
-                      className="gap-2"
-                    >
-                      {isScriptDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      Load Script
-                    </Button>
-                    {cloudScript && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCopyScript(cloudScript)}
-                        className="gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <CardDescription className="mt-2">
-                  Two-stage provisioning: detects RouterOS version, downloads version-specific config, sets up VPN (username/password), RADIUS, Hotspot, PPPoE, and cloud redirector.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Magic Link — the one-liner */}
-                <div className="mb-4">
-                  <p className="text-xs text-slate-500 mb-2 font-medium">Magic Link — paste into MikroTik terminal:</p>
-                  <div className="relative">
-                    <pre className="bg-slate-900 text-success p-4 pr-12 rounded-md text-sm overflow-x-auto font-mono">
-                      <code>{routerData.magic_link || `/tool fetch url="${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/network/provision/${routerData.auth_key || 'NOT_GENERATED'}/${routerData.provision_slug || 'pending'}/script.rsc" dst-path="netily.rsc" mode=http; :delay 2s; /import netily.rsc`}</code>
-                    </pre>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 text-slate-400 hover:text-white"
-                      onClick={() => {
-                        const link = routerData.magic_link || 'Magic link not generated yet'
-                        navigator.clipboard.writeText(link)
-                        toast.success('Magic link copied!')
-                      }}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Stage 1 detects RouterOS v6/v7 → Stage 2 downloads version-specific config</p>
-                </div>
-
-                {/* Script preview */}
-                {cloudScript ? (
-                  <div>
-                    <p className="text-xs text-slate-500 mb-2 font-medium">Script preview ({cloudScript.split('\n').length} lines):</p>
-                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-md text-xs overflow-x-auto font-mono max-h-96 overflow-y-auto">
-                      <code>{cloudScript}</code>
-                    </pre>
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500">Click "Load Script" to preview the generated .rsc provisioning script.</p>
-                )}
-
-                <div className="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-md">
-                  <p className="text-xs text-warning">
-                    ⚠️ This script will <strong>reset the router configuration</strong> including identity, IP pool, DHCP, hotspot, RADIUS, and OpenVPN settings. Only run on routers you intend to manage via Netily Cloud Controller.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Cloud Provision Script Card — REMOVED */}
 
             {/* Architecture Info */}
             <Card>

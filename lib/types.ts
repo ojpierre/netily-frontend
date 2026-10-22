@@ -512,6 +512,7 @@ export interface Router {
   vpn_provisioned_at?: string
   vpn_ip_address?: string
   vpn_last_seen?: string
+  vpn_protocol?: "wireguard" | "openvpn"
   ca_certificate?: string
   client_certificate?: string
   client_key?: string
