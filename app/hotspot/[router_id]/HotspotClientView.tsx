@@ -14,6 +14,14 @@ const AdVideoModal = dynamic(() => import("./AdVideoModal"), { ssr: false })
 const LoyaltyRedeemModal = dynamic(() => import("./LoyaltyRedeemModal"), { ssr: false })
 const PhoneReconnectModal = dynamic(() => import("./PhoneReconnectModal"), { ssr: false })
 const ChatWidget = dynamic(() => import("./ChatWidget"), { ssr: false })
+const PaymentWaitingPrinter = dynamic(() => import("./PaymentWaitingPrinter"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center p-8">
+      <Loader2 className="w-10 h-10 animate-spin text-green-500" />
+    </div>
+  ),
+})
 
 // ==========================================
 // TYPES - EXPORTED for use in modal components
@@ -1094,6 +1102,7 @@ export default function HotspotClientView({
       import("./AdVideoModal")
       import("./LoyaltyRedeemModal")
       import("./PhoneReconnectModal")
+      import("./PaymentWaitingPrinter")   // ← add
     }
     if ("requestIdleCallback" in window) {
       ;(window as any).requestIdleCallback(warm, { timeout: 2000 })
@@ -1709,58 +1718,28 @@ export default function HotspotClientView({
   }
 
   // ==========================================
-  // RENDER: Payment Processing
+  // RENDER: Payment Processing (receipt printer)
   // ==========================================
   if (paymentStatus === "sending" || paymentStatus === "waiting") {
+    const isUg = paymentLocale.country === "UG"
     return (
-      <div className={`${theme.pageBg} flex items-center justify-center p-4`}>
-        <div className={`${theme.cardClass} p-8 max-w-md w-full text-center`}>
-          {paymentStatus === "sending" ? (
-            <>
-              <Loader2 className="w-16 h-16 animate-spin text-green-500 mx-auto mb-4" />
-              <h2 className={`text-xl font-bold mb-2 ${theme.planTitle}`}>{paymentLocale.country === "UG" ? "Sending payment request..." : "Sending STK Push..."}</h2>
-              <p className={theme.mutedText}>Please wait while we send the payment request to your phone.</p>
-            </>
-          ) : (
-            <>
-              <Phone className="w-16 h-16 text-green-500 mx-auto mb-4 animate-pulse" />
-              <h2 className={`text-xl font-bold mb-2 ${theme.planTitle}`}>Check Your Phone</h2>
-              <p className={`mb-4 ${theme.bodyText}`}>
-                {paymentLocale.country === "UG" ? "Approve the payment on your phone and enter your Mobile Money PIN." : "Enter your M-Pesa PIN on your phone to complete the payment."}
-              </p>
-
-              <div className="bg-amber-50 rounded-xl p-4 mb-4">
-                <div className="flex items-center justify-center gap-2 text-amber-700">
-                  <Clock className="w-5 h-5" />
-                  <span className="font-semibold text-lg">
-                    {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
-                  </span>
-                </div>
-                <p className="text-sm text-amber-600 mt-1">Time remaining to complete payment</p>
-              </div>
-
-              {/* NEW: STK cancel warning */}
-              {paymentLocale.showCancellationWarning && <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-red-600 text-left">
-                  Do not cancel this M-Pesa prompt more than 3 times. Repeated cancellations
-                  may permanently block you from making further purchases.
-                </p>
-              </div>}
-
-              <div className={`${theme.planBg} rounded-xl p-4 text-left space-y-2 border ${theme.planBorder}`}>
-                <div className="flex justify-between">
-                  <span className={theme.mutedText}>Plan</span>
-                  <span className={`font-medium ${theme.planTitle}`}>{selectedPlan?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={theme.mutedText}>Amount</span>
-                  <span className="font-bold text-green-600">{selectedPlan && formatPaymentAmount(selectedPlan.price, selectedPlan.currency || paymentLocale.currency)}</span>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+      <div className={`${theme.pageBg} flex items-center justify-center p-4`} style={{ fontFamily: portalFontFamily }}>
+        <PaymentWaitingPrinter
+          status={paymentStatus}
+          planName={selectedPlan?.name || "Plan"}
+          durationDisplay={selectedPlan?.duration_display || ""}
+          amountText={selectedPlan ? formatPaymentAmount(selectedPlan.price, selectedPlan.currency || paymentLocale.currency) : ""}
+          countdown={countdown}
+          totalSeconds={120}
+          providerLabel={paymentLocale.provider}
+          reference={sessionId ? sessionId.slice(0, 8).toUpperCase() : null}
+          sendingTitle={isUg ? "Sending payment request..." : "Sending STK Push..."}
+          waitingTitle="Check your phone"
+          waitingHint={isUg
+            ? "Approve the payment on your phone and enter your Mobile Money PIN."
+            : "Enter your M-Pesa PIN on your phone to complete the payment."}
+          showCancellationWarning={!!paymentLocale.showCancellationWarning}
+        />
       </div>
     )
   }
