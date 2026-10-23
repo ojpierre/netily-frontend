@@ -131,6 +131,11 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
   const isBrandGuide = pathname === '/admin/brand-guide' || pathname.startsWith('/admin/brand-guide/')
+  const isOperatorOnboardingRoute =
+    pathname === '/admin/selfie' ||
+    pathname.startsWith('/admin/selfie/') ||
+    pathname === '/admin/selfie-2' ||
+    pathname.startsWith('/admin/selfie-2/')
 
   if (pathname === '/robots.txt' && !isRootMarketingDomain(hostname) && !hostname.startsWith('localhost:')) {
     return new NextResponse('User-agent: *\nDisallow: /\n', {
@@ -185,7 +190,7 @@ export function proxy(request: NextRequest) {
       return NextResponse.next()
     }
 
-    if (pathname === '/admin/selfie' && (superadminToken || supportToken)) {
+    if (isOperatorOnboardingRoute && (superadminToken || supportToken)) {
       return NextResponse.next()
     }
 
@@ -229,7 +234,7 @@ export function proxy(request: NextRequest) {
       return NextResponse.next()
     }
 
-    if (pathname === '/admin/selfie') {
+    if (isOperatorOnboardingRoute) {
       if (!superadminToken && !supportToken) {
         const loginUrl = new URL('/support/login', request.url)
         loginUrl.searchParams.set('from', pathname)
