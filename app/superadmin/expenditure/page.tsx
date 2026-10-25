@@ -3,9 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
-  ArrowLeftRight,
   BarChart3,
-  Banknote,
   Calculator,
   Loader2,
   Plus,
@@ -55,7 +53,7 @@ const emptySummary: PlatformExpenditureSummary = {
   currency: "KES",
   ledger: "primary",
   ledger_label: "Original Business Account",
-  ledger_description: "Closed ledger ending at the gateway/account cutover.",
+  ledger_description: "Receipts mapped to this account and its recorded costs.",
   ledger_route: "/superadmin/expenditure",
   cutover_at: null,
   cutover_verified: false,
@@ -291,34 +289,31 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Payment Receipts" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · subscriptions + SMS`} icon={WalletCards} />
-        <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed tenant subscription payments" icon={Banknote} tone="emerald" />
-        <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed inbuilt SMS top-ups" icon={ReceiptText} tone="cyan" />
+        <MetricCard title="Receipts" value={kes(summary.accrued_total)} subtitle={`${kes(summary.subscription_payments_total)} subscriptions · ${kes(summary.sms_topups_total)} SMS`} icon={WalletCards} />
         <MetricCard title="Operating Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses and fees, less credits" icon={ReceiptText} tone="rose" />
         <MetricCard title="Operating Profit" value={kes(summary.net_profit)} subtitle="Receipts less operating costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
-        <MetricCard title="Owner Distributions" value={kes(summary.owner_draw_total)} subtitle="Reduces cash, not business profit" icon={WalletCards} tone="amber" />
-        <MetricCard title="Net Transfers" value={kes(Number(summary.transfer_in_total) - Number(summary.transfer_out_total))} subtitle={`${kes(summary.transfer_in_total)} in · ${kes(summary.transfer_out_total)} out`} icon={ArrowLeftRight} tone="amber" />
         <MetricCard title={filters.start || filters.end ? "Net Movement" : "Recorded Cash Movement"} value={kes(summary.calculated_position)} subtitle="Profit, distributions, adjustments and transfers" icon={WalletCards} tone={Number(summary.calculated_position) >= 0 ? "emerald" : "rose"} />
       </div>
 
       <Card className="border-slate-800 bg-slate-900">
-        <CardContent className="grid gap-4 pt-6 md:grid-cols-3">
+        <CardContent className="grid gap-5 pt-6 sm:grid-cols-2 xl:grid-cols-6">
+          <div><p className="text-xs uppercase text-slate-500">Owner distributions</p><p className="mt-1 font-medium text-slate-100">{kes(summary.owner_draw_total)}</p></div>
+          <div><p className="text-xs uppercase text-slate-500">Adjustments</p><p className="mt-1 font-medium text-slate-100">{kes(summary.cash_adjustment_total)}</p></div>
+          <div><p className="text-xs uppercase text-slate-500">Transfers in</p><p className="mt-1 font-medium text-emerald-300">{kes(summary.transfer_in_total)}</p></div>
+          <div><p className="text-xs uppercase text-slate-500">Transfers out</p><p className="mt-1 font-medium text-slate-100">{kes(summary.transfer_out_total)}</p></div>
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500">Accounting window</p>
             <p className="mt-1 text-sm font-medium text-slate-100">
-              {ledger === "new_business" ? "After cutover" : "Up to cutover"}
+              {ledger === "new_business" ? "Account 2 activity" : "Account 1 activity"}
             </p>
             {ledger === "new_business" && <p className="mt-1 text-xs text-slate-400">The transfer from Account 1 is not new income.</p>}
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Cutover payment</p>
-            <p className="mt-1 text-sm font-medium text-slate-100">{dateTimeLabel(summary.cutover_at)}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Boundary reference</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Fallback boundary</p>
             <p className="mt-1 truncate text-sm font-medium text-slate-100">
-              {summary.cutover_company || "Bentrex"}{summary.cutover_reference ? ` · ${summary.cutover_reference}` : ""}
+              {summary.cutover_reference || "-"}
             </p>
+            <p className="mt-1 text-xs text-slate-500">{dateTimeLabel(summary.cutover_at)}</p>
           </div>
         </CardContent>
       </Card>

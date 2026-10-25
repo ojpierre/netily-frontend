@@ -556,7 +556,15 @@ export interface FinancialSummary {
 }
 
 export interface FinancialCashPosition {
-  snapshot: null | { id: string; balance: string; balance_at: string; reference: string; notes: string }
+  snapshot: null | {
+    id: string
+    balance: string
+    balance_at: string
+    reference: string
+    notes: string
+    system_balance_before: string | null
+    reconciliation_difference: string | null
+  }
   movements_after_snapshot: null | { receipts: string; outflows: string; transfer_in: string; transfer_out: string; net: string }
   estimated_balance: string | null
   confidence: "needs_snapshot" | "reconciled_anchor_plus_recorded_movements"
@@ -586,7 +594,19 @@ export interface PlatformFinancialReport {
   monthly_by_account: Record<PlatformExpenditureLedger, FinancialMonthlyRow[]>
   forecast: { basis_months: number; monthly_receipts: string; monthly_expenses: string; monthly_profit: string; next_three_months_profit: string }
   expense_categories: Array<{ category: string; total: string }>
-  recent_events: Array<{ type: string; account: PlatformExpenditureLedger; to_account?: PlatformExpenditureLedger; direction: string; amount: string; title: string; reference: string; occurred_at: string; allocation: string }>
+  recent_events: Array<{
+    type: string
+    account: PlatformExpenditureLedger
+    to_account?: PlatformExpenditureLedger
+    direction: string
+    amount: string
+    title: string
+    reference: string
+    occurred_at: string
+    allocation: string
+    source_type?: "subscription" | "sms"
+    source_id?: string
+  }>
   data_quality: { missing_subscription_dates: number; inferred_subscription_allocations: number; inferred_sms_allocations: number; unreconciled_accounts: number; message: string }
 }
 
@@ -1512,6 +1532,20 @@ class SuperadminApiService {
 
   async saveAccountBalanceSnapshot(data: AccountBalanceSnapshotPayload): Promise<any> {
     return this.request("/superadmin/financial-reports/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async saveFinancialReceiptAllocation(data: {
+    source_type: "subscription" | "sms"
+    source_id: string
+    reference?: string
+    ledger: PlatformExpenditureLedger
+    occurred_at?: string
+    notes?: string
+  }): Promise<any> {
+    return this.request("/superadmin/financial-reports/allocations/", {
       method: "POST",
       body: JSON.stringify(data),
     })

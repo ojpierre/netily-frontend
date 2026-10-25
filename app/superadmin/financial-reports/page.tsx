@@ -11,6 +11,7 @@ import {
   CalendarRange,
   Landmark,
   Loader2,
+  PencilLine,
   RefreshCw,
   Scale,
   TrendingUp,
@@ -94,6 +95,10 @@ export default function FinancialReportsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [mappingOpen, setMappingOpen] = useState(false)
+  const [mappingEvent, setMappingEvent] = useState<PlatformFinancialReport["recent_events"][number] | null>(null)
+  const [mappingAccount, setMappingAccount] = useState<PlatformExpenditureLedger>("primary")
+  const [mappingNotes, setMappingNotes] = useState("")
   const [snapshot, setSnapshot] = useState({
     ledger: "primary" as PlatformExpenditureLedger,
     balance: "",
@@ -159,6 +164,35 @@ export default function FinancialReportsPage() {
       await load()
     } catch (error: any) {
       toast.error(error?.message || "Could not save the balance")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openMapping = (event: PlatformFinancialReport["recent_events"][number]) => {
+    setMappingEvent(event)
+    setMappingAccount(event.account)
+    setMappingNotes("")
+    setMappingOpen(true)
+  }
+
+  const saveMapping = async () => {
+    if (!mappingEvent?.source_type || !mappingEvent.source_id) return
+    setSaving(true)
+    try {
+      await superadminApi.saveFinancialReceiptAllocation({
+        source_type: mappingEvent.source_type,
+        source_id: mappingEvent.source_id,
+        reference: mappingEvent.reference,
+        ledger: mappingAccount,
+        occurred_at: mappingEvent.occurred_at,
+        notes: mappingNotes.trim(),
+      })
+      toast.success(`Receipt mapped to ${accountNames[mappingAccount]}`)
+      setMappingOpen(false)
+      await load()
+    } catch (error: any) {
+      toast.error(error?.message || "Could not update the receipt account")
     } finally {
       setSaving(false)
     }
@@ -260,10 +294,10 @@ export default function FinancialReportsPage() {
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-slate-800 text-xs uppercase text-slate-500"><tr><th className="pb-3">Date</th><th className="pb-3">Account</th><th className="pb-3">Event</th><th className="pb-3">Reference</th><th className="pb-3 text-right">Amount</th></tr></thead>
+                <thead className="border-b border-slate-800 text-xs uppercase text-slate-500"><tr><th className="pb-3">Date</th><th className="pb-3">Account</th><th className="pb-3">Event</th><th className="pb-3">Reference</th><th className="pb-3 text-right">Amount</th><th className="pb-3 text-right">Map</th></tr></thead>
                 <tbody className="divide-y divide-slate-800">
                   {report?.recent_events.map((event, index) => (
-                    <tr key={`${event.reference}-${event.occurred_at}-${index}`}><td className="py-3 text-slate-400">{when(event.occurred_at)}</td><td className="py-3 text-slate-300">{accountNames[event.account]}</td><td className="py-3"><p className="font-medium text-white">{event.title}</p><p className="text-xs capitalize text-slate-500">{event.type.replaceAll("_", " ")}</p></td><td className="py-3 text-slate-400">{event.reference || "-"}</td><td className={`py-3 text-right font-semibold ${event.direction === "in" ? "text-emerald-300" : "text-slate-100"}`}>{event.direction === "in" ? "+" : event.direction === "out" ? "-" : ""}{kes(event.amount)}</td></tr>
+                    <tr key={`${event.reference}-${event.occurred_at}-${index}`}><td className="py-3 text-slate-400">{when(event.occurred_at)}</td><td className="py-3"><span className="text-slate-300">{accountNames[event.account]}</span><p className="text-xs capitalize text-slate-500">{event.allocation.replaceAll("_", " ")}</p></td><td className="py-3"><p className="font-medium text-white">{event.title}</p><p className="text-xs capitalize text-slate-500">{event.type.replaceAll("_", " ")}</p></td><td className="py-3 text-slate-400">{event.reference || "-"}</td><td className={`py-3 text-right font-semibold ${event.direction === "in" ? "text-emerald-300" : "text-slate-100"}`}>{event.direction === "in" ? "+" : event.direction === "out" ? "-" : ""}{kes(event.amount)}</td><td className="py-3 text-right">{event.source_id ? <Button size="icon" variant="ghost" onClick={() => openMapping(event)} title="Change account mapping" aria-label={`Map ${event.title} to an account`} className="text-slate-400 hover:text-white"><PencilLine className="h-4 w-4" /></Button> : "-"}</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -279,7 +313,7 @@ export default function FinancialReportsPage() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-slate-800 bg-slate-950 text-white">
-          <DialogHeader><DialogTitle>Reconcile {accountNames[snapshot.ledger]}</DialogTitle><DialogDescription className="text-slate-400">Enter the confirmed closing balance from the bank or wallet statement. Reports calculate forward from this anchor.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Check {accountNames[snapshot.ledger]}</DialogTitle><DialogDescription className="text-slate-400">Enter the live bank or wallet balance. It is compared with the system estimate, records any difference, then becomes the next checkpoint. You can check it again whenever needed.</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-2">
             <div><Label>Account</Label><Select value={snapshot.ledger} onValueChange={(value) => setSnapshot((x) => ({ ...x, ledger: value as PlatformExpenditureLedger }))}><SelectTrigger className="mt-1 border-slate-700 bg-slate-900"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="primary">Account 1</SelectItem><SelectItem value="new_business">Account 2</SelectItem></SelectContent></Select></div>
             <div><Label>Confirmed balance (KES)</Label><Input type="number" step="0.01" value={snapshot.balance} onChange={(e) => setSnapshot((x) => ({ ...x, balance: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900" /></div>
@@ -288,6 +322,18 @@ export default function FinancialReportsPage() {
             <div><Label>Notes</Label><Textarea value={snapshot.notes} onChange={(e) => setSnapshot((x) => ({ ...x, notes: e.target.value }))} placeholder="What was checked and any known missing fees" className="mt-1 border-slate-700 bg-slate-900" /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} className="border-slate-700 bg-slate-900">Cancel</Button><Button onClick={saveSnapshot} disabled={saving} className="bg-violet-600 hover:bg-violet-500">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save balance</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mappingOpen} onOpenChange={setMappingOpen}>
+        <DialogContent className="border-slate-800 bg-slate-950 text-white">
+          <DialogHeader><DialogTitle>Map receipt to account</DialogTitle><DialogDescription className="text-slate-400">The payment remains unchanged. Only its reporting account is corrected.</DialogDescription></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-4"><p className="font-medium">{mappingEvent?.title}</p><p className="mt-1 text-sm text-slate-400">{mappingEvent?.reference || "No external reference"} · {kes(mappingEvent?.amount)}</p></div>
+            <div><Label>Money received in</Label><Select value={mappingAccount} onValueChange={(value) => setMappingAccount(value as PlatformExpenditureLedger)}><SelectTrigger className="mt-1 border-slate-700 bg-slate-900"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="primary">Account 1</SelectItem><SelectItem value="new_business">Account 2</SelectItem></SelectContent></Select></div>
+            <div><Label>Review note</Label><Textarea value={mappingNotes} onChange={(event) => setMappingNotes(event.target.value)} placeholder="Example: confirmed against the October statement" className="mt-1 border-slate-700 bg-slate-900" /></div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setMappingOpen(false)} className="border-slate-700 bg-slate-900">Cancel</Button><Button onClick={saveMapping} disabled={saving} className="bg-violet-600 hover:bg-violet-500">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save mapping</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -300,9 +346,10 @@ function CashAccount({ ledger, position, onReconcile }: { ledger: PlatformExpend
     <Card className="border-slate-800 bg-slate-900">
       <CardHeader className="flex-row items-start justify-between gap-3"><div><CardTitle className="text-white">{accountNames[ledger]}</CardTitle><p className="mt-1 text-xs text-slate-500">{ledger === "primary" ? "Original business account" : "New business account"}</p></div><Badge variant="outline" className={position?.snapshot ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>{position?.snapshot ? "Reconciled" : "Needs balance"}</Badge></CardHeader>
       <CardContent className="space-y-5">
-        <div><p className="text-xs text-slate-500">Estimated available cash</p><p className="mt-1 text-3xl font-bold text-white">{kes(position?.estimated_balance)}</p>{position?.snapshot ? <p className="mt-2 text-xs text-slate-500">Anchored at {kes(position.snapshot.balance)} on {when(position.snapshot.balance_at)}</p> : null}</div>
+        <div><p className="text-xs text-slate-500">Estimated available cash</p><p className="mt-1 text-3xl font-bold text-white">{kes(position?.estimated_balance)}</p>{position?.snapshot ? <p className="mt-2 text-xs text-slate-500">Last checked at {kes(position.snapshot.balance)} on {when(position.snapshot.balance_at)}</p> : null}</div>
+        {position?.snapshot?.reconciliation_difference !== null && position?.snapshot?.reconciliation_difference !== undefined ? <div className={`rounded-lg border p-3 text-sm ${Math.abs(Number(position.snapshot.reconciliation_difference)) <= 50 ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-200" : "border-amber-500/20 bg-amber-500/5 text-amber-100"}`}><p className="font-medium">Last check difference: {kes(position.snapshot.reconciliation_difference)}</p><p className="mt-1 text-xs opacity-75">System expected {kes(position.snapshot.system_balance_before)} before the live balance was entered.</p></div> : null}
         {position?.movements_after_snapshot ? <div className="grid grid-cols-2 gap-3 border-y border-slate-800 py-4 text-sm"><div><p className="text-xs text-slate-500">Receipts since</p><p className="mt-1 text-emerald-300">+{kes(position.movements_after_snapshot.receipts)}</p></div><div><p className="text-xs text-slate-500">Outflows since</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.outflows)}</p></div><div><p className="text-xs text-slate-500">Transfers in</p><p className="mt-1 text-slate-200">+{kes(position.movements_after_snapshot.transfer_in)}</p></div><div><p className="text-xs text-slate-500">Transfers out</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.transfer_out)}</p></div></div> : <p className="text-sm leading-6 text-slate-400">Add one confirmed balance. Earlier receipts and costs remain in performance reports, while cash starts from the balance you verified.</p>}
-        <div className="flex flex-wrap gap-2"><Button onClick={onReconcile} className="bg-violet-600 hover:bg-violet-500"><Scale className="mr-2 h-4 w-4" />Reconcile balance</Button><Button asChild variant="outline" className="border-slate-700 bg-slate-950 text-slate-200"><Link href={expenditureRoute}><ArrowLeftRight className="mr-2 h-4 w-4" />Open ledger</Link></Button></div>
+        <div className="flex flex-wrap gap-2"><Button onClick={onReconcile} className="bg-violet-600 hover:bg-violet-500"><Scale className="mr-2 h-4 w-4" />Check live balance</Button><Button asChild variant="outline" className="border-slate-700 bg-slate-950 text-slate-200"><Link href={expenditureRoute}><ArrowLeftRight className="mr-2 h-4 w-4" />Open ledger</Link></Button></div>
       </CardContent>
     </Card>
   )
