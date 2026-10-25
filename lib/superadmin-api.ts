@@ -483,12 +483,15 @@ export type PlatformExpenditureCategory =
   | "other"
 
 export type PlatformExpenditureLedger = "primary" | "new_business"
+export type PlatformExpenditureEntryType = "operating_expense" | "bank_fee" | "owner_draw" | "cash_adjustment"
 
 export interface PlatformExpenditure {
   id: string
   ledger: PlatformExpenditureLedger
+  entry_type: PlatformExpenditureEntryType
   category: PlatformExpenditureCategory
   title: string
+  reference: string
   amount: string
   reverses: string | null
   is_reversed: boolean
@@ -502,8 +505,10 @@ export interface PlatformExpenditure {
 }
 
 export interface PlatformExpenditurePayload {
+  entry_type?: PlatformExpenditureEntryType
   category: PlatformExpenditureCategory
   title: string
+  reference?: string
   amount: string
   currency?: string
   incurred_on: string
@@ -524,6 +529,8 @@ export interface PlatformExpenditureSummary {
   sms_topups_total: string
   accrued_total: string
   manual_expenditure_total: string
+  owner_draw_total: string
+  cash_adjustment_total: string
   net_profit: string
   transfer_in_total: string
   transfer_out_total: string
@@ -532,6 +539,63 @@ export interface PlatformExpenditureSummary {
 
 export interface PlatformExpenditureResponse extends PaginatedResponse<PlatformExpenditure> {
   summary: PlatformExpenditureSummary
+}
+
+export interface FinancialSummary {
+  subscriptions: string
+  sms: string
+  receipts: string
+  operating_expenses: string
+  owner_draws: string
+  cash_adjustments: string
+  transfer_in: string
+  transfer_out: string
+  operating_profit: string
+  profit_margin: string
+  net_cash_movement: string
+}
+
+export interface FinancialCashPosition {
+  snapshot: null | { id: string; balance: string; balance_at: string; reference: string; notes: string }
+  movements_after_snapshot: null | { receipts: string; outflows: string; transfer_in: string; transfer_out: string; net: string }
+  estimated_balance: string | null
+  confidence: "needs_snapshot" | "reconciled_anchor_plus_recorded_movements"
+}
+
+export interface FinancialMonthlyRow {
+  key: string
+  label: string
+  subscriptions: string
+  sms: string
+  receipts: string
+  expenses: string
+  owner_draws: string
+  profit: string
+  cash_movement: string
+}
+
+export interface PlatformFinancialReport {
+  currency: string
+  range: { start: string; end: string }
+  cutover: { at: string; reference: string; verified: boolean }
+  combined: FinancialSummary
+  accounts: Record<PlatformExpenditureLedger, FinancialSummary>
+  cash_positions: Record<PlatformExpenditureLedger, FinancialCashPosition>
+  known_combined_cash: string | null
+  monthly: FinancialMonthlyRow[]
+  monthly_by_account: Record<PlatformExpenditureLedger, FinancialMonthlyRow[]>
+  forecast: { basis_months: number; monthly_receipts: string; monthly_expenses: string; monthly_profit: string; next_three_months_profit: string }
+  expense_categories: Array<{ category: string; total: string }>
+  recent_events: Array<{ type: string; account: PlatformExpenditureLedger; to_account?: PlatformExpenditureLedger; direction: string; amount: string; title: string; reference: string; occurred_at: string; allocation: string }>
+  data_quality: { missing_subscription_dates: number; inferred_subscription_allocations: number; inferred_sms_allocations: number; unreconciled_accounts: number; message: string }
+}
+
+export interface AccountBalanceSnapshotPayload {
+  ledger: PlatformExpenditureLedger
+  balance: string
+  balance_at: string
+  reference?: string
+  notes?: string
 }
 
 export interface PaymentSummary {
@@ -1438,6 +1502,18 @@ class SuperadminApiService {
     return this.request(`${this.expenditurePath(ledger)}${id}/`, {
       method: "POST",
       body: JSON.stringify({ reason }),
+    })
+  }
+
+  async getFinancialReport(params?: Record<string, string>): Promise<PlatformFinancialReport> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/financial-reports/${qs}`)
+  }
+
+  async saveAccountBalanceSnapshot(data: AccountBalanceSnapshotPayload): Promise<any> {
+    return this.request("/superadmin/financial-reports/", {
+      method: "POST",
+      body: JSON.stringify(data),
     })
   }
 

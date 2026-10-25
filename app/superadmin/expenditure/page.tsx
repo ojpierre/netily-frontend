@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeftRight,
+  BarChart3,
   Banknote,
   Calculator,
   Loader2,
@@ -32,6 +33,7 @@ import {
   superadminApi,
   type PlatformExpenditure,
   type PlatformExpenditureCategory,
+  type PlatformExpenditureEntryType,
   type PlatformExpenditureLedger,
   type PlatformExpenditureSummary,
 } from "@/lib/superadmin-api"
@@ -63,6 +65,8 @@ const emptySummary: PlatformExpenditureSummary = {
   sms_topups_total: "0.00",
   accrued_total: "0.00",
   manual_expenditure_total: "0.00",
+  owner_draw_total: "0.00",
+  cash_adjustment_total: "0.00",
   net_profit: "0.00",
   transfer_in_total: "0.00",
   transfer_out_total: "0.00",
@@ -147,7 +151,9 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
   const [filters, setFilters] = useState({ start: "", end: "" })
   const [form, setForm] = useState({
     title: "",
+    entry_type: "operating_expense" as PlatformExpenditureEntryType,
     category: "operations" as PlatformExpenditureCategory,
+    reference: "",
     amount: "",
     direction: "expense" as "expense" | "credit",
     incurred_on: today(),
@@ -199,14 +205,16 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
     try {
       await superadminApi.createExpenditure({
         title: form.title.trim(),
+        entry_type: form.entry_type,
         category: form.category,
+        reference: form.reference.trim(),
         amount: (form.direction === "credit" ? -amount : amount).toFixed(2),
         currency: "KES",
         incurred_on: form.incurred_on || today(),
         notes: form.notes.trim(),
       }, ledger)
       toast.success(form.direction === "credit" ? "Credit recorded" : "Expenditure recorded")
-      setForm({ title: "", category: "operations", amount: "", direction: "expense", incurred_on: today(), notes: "" })
+      setForm({ title: "", entry_type: "operating_expense", category: "operations", reference: "", amount: "", direction: "expense", incurred_on: today(), notes: "" })
       setPage(1)
       await fetchData()
     } catch (err: any) {
@@ -228,7 +236,10 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
             {summary.ledger_description || "Private profit view pegged to subscription payments, SMS top-ups, and manually recorded costs."}
           </p>
         </div>
-        <div className="grid gap-3 lg:grid-cols-[auto_1fr_1fr_auto]">
+        <div className="grid gap-3 lg:grid-cols-[auto_auto_1fr_1fr_auto]">
+          <Button asChild variant="outline" className="self-end border-slate-700 bg-slate-900 text-slate-100">
+            <Link href="/superadmin/financial-reports"><BarChart3 className="mr-2 h-4 w-4" />Reports</Link>
+          </Button>
           <div className="grid grid-cols-2 gap-2 self-end rounded-xl border border-slate-800 bg-slate-950 p-1">
             <Button asChild variant={ledger === "primary" ? "secondary" : "ghost"} className="text-slate-100">
               <Link href="/superadmin/expenditure">Account 1</Link>
@@ -283,10 +294,11 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
         <MetricCard title="Payment Receipts" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · subscriptions + SMS`} icon={WalletCards} />
         <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed tenant subscription payments" icon={Banknote} tone="emerald" />
         <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed inbuilt SMS top-ups" icon={ReceiptText} tone="cyan" />
-        <MetricCard title="Net Manual Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses less credits" icon={ReceiptText} tone="rose" />
-        <MetricCard title="Net After Costs" value={kes(summary.net_profit)} subtitle="Receipts less recorded costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
-        <MetricCard title="Account Transfer" value={Number(ledger === "new_business" ? summary.transfer_in_total : summary.transfer_out_total) === 0 ? kes(0) : `${ledger === "new_business" ? "+" : "-"}${kes(ledger === "new_business" ? summary.transfer_in_total : summary.transfer_out_total)}`} subtitle={ledger === "new_business" ? "From Account 1, not revenue" : "To Account 2, not a cost"} icon={ArrowLeftRight} tone="amber" />
-        <MetricCard title={filters.start || filters.end ? "Net Movement" : "Calculated Position"} value={kes(summary.calculated_position)} subtitle="Receipts less costs, plus or minus transfer" icon={WalletCards} tone={Number(summary.calculated_position) >= 0 ? "emerald" : "rose"} />
+        <MetricCard title="Operating Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses and fees, less credits" icon={ReceiptText} tone="rose" />
+        <MetricCard title="Operating Profit" value={kes(summary.net_profit)} subtitle="Receipts less operating costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
+        <MetricCard title="Owner Distributions" value={kes(summary.owner_draw_total)} subtitle="Reduces cash, not business profit" icon={WalletCards} tone="amber" />
+        <MetricCard title="Net Transfers" value={kes(Number(summary.transfer_in_total) - Number(summary.transfer_out_total))} subtitle={`${kes(summary.transfer_in_total)} in · ${kes(summary.transfer_out_total)} out`} icon={ArrowLeftRight} tone="amber" />
+        <MetricCard title={filters.start || filters.end ? "Net Movement" : "Recorded Cash Movement"} value={kes(summary.calculated_position)} subtitle="Profit, distributions, adjustments and transfers" icon={WalletCards} tone={Number(summary.calculated_position) >= 0 ? "emerald" : "rose"} />
       </div>
 
       <Card className="border-slate-800 bg-slate-900">
@@ -316,18 +328,31 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-white">
               <Plus className="h-4 w-4 text-violet-400" />
-              Add Expenditure
+              Record Cash Event
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="space-y-4">
               <div>
+                <Label className="text-slate-300">Cash event</Label>
+                <Select value={form.entry_type} onValueChange={(value) => setForm((current) => ({ ...current, entry_type: value as PlatformExpenditureEntryType }))}>
+                  <SelectTrigger className="mt-1 border-slate-700 bg-slate-950 text-slate-200"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="operating_expense">Operating expense</SelectItem>
+                    <SelectItem value="bank_fee">Bank or transaction fee</SelectItem>
+                    <SelectItem value="owner_draw">Owner or team distribution</SelectItem>
+                    <SelectItem value="cash_adjustment">Reconciliation adjustment</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-slate-500">Distributions reduce cash but do not reduce operating profit.</p>
+              </div>
+              <div>
                 <Label className="text-slate-300">Entry type</Label>
                 <Select value={form.direction} onValueChange={(value) => setForm((current) => ({ ...current, direction: value as "expense" | "credit" }))}>
                   <SelectTrigger className="mt-1 border-slate-700 bg-slate-950 text-slate-200"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="expense">Expense (+) - reduces profit</SelectItem>
-                    <SelectItem value="credit">Credit (-) - offsets expenditure</SelectItem>
+                    <SelectItem value="expense">Cash out (+)</SelectItem>
+                    <SelectItem value="credit">Credit or refund (-)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -380,6 +405,15 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
                 />
               </div>
               <div>
+                <Label className="text-slate-300">Bank or supplier reference</Label>
+                <Input
+                  value={form.reference}
+                  onChange={(event) => setForm((current) => ({ ...current, reference: event.target.value }))}
+                  placeholder="Optional but recommended"
+                  className="mt-1 border-slate-700 bg-slate-950 text-white placeholder:text-slate-500"
+                />
+              </div>
+              <div>
                 <Label className="text-slate-300">Notes</Label>
                 <Textarea
                   value={form.notes}
@@ -390,7 +424,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
               </div>
               <Button type="submit" disabled={saving} className="w-full bg-violet-600 hover:bg-violet-500">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                {form.direction === "credit" ? "Record credit" : "Record expenditure"}
+                {form.direction === "credit" ? "Record credit" : "Record cash event"}
               </Button>
             </form>
           </CardContent>
@@ -399,7 +433,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-base text-white">Manual Expenditure Log</CardTitle>
+              <CardTitle className="text-base text-white">Account Event Log</CardTitle>
               <p className="mt-1 text-xs text-slate-500">{total} records</p>
             </div>
             <Badge variant="outline" className="border-slate-700 text-slate-300">{rangeCopy}</Badge>
@@ -429,6 +463,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
                       <tr key={entry.id} className="hover:bg-slate-800/50">
                         <td className="min-w-56 px-4 py-3">
                           <div className="font-medium text-white">{entry.title}</div>
+                          <div className="mt-1 text-xs capitalize text-slate-500">{entry.entry_type.replaceAll("_", " ")}{entry.reference ? ` · ${entry.reference}` : ""}</div>
                           {entry.notes && <div className="mt-1 max-w-md truncate text-xs text-slate-500">{entry.notes}</div>}
                         </td>
                         <td className="px-4 py-3">

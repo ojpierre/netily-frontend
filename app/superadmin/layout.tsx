@@ -32,6 +32,7 @@ import {
   GraduationCap,
   ShoppingBag,
   Palette,
+  Landmark,
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -56,6 +57,7 @@ const navItems = [
   { name: "Users", href: "/superadmin/users", icon: Users },
   { name: "Payments", href: "/superadmin/payments", icon: CreditCard },
   { name: "Sub. Payments", href: "/superadmin/subscription-payments", icon: CreditCard },
+  { name: "Financial Reports", href: "/superadmin/financial-reports", icon: Landmark },
   { name: "Invoices", href: "/superadmin/subscription-invoices", icon: ScrollText },
   { name: "Sub. Reminders", href: "/superadmin/subscription-reminders", icon: Bell }, // <-- NEW
   { name: "SMS", href: "/superadmin/sms", icon: MessageSquareText },
