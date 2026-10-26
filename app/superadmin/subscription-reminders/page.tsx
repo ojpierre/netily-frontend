@@ -1,21 +1,24 @@
 ﻿"use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { BellRing, CalendarClock, Loader2, MessageSquareText, Save, Send, Users, Wallet } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { AlertCircle, Bell, BellRing, CalendarClock, CheckCircle2, Clock3, Loader2, Mail, MessageSquareText, Save, Search, Send, Smartphone, Users, Wallet } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import {
   superadminApi,
-  type Tenant,
   type SubscriptionReminderBalanceSummary,
   type SubscriptionReminderTemplate,
   type SubscriptionReminderLogEntry,
+  type SubscriptionReminderManualResult,
+  type SubscriptionReminderRecipient,
 } from "@/lib/superadmin-api"
 
 type ReminderChannel = "email" | "sms" | "in_app"
+type RecipientFilter = "needs_attention" | "all" | "expired" | "due_soon" | "active" | "trial"
 
 const TEMPLATE_PRESETS = [
   {
@@ -36,6 +39,33 @@ const TEMPLATE_PRESETS = [
 ]
 
 const LOG_PAGE_SIZE = 20
+
+const CHANNELS: Array<{ id: ReminderChannel; label: string; description: string; icon: typeof Mail }> = [
+  { id: "sms", label: "SMS", description: "Send from the Netily platform wallet", icon: Smartphone },
+  { id: "email", label: "Email", description: "Send to the account email", icon: Mail },
+  { id: "in_app", label: "In-app", description: "Show inside the tenant dashboard", icon: Bell },
+]
+
+const RECIPIENT_FILTERS: Array<{ id: RecipientFilter; label: string }> = [
+  { id: "needs_attention", label: "Needs attention" },
+  { id: "expired", label: "Expired" },
+  { id: "due_soon", label: "Due soon" },
+  { id: "active", label: "Active" },
+  { id: "trial", label: "Trial" },
+  { id: "all", label: "All" },
+]
+
+function recipientStatusLabel(status: string) {
+  if (status === "due_soon") return "Due soon"
+  return status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function recipientTiming(recipient: SubscriptionReminderRecipient) {
+  if (recipient.days_left === null) return "No renewal date"
+  if (recipient.days_left < 0) return `Expired ${Math.abs(recipient.days_left)} day${Math.abs(recipient.days_left) === 1 ? "" : "s"} ago`
+  if (recipient.days_left === 0) return "Due today"
+  return `${recipient.days_left} day${recipient.days_left === 1 ? "" : "s"} remaining`
+}
 
 function reminderMilestoneLabel(milestone: string) {
   if (milestone.startsWith("manual-")) return "Manual reminder"
@@ -85,9 +115,12 @@ export default function SubscriptionRemindersPage() {
   const [logsPage, setLogsPage] = useState(1)
   const [logsTotal, setLogsTotal] = useState(0)
   const [logsLoadingMore, setLogsLoadingMore] = useState(false)
-  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [recipients, setRecipients] = useState<SubscriptionReminderRecipient[]>([])
   const [selectedTenantId, setSelectedTenantId] = useState("")
   const [manualChannels, setManualChannels] = useState<ReminderChannel[]>(["sms"])
+  const [recipientSearch, setRecipientSearch] = useState("")
+  const [recipientFilter, setRecipientFilter] = useState<RecipientFilter>("needs_attention")
+  const [manualResult, setManualResult] = useState<SubscriptionReminderManualResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
@@ -95,6 +128,34 @@ export default function SubscriptionRemindersPage() {
   const providerDisplay = providerBalanceDisplay(balance)
   const platformWallet = balance?.platform_wallet
   const logsSentinelRef = useRef<HTMLDivElement | null>(null)
+  const selectedRecipient = useMemo(
+    () => recipients.find((recipient) => recipient.tenant_id === selectedTenantId) || null,
+    [recipients, selectedTenantId],
+  )
+  const filteredRecipients = useMemo(() => {
+    const query = recipientSearch.trim().toLowerCase()
+    return recipients.filter((recipient) => {
+      const matchesStatus = recipientFilter === "all"
+        || (recipientFilter === "needs_attention" && ["expired", "due_soon"].includes(recipient.reminder_status))
+        || recipient.reminder_status === recipientFilter
+      const matchesSearch = !query || [
+        recipient.company_name,
+        recipient.subdomain,
+        recipient.recipient_name,
+        recipient.recipient_email,
+        recipient.recipient_phone,
+      ].some((value) => value.toLowerCase().includes(query))
+      return matchesStatus && matchesSearch
+    })
+  }, [recipientFilter, recipientSearch, recipients])
+  const recipientCounts = useMemo(() => ({
+    all: recipients.length,
+    needs_attention: recipients.filter((recipient) => ["expired", "due_soon"].includes(recipient.reminder_status)).length,
+    expired: recipients.filter((recipient) => recipient.reminder_status === "expired").length,
+    due_soon: recipients.filter((recipient) => recipient.reminder_status === "due_soon").length,
+    active: recipients.filter((recipient) => recipient.reminder_status === "active").length,
+    trial: recipients.filter((recipient) => recipient.reminder_status === "trial").length,
+  }), [recipients])
 
   const applyLogPage = useCallback((results: SubscriptionReminderLogEntry[], append: boolean) => {
     setLogs((current) => {
@@ -118,11 +179,11 @@ export default function SubscriptionRemindersPage() {
   const load = async () => {
     setLoading(true)
     try {
-      const [tplRes, balRes, logRes, tenantRes] = await Promise.allSettled([
+      const [tplRes, balRes, logRes, recipientRes] = await Promise.allSettled([
         superadminApi.getSubscriptionReminderTemplate(),
         superadminApi.getSubscriptionReminderBalance(),
         superadminApi.getSubscriptionReminderLogs({ page: "1", page_size: String(LOG_PAGE_SIZE) }),
-        superadminApi.getTenants({ page_size: "500" }),
+        superadminApi.getSubscriptionReminderRecipients(),
       ])
 
       if (tplRes.status === "fulfilled") {
@@ -143,25 +204,33 @@ export default function SubscriptionRemindersPage() {
         setLogsPage(1)
         setLogsTotal(0)
       }
-      if (tenantRes.status === "fulfilled") {
-        const rows = Array.isArray(tenantRes.value) ? tenantRes.value : []
-        setTenants(rows)
-        setSelectedTenantId((current) => current || rows[0]?.id || "")
+      if (recipientRes.status === "fulfilled") {
+        const rows = recipientRes.value.results || []
+        setRecipients(rows)
+        const attentionRecipient = rows.find((row) => row.can_send && ["expired", "due_soon"].includes(row.reminder_status))
+        const selected = rows.find((row) => row.tenant_id === selectedTenantId) || attentionRecipient || rows.find((row) => row.can_send)
+        setSelectedTenantId(selected?.tenant_id || "")
+        if (!selectedTenantId && selected) {
+          const preferred = (["sms", "email", "in_app"] as ReminderChannel[])
+            .find((channel) => selected.available_channels[channel])
+          setManualChannels(preferred ? [preferred] : [])
+        }
+        if (!attentionRecipient) setRecipientFilter("all")
       } else {
-        setTenants([])
+        setRecipients([])
       }
 
-      const failures = [tplRes, balRes, logRes, tenantRes].filter((result) => result.status === "rejected")
+      const failures = [tplRes, balRes, logRes, recipientRes].filter((result) => result.status === "rejected")
       if (failures.length) {
         const failedSections = [
           tplRes.status === "rejected" ? "template" : "",
           balRes.status === "rejected" ? "balance" : "",
           logRes.status === "rejected" ? "history" : "",
-          tenantRes.status === "rejected" ? "tenants" : "",
+          recipientRes.status === "rejected" ? "recipients" : "",
         ].filter(Boolean).join(", ")
-        toast.warning("Some reminder data could not load", {
-          description: failedSections ? `Affected section(s): ${failedSections}. Other controls remain usable.` : "Other controls remain usable.",
-        })
+        toast.info(failedSections
+          ? `Some reminder data could not load: ${failedSections}. Other controls remain usable.`
+          : "Some reminder data could not load. Other controls remain usable.")
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to load reminder settings")
@@ -228,16 +297,32 @@ export default function SubscriptionRemindersPage() {
   }
 
   const toggleManualChannel = (channel: ReminderChannel) => {
+    if (!selectedRecipient?.available_channels[channel]) return
+    setManualChannels((current) => current.includes(channel)
+      ? current.filter((item) => item !== channel)
+      : [...current, channel])
+    setManualResult(null)
+  }
+
+  const selectRecipient = (recipient: SubscriptionReminderRecipient) => {
+    setSelectedTenantId(recipient.tenant_id)
     setManualChannels((current) => {
-      const exists = current.includes(channel)
-      const next = exists ? current.filter((item) => item !== channel) : [...current, channel]
-      return next.length ? next : ["sms"]
+      const available = current.filter((channel) => recipient.available_channels[channel])
+      if (available.length) return available
+      const preferred = (["sms", "email", "in_app"] as ReminderChannel[])
+        .find((channel) => recipient.available_channels[channel])
+      return preferred ? [preferred] : []
     })
+    setManualResult(null)
   }
 
   const sendManual = async () => {
     if (!selectedTenantId) {
       toast.error("Select a tenant first")
+      return
+    }
+    if (!manualChannels.length) {
+      toast.error("Select at least one available channel")
       return
     }
     setManualSending(true)
@@ -246,10 +331,21 @@ export default function SubscriptionRemindersPage() {
         tenant_id: selectedTenantId,
         channels: manualChannels,
       })
-      toast.success("Manual reminder sent", {
-        description: result.detail,
-      })
-      load()
+      setManualResult(result)
+      const sentCount = result.email + result.sms + result.in_app
+      if (sentCount > 0 && result.failed === 0 && result.skipped === 0) {
+        toast.success(`Reminder delivered through ${sentCount} channel${sentCount === 1 ? "" : "s"}.`)
+      } else if (sentCount > 0) {
+        toast.info(`Reminder partly delivered: ${sentCount} sent, ${result.failed} failed, ${result.skipped} skipped.`)
+      } else {
+        toast.error(`Reminder was not delivered. ${result.detail}`)
+      }
+      const [logResult, balanceResult] = await Promise.allSettled([
+        loadLogsPage(1, false),
+        superadminApi.getSubscriptionReminderBalance(),
+      ])
+      if (balanceResult.status === "fulfilled") setBalance(balanceResult.value)
+      if (logResult.status === "rejected") toast.info("The reminder was processed, but history could not refresh.")
     } catch (err: any) {
       toast.error(err.message || "Failed to send manual reminder")
     } finally {
@@ -354,48 +450,168 @@ export default function SubscriptionRemindersPage() {
             Manual Reminder
           </CardTitle>
           <CardDescription>
-            Choose a tenant, select the channels, and send a simple renewal reminder immediately.
+            Find a tenant, choose how to contact their account admin, and send a renewal reminder immediately.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {tenants.length === 0 ? (
+        <CardContent>
+          {recipients.length === 0 ? (
             <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-              No tenants are available for manual reminders.
+              No tenant subscriptions are available for manual reminders.
             </div>
           ) : (
-            <>
-              <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-                <select
-                  value={selectedTenantId}
-                  onChange={(event) => setSelectedTenantId(event.target.value)}
-                  className="h-11 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-violet-500"
-                >
-                  {tenants.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.company_name || tenant.subdomain} - {tenant.subscription_plan || "Subscription"} - {tenant.subscription_status_display || tenant.status}
-                    </option>
-                  ))}
-                </select>
-                <Button onClick={sendManual} disabled={manualSending || !selectedTenantId}>
-                  {manualSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                  Send Reminder
-                </Button>
+            <div className="grid min-h-[460px] overflow-hidden rounded-lg border border-slate-800 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+              <div className="border-b border-slate-800 lg:border-b-0 lg:border-r">
+                <div className="space-y-3 border-b border-slate-800 p-4">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <Input
+                      value={recipientSearch}
+                      onChange={(event) => setRecipientSearch(event.target.value)}
+                      placeholder="Search company, admin, email or phone"
+                      className="h-10 border-slate-700 bg-slate-950 pl-9 text-slate-100 placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {RECIPIENT_FILTERS.map((filter) => (
+                      <Button
+                        key={filter.id}
+                        type="button"
+                        size="sm"
+                        variant={recipientFilter === filter.id ? "default" : "outline"}
+                        onClick={() => setRecipientFilter(filter.id)}
+                        className={recipientFilter === filter.id ? "shrink-0" : "shrink-0 border-slate-700 text-slate-300"}
+                      >
+                        {filter.label}
+                        <span className="ml-1.5 text-xs opacity-70">{recipientCounts[filter.id]}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="max-h-[390px] overflow-y-auto">
+                  {filteredRecipients.length === 0 ? (
+                    <div className="flex min-h-40 flex-col items-center justify-center px-6 text-center">
+                      <Search className="mb-2 h-5 w-5 text-slate-600" />
+                      <p className="text-sm font-medium text-slate-300">No matching tenants</p>
+                      <p className="mt-1 text-xs text-slate-500">Change the status filter or search term.</p>
+                    </div>
+                  ) : filteredRecipients.map((recipient) => {
+                    const selected = recipient.tenant_id === selectedTenantId
+                    return (
+                      <button
+                        key={recipient.tenant_id}
+                        type="button"
+                        onClick={() => selectRecipient(recipient)}
+                        className={`flex w-full items-start justify-between gap-3 border-b border-slate-800/80 px-4 py-3 text-left transition ${selected ? "bg-violet-500/10" : "hover:bg-slate-800/50"}`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-slate-100">{recipient.company_name}</span>
+                          <span className="mt-0.5 block truncate text-xs text-slate-500">{recipient.subdomain} · {recipient.plan_name}</span>
+                          <span className={`mt-2 inline-flex items-center gap-1 text-xs ${recipient.days_left !== null && recipient.days_left <= 5 ? "text-amber-300" : "text-slate-400"}`}>
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {recipientTiming(recipient)}
+                          </span>
+                        </span>
+                        <Badge className={
+                          recipient.reminder_status === "expired" ? "bg-red-500/15 text-red-300" :
+                          recipient.reminder_status === "due_soon" ? "bg-amber-500/15 text-amber-300" :
+                          recipient.reminder_status === "active" ? "bg-emerald-500/15 text-emerald-300" :
+                          "bg-slate-700 text-slate-300"
+                        }>
+                          {recipientStatusLabel(recipient.reminder_status)}
+                        </Badge>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {(["sms", "email", "in_app"] as ReminderChannel[]).map((channel) => (
-                  <Button
-                    key={channel}
-                    type="button"
-                    size="sm"
-                    variant={manualChannels.includes(channel) ? "default" : "outline"}
-                    onClick={() => toggleManualChannel(channel)}
-                    className={manualChannels.includes(channel) ? "" : "border-slate-700 text-slate-300"}
-                  >
-                    {channel === "in_app" ? "In-app" : channel.toUpperCase()}
-                  </Button>
-                ))}
+
+              <div className="flex flex-col p-5">
+                {!selectedRecipient ? (
+                  <div className="flex flex-1 flex-col items-center justify-center text-center">
+                    <Users className="mb-3 h-6 w-6 text-slate-600" />
+                    <p className="text-sm text-slate-400">Select a tenant to prepare a reminder.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-slate-500">Send to</p>
+                      <p className="mt-1 text-base font-semibold text-white">{selectedRecipient.recipient_name}</p>
+                      <p className="mt-1 text-xs text-slate-500">Account admin for {selectedRecipient.company_name}</p>
+                    </div>
+
+                    {selectedRecipient.recipient_error && (
+                      <div className="mt-4 flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{selectedRecipient.recipient_error}</span>
+                      </div>
+                    )}
+
+                    <div className="mt-5 space-y-2">
+                      <p className="text-xs font-medium uppercase text-slate-500">Delivery channels</p>
+                      {CHANNELS.map(({ id, label, description, icon: Icon }) => {
+                        const available = selectedRecipient.available_channels[id]
+                        const selected = manualChannels.includes(id)
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            disabled={!available}
+                            onClick={() => toggleManualChannel(id)}
+                            className={`flex w-full items-center gap-3 rounded-md border p-3 text-left transition ${selected ? "border-violet-500 bg-violet-500/10" : "border-slate-800 bg-slate-950"} ${available ? "hover:border-slate-600" : "cursor-not-allowed opacity-45"}`}
+                          >
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${selected ? "bg-violet-500 text-white" : "bg-slate-800 text-slate-400"}`}>
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium text-slate-100">{label}</span>
+                              <span className="block truncate text-xs text-slate-500">{available ? description : `No ${label.toLowerCase()} contact available`}</span>
+                            </span>
+                            <span className={`h-4 w-4 rounded-full border ${selected ? "border-violet-400 bg-violet-500 shadow-[inset_0_0_0_3px_rgb(15,23,42)]" : "border-slate-600"}`} />
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {manualResult && (
+                      <div className="mt-4 rounded-md border border-slate-700 bg-slate-950 p-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
+                          {manualResult.failed === 0 && manualResult.skipped === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <AlertCircle className="h-4 w-4 text-amber-400" />}
+                          Delivery result
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {manualResult.deliveries.map((delivery) => (
+                            <div key={`${delivery.channel}-${delivery.destination}`} className="flex items-start justify-between gap-3 text-xs">
+                              <span className="min-w-0 text-slate-400">
+                                <span className="block truncate">
+                                  {delivery.channel === "in_app" ? "In-app" : delivery.channel.toUpperCase()}
+                                  {delivery.destination ? ` · ${delivery.destination}` : ""}
+                                </span>
+                                {delivery.error && <span className="mt-0.5 block text-red-300">{delivery.error}</span>}
+                              </span>
+                              <span className={delivery.status === "sent" ? "text-emerald-400" : delivery.status === "failed" ? "text-red-400" : "text-amber-400"}>
+                                {delivery.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-auto pt-5">
+                      <Button
+                        onClick={sendManual}
+                        disabled={manualSending || !selectedRecipient.can_send || manualChannels.length === 0}
+                        className="h-11 w-full"
+                      >
+                        {manualSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        {manualSending ? "Sending reminder" : `Send via ${manualChannels.length || 0} channel${manualChannels.length === 1 ? "" : "s"}`}
+                      </Button>
+                      <p className="mt-2 text-center text-xs text-slate-500">Only this tenant account admin will be contacted.</p>
+                    </div>
+                  </>
+                )}
               </div>
-            </>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1110,6 +1110,42 @@ export interface SubscriptionReminderLogEntry {
   created_at?: string
 }
 
+export interface SubscriptionReminderRecipient {
+  tenant_id: string
+  company_name: string
+  subdomain: string
+  plan_name: string
+  subscription_status: string
+  reminder_status: "expired" | "due_soon" | "active" | "trial" | "cancelled" | string
+  expiry: string | null
+  days_left: number | null
+  recipient_name: string
+  recipient_email: string
+  recipient_phone: string
+  available_channels: Record<"email" | "sms" | "in_app", boolean>
+  recipient_error: string
+  can_send: boolean
+}
+
+export interface SubscriptionReminderManualResult {
+  detail: string
+  invoice_number: string
+  tenant_name: string
+  milestone: string
+  recipient_name: string
+  email: number
+  sms: number
+  in_app: number
+  failed: number
+  skipped: number
+  deliveries: Array<{
+    channel: "email" | "sms" | "in_app"
+    status: "sent" | "failed" | "skipped"
+    destination: string
+    error: string
+  }>
+}
+
 // ── Server Stats Types ─────────────────────────────
 
 export interface ContainerStat {
@@ -1994,6 +2030,14 @@ class SuperadminApiService {
     return this.request(`/superadmin/subscription-reminders/logs/${qs}`)
   }
 
+  async getSubscriptionReminderRecipients(): Promise<{
+    count: number
+    counts: Record<string, number>
+    results: SubscriptionReminderRecipient[]
+  }> {
+    return this.request("/superadmin/subscription-reminders/recipients/")
+  }
+
   async sendSubscriptionRemindersNow(): Promise<{ detail: string; task_id: string }> {
     return this.request("/superadmin/subscription-reminders/send-now/", { method: "POST" })
   }
@@ -2002,16 +2046,7 @@ class SuperadminApiService {
     cycle_id?: string
     tenant_id?: string
     channels: Array<"email" | "sms" | "in_app">
-  }): Promise<{
-    detail: string
-    invoice_number: string
-    tenant_name: string
-    milestone: string
-    email: number
-    sms: number
-    in_app: number
-    failed: number
-  }> {
+  }): Promise<SubscriptionReminderManualResult> {
     return this.request("/superadmin/subscription-reminders/send-manual/", {
       method: "POST",
       body: JSON.stringify(data),
