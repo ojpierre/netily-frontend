@@ -595,7 +595,14 @@ export interface PlatformFinancialReport {
   known_combined_cash: string | null
   monthly: FinancialMonthlyRow[]
   monthly_by_account: Record<PlatformExpenditureLedger, FinancialMonthlyRow[]>
-  forecast: { basis_months: number; monthly_receipts: string; monthly_expenses: string; monthly_profit: string; next_three_months_profit: string }
+  forecast: {
+    basis_months: number
+    monthly_receipts: string
+    monthly_expenses: string
+    monthly_profit: string
+    next_three_months_profit: string
+    horizons: Array<{ months: number; receipts: string; expenses: string; profit: string }>
+  }
   expense_categories: Array<{ category: string; total: string }>
   recent_events: Array<{
     type: string

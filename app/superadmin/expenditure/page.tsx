@@ -50,6 +50,7 @@ const categories: Array<{ value: PlatformExpenditureCategory; label: string }> =
 ]
 
 const today = () => new Date().toISOString().slice(0, 10)
+const EVENT_PAGE_SIZE = 100
 
 const emptySummary: PlatformExpenditureSummary = {
   currency: "KES",
@@ -162,7 +163,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
     notes: "",
   })
 
-  const totalPages = Math.max(Math.ceil(total / 20), 1)
+  const totalPages = Math.max(Math.ceil(total / EVENT_PAGE_SIZE), 1)
   const rangeCopy = useMemo(() => {
     if (filters.start && filters.end) return `${dateLabel(filters.start)} to ${dateLabel(filters.end)}`
     if (filters.start) return `From ${dateLabel(filters.start)}`
@@ -173,7 +174,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
   const fetchData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
     try {
-      const params: Record<string, string> = { page: String(page), page_size: "20" }
+      const params: Record<string, string> = { page: String(page), page_size: String(EVENT_PAGE_SIZE) }
       if (filters.start) params.start = filters.start
       if (filters.end) params.end = filters.end
       const [data, report] = await Promise.all([
@@ -318,12 +319,12 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           <div>
             <div className="flex items-center gap-2">
               <p className="text-xs font-medium uppercase text-slate-400">Live system balance</p>
-              <Badge variant="outline" className={cashPosition?.snapshot?.kind === "confirmed" ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>
-                {!cashPosition?.snapshot ? "Needs checkpoint" : cashPosition.snapshot.kind === "estimate" ? "Estimated" : "Confirmed anchor"}
+              <Badge variant="outline" className={cashPosition?.snapshot ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>
+                {cashPosition?.snapshot ? "Tracking active" : "Balance needed"}
               </Badge>
             </div>
-            <p className="mt-2 text-3xl font-bold text-white">{cashPosition?.snapshot?.kind === "estimate" ? "Approx. " : ""}{cashPosition?.estimated_balance === null || cashPosition?.estimated_balance === undefined ? "Not reconciled" : kes(cashPosition.estimated_balance)}</p>
-            {cashPosition?.snapshot ? <p className="mt-2 text-xs text-slate-500">Checkpoint {kes(cashPosition.snapshot.balance)} on {dateTimeLabel(cashPosition.snapshot.balance_at)} | later recorded activity included</p> : <p className="mt-2 text-xs text-amber-200/80">Add a bank or wallet checkpoint from Financial Reports to establish the live balance.</p>}
+            <p className="mt-2 text-3xl font-bold text-white">{cashPosition?.snapshot?.kind === "estimate" ? "Approx. " : ""}{cashPosition?.estimated_balance === null || cashPosition?.estimated_balance === undefined ? "Unavailable" : kes(cashPosition.estimated_balance)}</p>
+            {cashPosition?.snapshot ? <p className="mt-2 text-xs text-slate-500">Includes the latest recorded receipts, costs and transfers.</p> : <p className="mt-2 text-xs text-amber-200/80">Update the account balance from Financial Reports to begin live tracking.</p>}
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
             <div><p className="text-xs text-slate-500">Owner draws</p><p className="mt-1 text-slate-100">{kes(summary.owner_draw_total)}</p></div>
@@ -358,7 +359,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
                     <SelectItem value="operating_expense">Operating expense</SelectItem>
                     <SelectItem value="bank_fee">Bank or transaction fee</SelectItem>
                     <SelectItem value="owner_draw">Owner or team distribution</SelectItem>
-                    <SelectItem value="cash_adjustment">Reconciliation adjustment</SelectItem>
+                    <SelectItem value="cash_adjustment">Balance adjustment</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-slate-500">Distributions reduce cash but do not reduce operating profit.</p>
@@ -450,8 +451,8 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-base text-white">Account Event Log</CardTitle>
-              <p className="mt-1 text-xs text-slate-500">{total} records</p>
+              <CardTitle className="text-base text-white">{ledger === "primary" ? "Account 1" : "Account 2"} Event Log</CardTitle>
+              <p className="mt-1 text-xs text-slate-500">All {total} recorded expenditure events for this account</p>
             </div>
             <Badge variant="outline" className="border-slate-700 text-slate-300">{rangeCopy}</Badge>
           </CardHeader>

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
-  AlertTriangle,
   ArrowDownRight,
   ArrowLeftRight,
   ArrowUpRight,
@@ -20,7 +19,6 @@ import {
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { toast } from "sonner"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -49,7 +47,7 @@ function ymd(value: Date) {
 }
 
 function kes(value?: string | number | null) {
-  if (value === null || value === undefined) return "Not reconciled"
+  if (value === null || value === undefined) return "Unavailable"
   return Number(value).toLocaleString("en-KE", {
     style: "currency",
     currency: "KES",
@@ -148,6 +146,16 @@ export default function FinancialReportsPage() {
       profit: Number(row.profit),
     }))
   }, [report, view])
+  const forecastHorizons = useMemo(() => {
+    if (!report) return []
+    if (report.forecast.horizons?.length) return report.forecast.horizons
+    return [1, 2, 3].map((months) => ({
+      months,
+      receipts: String(Number(report.forecast.monthly_receipts) * months),
+      expenses: String(Number(report.forecast.monthly_expenses) * months),
+      profit: String(Number(report.forecast.monthly_profit) * months),
+    }))
+  }, [report])
 
   const openSnapshot = (ledger: PlatformExpenditureLedger) => {
     const current = report?.cash_positions[ledger].snapshot
@@ -164,7 +172,7 @@ export default function FinancialReportsPage() {
 
   const saveSnapshot = async () => {
     if (!snapshot.balance || !snapshot.balance_at) {
-      toast.error("Enter the confirmed balance and statement time")
+      toast.error("Enter the current balance and time")
       return
     }
     setSaving(true)
@@ -174,7 +182,7 @@ export default function FinancialReportsPage() {
         balance: Number(snapshot.balance).toFixed(2),
         balance_at: new Date(snapshot.balance_at).toISOString(),
       })
-      toast.success(`${accountNames[snapshot.ledger]} balance reconciled`)
+      toast.success(`${accountNames[snapshot.ledger]} balance updated`)
       setDialogOpen(false)
       await load()
     } catch (error: any) {
@@ -232,7 +240,7 @@ export default function FinancialReportsPage() {
         </div>
       </div>
 
-      <p className="text-xs text-slate-500">Balances refresh every minute{lastUpdated ? ` | Updated ${lastUpdated.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}` : ""}. Recovery backup includes all checkpoints, account mappings, transfers and manual cash events.</p>
+      <p className="text-xs text-slate-500">Balances refresh every minute{lastUpdated ? ` | Updated ${lastUpdated.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}` : ""}. Recovery backup includes the financial records needed to restore this view.</p>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Financial account view">
         {(["combined", "primary", "new_business"] as ViewKey[]).map((key) => (
@@ -241,14 +249,6 @@ export default function FinancialReportsPage() {
           </Button>
         ))}
       </div>
-
-      {report?.data_quality.unreconciled_accounts ? (
-        <Alert className="border-amber-500/30 bg-amber-500/5 text-amber-100">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Cash balance needs a statement anchor</AlertTitle>
-          <AlertDescription className="text-amber-200/80">Reconcile both accounts using confirmed bank or wallet balances. Transaction totals alone cannot prove how much cash is currently available.</AlertDescription>
-        </Alert>
-      ) : null}
 
       {summary ? (
         <div className="grid gap-4 sm:grid-cols-3">
@@ -260,7 +260,7 @@ export default function FinancialReportsPage() {
 
       <section className="grid gap-4 xl:grid-cols-2">
         {(["primary", "new_business"] as PlatformExpenditureLedger[]).map((ledger) => (
-          <CashAccount key={ledger} ledger={ledger} position={report?.cash_positions[ledger]} onReconcile={() => openSnapshot(ledger)} />
+          <CashAccount key={ledger} ledger={ledger} position={report?.cash_positions[ledger]} onUpdate={() => openSnapshot(ledger)} />
         ))}
       </section>
 
@@ -286,11 +286,15 @@ export default function FinancialReportsPage() {
         </Card>
 
         <Card className="border-slate-800 bg-slate-900">
-          <CardHeader><CardTitle className="text-white">Forward view</CardTitle></CardHeader>
-          <CardContent className="space-y-5">
-            <div><p className="text-xs text-slate-500">Expected monthly receipts</p><p className="mt-1 text-xl font-semibold text-white">{kes(report?.forecast.monthly_receipts)}</p></div>
-            <div><p className="text-xs text-slate-500">Expected monthly costs</p><p className="mt-1 text-xl font-semibold text-white">{kes(report?.forecast.monthly_expenses)}</p></div>
-            <div className="border-t border-slate-800 pt-5"><p className="text-xs text-slate-500">Projected profit, next 3 months</p><p className="mt-1 text-2xl font-bold text-emerald-300">{kes(report?.forecast.next_three_months_profit)}</p><p className="mt-2 text-xs text-slate-500">Simple run-rate based on {report?.forecast.basis_months || 0} completed month(s).</p></div>
+          <CardHeader><CardTitle className="text-white">Income forecast</CardTitle><p className="mt-1 text-xs text-slate-500">Projected from recent revenue and operating costs.</p></CardHeader>
+          <CardContent className="space-y-3">
+            {forecastHorizons.map((item) => (
+              <div key={item.months} className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+                <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-slate-200">Next {item.months} {item.months === 1 ? "month" : "months"}</p><strong className={Number(item.profit) >= 0 ? "text-emerald-300" : "text-rose-300"}>{kes(item.profit)} profit</strong></div>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-xs"><div><p className="text-slate-500">Income</p><p className="mt-1 text-slate-100">{kes(item.receipts)}</p></div><div><p className="text-slate-500">Costs</p><p className="mt-1 text-slate-100">{kes(item.expenses)}</p></div></div>
+              </div>
+            ))}
+            <p className="pt-1 text-xs text-slate-500">Based on {report?.forecast.basis_months || 0} recent completed month(s). Forecasts update with recorded income and expenditure.</p>
           </CardContent>
         </Card>
       </section>
@@ -313,7 +317,7 @@ export default function FinancialReportsPage() {
                 <thead className="border-b border-slate-800 text-xs uppercase text-slate-500"><tr><th className="pb-3">Date</th><th className="pb-3">Account</th><th className="pb-3">Event</th><th className="pb-3">Reference</th><th className="pb-3 text-right">Amount</th><th className="pb-3 text-right">Map</th></tr></thead>
                 <tbody className="divide-y divide-slate-800">
                   {report?.recent_events.map((event, index) => (
-                    <tr key={`${event.reference}-${event.occurred_at}-${index}`}><td className="py-3 text-slate-400">{when(event.occurred_at)}</td><td className="py-3"><span className="text-slate-300">{accountNames[event.account]}</span><p className="text-xs capitalize text-slate-500">{event.allocation.replaceAll("_", " ")}</p></td><td className="py-3"><p className="font-medium text-white">{event.title}</p><p className="text-xs capitalize text-slate-500">{event.type.replaceAll("_", " ")}</p></td><td className="py-3 text-slate-400">{event.reference || "-"}</td><td className={`py-3 text-right font-semibold ${event.direction === "in" ? "text-emerald-300" : "text-slate-100"}`}>{event.direction === "in" ? "+" : event.direction === "out" ? "-" : ""}{kes(event.amount)}</td><td className="py-3 text-right">{event.source_id ? <Button size="icon" variant="ghost" onClick={() => openMapping(event)} title="Change account mapping" aria-label={`Map ${event.title} to an account`} className="text-slate-400 hover:text-white"><PencilLine className="h-4 w-4" /></Button> : "-"}</td></tr>
+                    <tr key={`${event.reference}-${event.occurred_at}-${index}`}><td className="py-3 text-slate-400">{when(event.occurred_at)}</td><td className="py-3 text-slate-300">{accountNames[event.account]}</td><td className="py-3"><p className="font-medium text-white">{event.title}</p><p className="text-xs capitalize text-slate-500">{event.type.replaceAll("_", " ")}</p></td><td className="py-3 text-slate-400">{event.reference || "-"}</td><td className={`py-3 text-right font-semibold ${event.direction === "in" ? "text-emerald-300" : "text-slate-100"}`}>{event.direction === "in" ? "+" : event.direction === "out" ? "-" : ""}{kes(event.amount)}</td><td className="py-3 text-right">{event.source_id ? <Button size="icon" variant="ghost" onClick={() => openMapping(event)} title="Change account" aria-label={`Change account for ${event.title}`} className="text-slate-400 hover:text-white"><PencilLine className="h-4 w-4" /></Button> : "-"}</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -322,22 +326,17 @@ export default function FinancialReportsPage() {
         </Card>
       </section>
 
-      <Alert className="border-slate-800 bg-slate-900 text-slate-200">
-        <AlertTriangle className="h-4 w-4" /><AlertTitle>Reconciliation notes</AlertTitle>
-        <AlertDescription className="text-slate-400">{report?.data_quality.message} {report?.data_quality.inferred_subscription_allocations || 0} subscription and {report?.data_quality.inferred_sms_allocations || 0} SMS allocations are date-inferred in this period.</AlertDescription>
-      </Alert>
-
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-slate-800 bg-slate-950 text-white">
-          <DialogHeader><DialogTitle>Check {accountNames[snapshot.ledger]}</DialogTitle><DialogDescription className="text-slate-400">Enter the live bank or wallet balance. It is compared with the system estimate, records any difference, then becomes the next checkpoint. You can check it again whenever needed.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Update {accountNames[snapshot.ledger]} balance</DialogTitle><DialogDescription className="text-slate-400">Enter the current bank or wallet balance to keep the available total up to date.</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-2">
             <div><Label>Account</Label><Select value={snapshot.ledger} onValueChange={(value) => setSnapshot((x) => ({ ...x, ledger: value as PlatformExpenditureLedger }))}><SelectTrigger className="mt-1 border-slate-700 bg-slate-900"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="primary">Account 1</SelectItem><SelectItem value="new_business">Account 2</SelectItem></SelectContent></Select></div>
-            <div><Label>Confirmed balance (KES)</Label><Input type="number" step="0.01" value={snapshot.balance} onChange={(e) => setSnapshot((x) => ({ ...x, balance: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900" /></div>
-            <div><Label>Balance confirmed at</Label><Input type="datetime-local" value={snapshot.balance_at} onChange={(e) => setSnapshot((x) => ({ ...x, balance_at: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900" /></div>
-            <div><Label>Statement reference</Label><Input value={snapshot.reference} onChange={(e) => setSnapshot((x) => ({ ...x, reference: e.target.value }))} placeholder="e.g. statement closing balance" className="mt-1 border-slate-700 bg-slate-900" /></div>
-            <div><Label>Notes</Label><Textarea value={snapshot.notes} onChange={(e) => setSnapshot((x) => ({ ...x, notes: e.target.value }))} placeholder="What was checked and any known missing fees" className="mt-1 border-slate-700 bg-slate-900" /></div>
+            <div><Label>Current balance (KES)</Label><Input type="number" step="0.01" value={snapshot.balance} onChange={(e) => setSnapshot((x) => ({ ...x, balance: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900" /></div>
+            <div><Label>Balance time</Label><Input type="datetime-local" value={snapshot.balance_at} onChange={(e) => setSnapshot((x) => ({ ...x, balance_at: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900" /></div>
+            <div><Label>Reference</Label><Input value={snapshot.reference} onChange={(e) => setSnapshot((x) => ({ ...x, reference: e.target.value }))} placeholder="Optional account reference" className="mt-1 border-slate-700 bg-slate-900" /></div>
+            <div><Label>Notes</Label><Textarea value={snapshot.notes} onChange={(e) => setSnapshot((x) => ({ ...x, notes: e.target.value }))} placeholder="Optional internal note" className="mt-1 border-slate-700 bg-slate-900" /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} className="border-slate-700 bg-slate-900">Cancel</Button><Button onClick={saveSnapshot} disabled={saving} className="bg-violet-600 hover:bg-violet-500">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save balance</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} className="border-slate-700 bg-slate-900">Cancel</Button><Button onClick={saveSnapshot} disabled={saving} className="bg-violet-600 hover:bg-violet-500">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Update balance</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -347,7 +346,7 @@ export default function FinancialReportsPage() {
           <div className="space-y-4 py-2">
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-4"><p className="font-medium">{mappingEvent?.title}</p><p className="mt-1 text-sm text-slate-400">{mappingEvent?.reference || "No external reference"} · {kes(mappingEvent?.amount)}</p></div>
             <div><Label>Money received in</Label><Select value={mappingAccount} onValueChange={(value) => setMappingAccount(value as PlatformExpenditureLedger)}><SelectTrigger className="mt-1 border-slate-700 bg-slate-900"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="primary">Account 1</SelectItem><SelectItem value="new_business">Account 2</SelectItem></SelectContent></Select></div>
-            <div><Label>Review note</Label><Textarea value={mappingNotes} onChange={(event) => setMappingNotes(event.target.value)} placeholder="Example: confirmed against the October statement" className="mt-1 border-slate-700 bg-slate-900" /></div>
+            <div><Label>Review note</Label><Textarea value={mappingNotes} onChange={(event) => setMappingNotes(event.target.value)} placeholder="Example: Account 2 October receipt" className="mt-1 border-slate-700 bg-slate-900" /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setMappingOpen(false)} className="border-slate-700 bg-slate-900">Cancel</Button><Button onClick={saveMapping} disabled={saving} className="bg-violet-600 hover:bg-violet-500">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save mapping</Button></DialogFooter>
         </DialogContent>
@@ -356,17 +355,16 @@ export default function FinancialReportsPage() {
   )
 }
 
-function CashAccount({ ledger, position, onReconcile }: { ledger: PlatformExpenditureLedger; position?: FinancialCashPosition; onReconcile: () => void }) {
+function CashAccount({ ledger, position, onUpdate }: { ledger: PlatformExpenditureLedger; position?: FinancialCashPosition; onUpdate: () => void }) {
   const expenditureRoute = ledger === "primary" ? "/superadmin/expenditure" : "/superadmin/expenditure-2"
   const isEstimate = position?.snapshot?.kind === "estimate"
   return (
     <Card className="border-slate-800 bg-slate-900">
-      <CardHeader className="flex-row items-start justify-between gap-3"><div><CardTitle className="text-white">{accountNames[ledger]}</CardTitle><p className="mt-1 text-xs text-slate-500">{ledger === "primary" ? "Original business account" : "New business account"}</p></div><Badge variant="outline" className={position?.snapshot && !isEstimate ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>{!position?.snapshot ? "Needs balance" : isEstimate ? "Estimated" : "Confirmed anchor"}</Badge></CardHeader>
+      <CardHeader className="flex-row items-start justify-between gap-3"><div><CardTitle className="text-white">{accountNames[ledger]}</CardTitle><p className="mt-1 text-xs text-slate-500">{ledger === "primary" ? "Original business account" : "New business account"}</p></div><Badge variant="outline" className={position?.snapshot ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>{position?.snapshot ? "Tracking active" : "Balance needed"}</Badge></CardHeader>
       <CardContent className="space-y-5">
-        <div><p className="text-xs text-slate-500">Live system balance</p><p className="mt-1 text-3xl font-bold text-white">{isEstimate ? "Approx. " : ""}{kes(position?.estimated_balance)}</p>{position?.snapshot ? <p className="mt-2 text-xs leading-5 text-slate-500">Based on {isEstimate ? "an approximate" : "a confirmed"} {kes(position.snapshot.balance)} checkpoint from {when(position.snapshot.balance_at)}. Recorded activity after that checkpoint is included.</p> : null}</div>
-        {position?.snapshot?.reconciliation_difference !== null && position?.snapshot?.reconciliation_difference !== undefined ? <div className={`rounded-lg border p-3 text-sm ${Math.abs(Number(position.snapshot.reconciliation_difference)) <= 50 ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-200" : "border-amber-500/20 bg-amber-500/5 text-amber-100"}`}><p className="font-medium">Last check difference: {kes(position.snapshot.reconciliation_difference)}</p><p className="mt-1 text-xs opacity-75">System expected {kes(position.snapshot.system_balance_before)} before the live balance was entered.</p></div> : null}
-        {position?.movements_after_snapshot ? <div className="grid grid-cols-2 gap-3 border-y border-slate-800 py-4 text-sm"><div><p className="text-xs text-slate-500">Receipts since</p><p className="mt-1 text-emerald-300">+{kes(position.movements_after_snapshot.receipts)}</p></div><div><p className="text-xs text-slate-500">Outflows since</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.outflows)}</p></div><div><p className="text-xs text-slate-500">Transfers in</p><p className="mt-1 text-slate-200">+{kes(position.movements_after_snapshot.transfer_in)}</p></div><div><p className="text-xs text-slate-500">Transfers out</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.transfer_out)}</p></div></div> : <p className="text-sm leading-6 text-slate-400">Add one confirmed balance. Earlier receipts and costs remain in performance reports, while cash starts from the balance you verified.</p>}
-        <div className="flex flex-wrap gap-2"><Button onClick={onReconcile} className="bg-violet-600 hover:bg-violet-500"><Scale className="mr-2 h-4 w-4" />Check live balance</Button><Button asChild variant="outline" className="border-slate-700 bg-slate-950 text-slate-200"><Link href={expenditureRoute}><ArrowLeftRight className="mr-2 h-4 w-4" />Open ledger</Link></Button></div>
+        <div><p className="text-xs text-slate-500">Available balance</p><p className="mt-1 text-3xl font-bold text-white">{isEstimate ? "Approx. " : ""}{kes(position?.estimated_balance)}</p>{position?.snapshot ? <p className="mt-2 text-xs leading-5 text-slate-500">Includes the latest recorded receipts, costs and transfers.</p> : null}</div>
+        {position?.movements_after_snapshot ? <div className="grid grid-cols-2 gap-3 border-y border-slate-800 py-4 text-sm"><div><p className="text-xs text-slate-500">Income added</p><p className="mt-1 text-emerald-300">+{kes(position.movements_after_snapshot.receipts)}</p></div><div><p className="text-xs text-slate-500">Costs paid</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.outflows)}</p></div><div><p className="text-xs text-slate-500">Transfers in</p><p className="mt-1 text-slate-200">+{kes(position.movements_after_snapshot.transfer_in)}</p></div><div><p className="text-xs text-slate-500">Transfers out</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.transfer_out)}</p></div></div> : <p className="text-sm leading-6 text-slate-400">Update the account balance to begin live tracking.</p>}
+        <div className="flex flex-wrap gap-2"><Button onClick={onUpdate} className="bg-violet-600 hover:bg-violet-500"><Scale className="mr-2 h-4 w-4" />Update balance</Button><Button asChild variant="outline" className="border-slate-700 bg-slate-950 text-slate-200"><Link href={expenditureRoute}><ArrowLeftRight className="mr-2 h-4 w-4" />Open ledger</Link></Button></div>
       </CardContent>
     </Card>
   )
