@@ -9,13 +9,13 @@ import {
   ArrowUpRight,
   Banknote,
   CalendarRange,
+  Download,
   Landmark,
   Loader2,
   PencilLine,
   RefreshCw,
   Scale,
   TrendingUp,
-  WalletCards,
 } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { toast } from "sonner"
@@ -94,6 +94,7 @@ export default function FinancialReportsPage() {
   const [report, setReport] = useState<PlatformFinancialReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [mappingOpen, setMappingOpen] = useState(false)
   const [mappingEvent, setMappingEvent] = useState<PlatformFinancialReport["recent_events"][number] | null>(null)
@@ -107,18 +108,32 @@ export default function FinancialReportsPage() {
     notes: "",
   })
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       setReport(await superadminApi.getFinancialReport(range))
+      setLastUpdated(new Date())
     } catch (error: any) {
       toast.error(error?.message || "Could not load financial reports")
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [range])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    const timer = window.setInterval(() => load(true), 60_000)
+    return () => window.clearInterval(timer)
+  }, [load])
+
+  const downloadBackup = async () => {
+    try {
+      await superadminApi.downloadFinancialRecoveryBackup()
+      toast.success("Financial recovery backup downloaded")
+    } catch (error: any) {
+      toast.error(error?.message || "Could not download the recovery backup")
+    }
+  }
 
   const summary: FinancialSummary | null = report
     ? view === "combined" ? report.combined : report.accounts[view]
@@ -212,9 +227,12 @@ export default function FinancialReportsPage() {
         <div className="flex flex-wrap items-end gap-2">
           <div><Label className="text-xs text-slate-400">From</Label><Input type="date" value={range.start} onChange={(e) => setRange((x) => ({ ...x, start: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900 text-white" /></div>
           <div><Label className="text-xs text-slate-400">To</Label><Input type="date" value={range.end} onChange={(e) => setRange((x) => ({ ...x, end: e.target.value }))} className="mt-1 border-slate-700 bg-slate-900 text-white" /></div>
-          <Button onClick={load} variant="outline" className="h-10 border-slate-700 bg-slate-900 text-slate-100"><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Refresh</Button>
+          <Button onClick={downloadBackup} variant="outline" className="h-10 border-slate-700 bg-slate-900 text-slate-100"><Download className="mr-2 h-4 w-4" />Recovery backup</Button>
+          <Button onClick={() => load()} variant="outline" className="h-10 border-slate-700 bg-slate-900 text-slate-100"><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Refresh</Button>
         </div>
       </div>
+
+      <p className="text-xs text-slate-500">Balances refresh every minute{lastUpdated ? ` | Updated ${lastUpdated.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}` : ""}. Recovery backup includes all checkpoints, account mappings, transfers and manual cash events.</p>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Financial account view">
         {(["combined", "primary", "new_business"] as ViewKey[]).map((key) => (
@@ -233,12 +251,10 @@ export default function FinancialReportsPage() {
       ) : null}
 
       {summary ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Metric label="Operating receipts" value={kes(summary.receipts)} hint={`${kes(summary.subscriptions)} subscriptions + ${kes(summary.sms)} SMS`} icon={ArrowDownRight} />
           <Metric label="Operating costs" value={kes(summary.operating_expenses)} hint="Business expenses and transaction fees" icon={ArrowUpRight} />
           <Metric label="Operating profit" value={kes(summary.operating_profit)} hint={`${Number(summary.profit_margin).toFixed(1)}% margin before owner distributions`} icon={TrendingUp} />
-          <Metric label="Owner distributions" value={kes(summary.owner_draws)} hint="Tracked separately from operating expenses" icon={WalletCards} />
-          <Metric label="Reconciled cash" value={view === "combined" ? kes(report?.known_combined_cash) : kes(report?.cash_positions[view].estimated_balance)} hint="Latest confirmed balances plus recorded movements" icon={Scale} />
         </div>
       ) : null}
 
@@ -342,11 +358,12 @@ export default function FinancialReportsPage() {
 
 function CashAccount({ ledger, position, onReconcile }: { ledger: PlatformExpenditureLedger; position?: FinancialCashPosition; onReconcile: () => void }) {
   const expenditureRoute = ledger === "primary" ? "/superadmin/expenditure" : "/superadmin/expenditure-2"
+  const isEstimate = position?.snapshot?.kind === "estimate"
   return (
     <Card className="border-slate-800 bg-slate-900">
-      <CardHeader className="flex-row items-start justify-between gap-3"><div><CardTitle className="text-white">{accountNames[ledger]}</CardTitle><p className="mt-1 text-xs text-slate-500">{ledger === "primary" ? "Original business account" : "New business account"}</p></div><Badge variant="outline" className={position?.snapshot ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>{position?.snapshot ? "Reconciled" : "Needs balance"}</Badge></CardHeader>
+      <CardHeader className="flex-row items-start justify-between gap-3"><div><CardTitle className="text-white">{accountNames[ledger]}</CardTitle><p className="mt-1 text-xs text-slate-500">{ledger === "primary" ? "Original business account" : "New business account"}</p></div><Badge variant="outline" className={position?.snapshot && !isEstimate ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>{!position?.snapshot ? "Needs balance" : isEstimate ? "Estimated" : "Confirmed anchor"}</Badge></CardHeader>
       <CardContent className="space-y-5">
-        <div><p className="text-xs text-slate-500">Estimated available cash</p><p className="mt-1 text-3xl font-bold text-white">{kes(position?.estimated_balance)}</p>{position?.snapshot ? <p className="mt-2 text-xs text-slate-500">Last checked at {kes(position.snapshot.balance)} on {when(position.snapshot.balance_at)}</p> : null}</div>
+        <div><p className="text-xs text-slate-500">Live system balance</p><p className="mt-1 text-3xl font-bold text-white">{isEstimate ? "Approx. " : ""}{kes(position?.estimated_balance)}</p>{position?.snapshot ? <p className="mt-2 text-xs leading-5 text-slate-500">Based on {isEstimate ? "an approximate" : "a confirmed"} {kes(position.snapshot.balance)} checkpoint from {when(position.snapshot.balance_at)}. Recorded activity after that checkpoint is included.</p> : null}</div>
         {position?.snapshot?.reconciliation_difference !== null && position?.snapshot?.reconciliation_difference !== undefined ? <div className={`rounded-lg border p-3 text-sm ${Math.abs(Number(position.snapshot.reconciliation_difference)) <= 50 ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-200" : "border-amber-500/20 bg-amber-500/5 text-amber-100"}`}><p className="font-medium">Last check difference: {kes(position.snapshot.reconciliation_difference)}</p><p className="mt-1 text-xs opacity-75">System expected {kes(position.snapshot.system_balance_before)} before the live balance was entered.</p></div> : null}
         {position?.movements_after_snapshot ? <div className="grid grid-cols-2 gap-3 border-y border-slate-800 py-4 text-sm"><div><p className="text-xs text-slate-500">Receipts since</p><p className="mt-1 text-emerald-300">+{kes(position.movements_after_snapshot.receipts)}</p></div><div><p className="text-xs text-slate-500">Outflows since</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.outflows)}</p></div><div><p className="text-xs text-slate-500">Transfers in</p><p className="mt-1 text-slate-200">+{kes(position.movements_after_snapshot.transfer_in)}</p></div><div><p className="text-xs text-slate-500">Transfers out</p><p className="mt-1 text-slate-200">-{kes(position.movements_after_snapshot.transfer_out)}</p></div></div> : <p className="text-sm leading-6 text-slate-400">Add one confirmed balance. Earlier receipts and costs remain in performance reports, while cash starts from the balance you verified.</p>}
         <div className="flex flex-wrap gap-2"><Button onClick={onReconcile} className="bg-violet-600 hover:bg-violet-500"><Scale className="mr-2 h-4 w-4" />Check live balance</Button><Button asChild variant="outline" className="border-slate-700 bg-slate-950 text-slate-200"><Link href={expenditureRoute}><ArrowLeftRight className="mr-2 h-4 w-4" />Open ledger</Link></Button></div>

@@ -564,10 +564,12 @@ export interface FinancialCashPosition {
     notes: string
     system_balance_before: string | null
     reconciliation_difference: string | null
+    kind: "confirmed" | "estimate"
+    created_at: string
   }
   movements_after_snapshot: null | { receipts: string; outflows: string; transfer_in: string; transfer_out: string; net: string }
   estimated_balance: string | null
-  confidence: "needs_snapshot" | "reconciled_anchor_plus_recorded_movements"
+  confidence: "needs_snapshot" | "confirmed_anchor_plus_recorded_movements" | "estimated_anchor_plus_recorded_movements"
 }
 
 export interface FinancialMonthlyRow {
@@ -589,6 +591,7 @@ export interface PlatformFinancialReport {
   combined: FinancialSummary
   accounts: Record<PlatformExpenditureLedger, FinancialSummary>
   cash_positions: Record<PlatformExpenditureLedger, FinancialCashPosition>
+  checkpoint_history: Record<PlatformExpenditureLedger, NonNullable<FinancialCashPosition["snapshot"]>[]>
   known_combined_cash: string | null
   monthly: FinancialMonthlyRow[]
   monthly_by_account: Record<PlatformExpenditureLedger, FinancialMonthlyRow[]>
@@ -1549,6 +1552,25 @@ class SuperadminApiService {
       method: "POST",
       body: JSON.stringify(data),
     })
+  }
+
+  async downloadFinancialRecoveryBackup(): Promise<void> {
+    const token = this.getToken()
+    const res = await fetch(`${this.getBaseUrl()}/superadmin/financial-reports/backup/`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      cache: "no-store",
+    })
+    if (!res.ok) throw new Error("Could not download the recovery backup. Please try again.")
+    const blobUrl = URL.createObjectURL(await res.blob())
+    const disposition = res.headers.get("content-disposition") || ""
+    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `internetily-financial-backup-${new Date().toISOString().slice(0, 10)}.json`
+    const a = document.createElement("a")
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
   }
 
   async getSubscriptionInvoices(params?: Record<string, string>): Promise<SubscriptionInvoiceListResponse> {

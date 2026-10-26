@@ -5,6 +5,7 @@ import Link from "next/link"
 import {
   BarChart3,
   Calculator,
+  Download,
   Loader2,
   Plus,
   ReceiptText,
@@ -34,6 +35,7 @@ import {
   type PlatformExpenditureEntryType,
   type PlatformExpenditureLedger,
   type PlatformExpenditureSummary,
+  type FinancialCashPosition,
 } from "@/lib/superadmin-api"
 
 const categories: Array<{ value: PlatformExpenditureCategory; label: string }> = [
@@ -142,6 +144,8 @@ function MetricCard({
 export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: PlatformExpenditureLedger }) {
   const [entries, setEntries] = useState<PlatformExpenditure[]>([])
   const [summary, setSummary] = useState<PlatformExpenditureSummary>({ ...emptySummary, ledger })
+  const [cashPosition, setCashPosition] = useState<FinancialCashPosition | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(1)
@@ -166,26 +170,42 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
     return "All time"
   }, [filters.end, filters.start])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       const params: Record<string, string> = { page: String(page), page_size: "20" }
       if (filters.start) params.start = filters.start
       if (filters.end) params.end = filters.end
-      const data = await superadminApi.getExpenditure(params, ledger)
+      const [data, report] = await Promise.all([
+        superadminApi.getExpenditure(params, ledger),
+        superadminApi.getFinancialReport(),
+      ])
       setEntries(data.results)
       setSummary(data.summary)
+      setCashPosition(report.cash_positions[ledger])
       setTotal(data.count)
+      setLastUpdated(new Date())
     } catch (err: any) {
       toast.error(err?.message || "Failed to load expenditure")
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [filters.end, filters.start, ledger, page])
 
   useEffect(() => {
     fetchData()
+    const timer = window.setInterval(() => fetchData(true), 60_000)
+    return () => window.clearInterval(timer)
   }, [fetchData])
+
+  const downloadBackup = async () => {
+    try {
+      await superadminApi.downloadFinancialRecoveryBackup()
+      toast.success("Financial recovery backup downloaded")
+    } catch (err: any) {
+      toast.error(err?.message || "Could not download the recovery backup")
+    }
+  }
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -266,7 +286,7 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
           </div>
           <Button
             variant="outline"
-            onClick={fetchData}
+            onClick={() => fetchData()}
             disabled={loading}
             className="self-end border-slate-700 bg-slate-900 text-slate-200"
           >
@@ -279,8 +299,13 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
       <FinancialCsvActions
         kind={ledger === "primary" ? "expenditure" : "expenditure-2"}
         params={{ ...(filters.start ? { start: filters.start } : {}), ...(filters.end ? { end: filters.end } : {}) }}
-        onImported={fetchData}
+        onImported={() => fetchData()}
       />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900 px-4 py-3">
+        <p className="text-xs text-slate-500">Live figures refresh every minute{lastUpdated ? ` | Updated ${lastUpdated.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}` : ""}.</p>
+        <Button onClick={downloadBackup} size="sm" variant="outline" className="border-slate-700 bg-slate-950 text-slate-200"><Download className="mr-2 h-4 w-4" />Recovery backup</Button>
+      </div>
 
       {!loading && !summary.cutover_verified && (
         <p role="alert" className="border-l-4 border-amber-400 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -288,35 +313,32 @@ export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: Pla
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Receipts" value={kes(summary.accrued_total)} subtitle={`${kes(summary.subscription_payments_total)} subscriptions · ${kes(summary.sms_topups_total)} SMS`} icon={WalletCards} />
-        <MetricCard title="Operating Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses and fees, less credits" icon={ReceiptText} tone="rose" />
-        <MetricCard title="Operating Profit" value={kes(summary.net_profit)} subtitle="Receipts less operating costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
-        <MetricCard title={filters.start || filters.end ? "Net Movement" : "Recorded Cash Movement"} value={kes(summary.calculated_position)} subtitle="Profit, distributions, adjustments and transfers" icon={WalletCards} tone={Number(summary.calculated_position) >= 0 ? "emerald" : "rose"} />
-      </div>
-
       <Card className="border-slate-800 bg-slate-900">
-        <CardContent className="grid gap-5 pt-6 sm:grid-cols-2 xl:grid-cols-6">
-          <div><p className="text-xs uppercase text-slate-500">Owner distributions</p><p className="mt-1 font-medium text-slate-100">{kes(summary.owner_draw_total)}</p></div>
-          <div><p className="text-xs uppercase text-slate-500">Adjustments</p><p className="mt-1 font-medium text-slate-100">{kes(summary.cash_adjustment_total)}</p></div>
-          <div><p className="text-xs uppercase text-slate-500">Transfers in</p><p className="mt-1 font-medium text-emerald-300">{kes(summary.transfer_in_total)}</p></div>
-          <div><p className="text-xs uppercase text-slate-500">Transfers out</p><p className="mt-1 font-medium text-slate-100">{kes(summary.transfer_out_total)}</p></div>
+        <CardContent className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Accounting window</p>
-            <p className="mt-1 text-sm font-medium text-slate-100">
-              {ledger === "new_business" ? "Account 2 activity" : "Account 1 activity"}
-            </p>
-            {ledger === "new_business" && <p className="mt-1 text-xs text-slate-400">The transfer from Account 1 is not new income.</p>}
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium uppercase text-slate-400">Live system balance</p>
+              <Badge variant="outline" className={cashPosition?.snapshot?.kind === "confirmed" ? "border-emerald-500/30 text-emerald-300" : "border-amber-500/30 text-amber-300"}>
+                {!cashPosition?.snapshot ? "Needs checkpoint" : cashPosition.snapshot.kind === "estimate" ? "Estimated" : "Confirmed anchor"}
+              </Badge>
+            </div>
+            <p className="mt-2 text-3xl font-bold text-white">{cashPosition?.snapshot?.kind === "estimate" ? "Approx. " : ""}{cashPosition?.estimated_balance === null || cashPosition?.estimated_balance === undefined ? "Not reconciled" : kes(cashPosition.estimated_balance)}</p>
+            {cashPosition?.snapshot ? <p className="mt-2 text-xs text-slate-500">Checkpoint {kes(cashPosition.snapshot.balance)} on {dateTimeLabel(cashPosition.snapshot.balance_at)} | later recorded activity included</p> : <p className="mt-2 text-xs text-amber-200/80">Add a bank or wallet checkpoint from Financial Reports to establish the live balance.</p>}
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Fallback boundary</p>
-            <p className="mt-1 truncate text-sm font-medium text-slate-100">
-              {summary.cutover_reference || "-"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">{dateTimeLabel(summary.cutover_at)}</p>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
+            <div><p className="text-xs text-slate-500">Owner draws</p><p className="mt-1 text-slate-100">{kes(summary.owner_draw_total)}</p></div>
+            <div><p className="text-xs text-slate-500">Adjustments</p><p className="mt-1 text-slate-100">{kes(summary.cash_adjustment_total)}</p></div>
+            <div><p className="text-xs text-slate-500">Transfers in</p><p className="mt-1 text-emerald-300">{kes(summary.transfer_in_total)}</p></div>
+            <div><p className="text-xs text-slate-500">Transfers out</p><p className="mt-1 text-slate-100">{kes(summary.transfer_out_total)}</p></div>
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard title="Receipts" value={kes(summary.accrued_total)} subtitle={`${kes(summary.subscription_payments_total)} subscriptions · ${kes(summary.sms_topups_total)} SMS`} icon={WalletCards} />
+        <MetricCard title="Operating Costs" value={kes(summary.manual_expenditure_total)} subtitle="Expenses and fees, less credits" icon={ReceiptText} tone="rose" />
+        <MetricCard title="Operating Profit" value={kes(summary.net_profit)} subtitle="Receipts less operating costs" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
         <Card className="bg-slate-900 border-slate-800">
