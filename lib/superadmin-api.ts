@@ -2046,6 +2046,7 @@ class SuperadminApiService {
     cycle_id?: string
     tenant_id?: string
     channels: Array<"email" | "sms" | "in_app">
+    message?: string
   }): Promise<SubscriptionReminderManualResult> {
     return this.request("/superadmin/subscription-reminders/send-manual/", {
       method: "POST",

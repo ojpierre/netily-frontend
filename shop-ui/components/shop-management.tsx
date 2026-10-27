@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { BarChart3, ExternalLink, Package, Plus, Search, ShoppingBag, Trash2 } from "lucide-react"
+import { BarChart3, Boxes, ExternalLink, FolderTree, Package, Plus, Search, ShoppingBag, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { superadminApi } from "@/lib/superadmin-api"
 
-type Tab = "overview" | "products" | "add" | "orders"
+type Tab = "overview" | "orders" | "products" | "add" | "categories" | "inventory"
 
 type AdminCategory = { id: number; name: string; slug: string; is_active: boolean }
 type AdminProduct = {
@@ -152,6 +152,19 @@ export function ShopManagement(_props: { embedded?: boolean }) {
     }
   }
 
+  async function toggleCategory(category: AdminCategory) {
+    setBusy(`category-${category.id}`)
+    try {
+      const updated = await superadminApi.updateShopCategory(category.id, { is_active: !category.is_active })
+      setCategories((list) => list.map((item) => item.id === category.id ? { ...item, ...updated } : item))
+      toast.success(category.is_active ? "Category hidden" : "Category published")
+    } catch (e) {
+      toast.error(errText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function createProduct(e: React.FormEvent) {
     e.preventDefault()
     const price = Number(form.price)
@@ -231,41 +244,45 @@ export function ShopManagement(_props: { embedded?: boolean }) {
 
   const tabs: { id: Tab; label: string; icon: typeof Package }[] = [
     { id: "overview", label: "Overview", icon: BarChart3 },
+    { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "products", label: "Products", icon: Package },
     { id: "add", label: "Add product", icon: Plus },
-    { id: "orders", label: "Orders", icon: ShoppingBag },
+    { id: "categories", label: "Categories", icon: FolderTree },
+    { id: "inventory", label: "Inventory", icon: Boxes },
   ]
 
   if (loading) return <p className="py-16 text-center text-sm text-muted-foreground">Loading shop data...</p>
 
   return (
-    <div className="space-y-6 text-foreground">
-      <div className="flex flex-wrap gap-2">
+    <div className="grid gap-5 text-foreground lg:grid-cols-[220px_minmax(0,1fr)]">
+      <aside className="h-fit rounded-xl border border-border bg-card p-3 lg:sticky lg:top-24">
+        <p className="px-3 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Shop workspace</p>
+        <div className="grid gap-1">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-wider ${
-              tab === t.id ? "border-foreground bg-foreground text-background" : "border-border hover:bg-muted"
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${
+              tab === t.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
             <t.icon className="h-3.5 w-3.5" />
             {t.label}
           </button>
         ))}
-      </div>
+        </div>
+        <div className="mt-3 border-t border-border p-3 text-[11px] leading-5 text-muted-foreground">Catalog and order data is live. Storefront merchandising remains frontend-managed.</div>
+      </aside>
+
+      <div className="min-w-0 space-y-6">
 
       {tab === "overview" && (
         <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { t: "Orders", v: stats.total ?? 0, s: "All time" },
-              { t: "Awaiting payment", v: stats.pending ?? 0, s: "Pending STK / unpaid" },
+              { t: "Paid revenue", v: `KES ${Number(stats.revenue_kes ?? 0).toLocaleString()}`, s: `${stats.paid ?? 0} paid orders` },
+              { t: "Awaiting payment", v: stats.pending ?? 0, s: "Pending STK or unpaid" },
               { t: "To fulfil", v: stats.to_fulfil ?? 0, s: "Paid or processing" },
-              { t: "Paid orders", v: stats.paid ?? 0, s: "Payment confirmed" },
-              { t: "Revenue (USD)", v: `$${Number(stats.revenue_usd ?? 0).toLocaleString()}`, s: "Paid orders" },
-              { t: "Revenue (KES)", v: `KES ${Number(stats.revenue_kes ?? 0).toLocaleString()}`, s: "Collected via M-Pesa" },
-              { t: "Last 30 days", v: `$${Number(stats.revenue_usd_30d ?? 0).toLocaleString()}`, s: "Paid revenue" },
               { t: "Low stock", v: lowStock.length, s: `${LOW_STOCK} or fewer left` },
             ].map((c) => (
               <div key={c.t} className="rounded-2xl border border-border bg-card p-5">
@@ -453,6 +470,33 @@ export function ShopManagement(_props: { embedded?: boolean }) {
         </div>
       )}
 
+      {tab === "categories" && (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">New category name</label>
+              <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="For example, Routers & Gateways" className={input} />
+            </div>
+            <button type="button" onClick={addCategory} className="h-11 rounded-lg bg-foreground px-5 text-sm font-medium text-background">Add category</button>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="grid grid-cols-[1fr_90px_110px] border-b border-border bg-muted/30 px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid-cols-[1fr_120px_120px_130px]"><span>Category</span><span className="hidden sm:block">Products</span><span>Status</span><span className="text-right">Action</span></div>
+            {categories.map((category) => {
+              const productCount = products.filter((product) => product.category === category.id).length
+              return <div key={category.id} className={`grid grid-cols-[1fr_90px_110px] items-center border-b border-border/60 px-4 py-3 text-sm last:border-0 sm:grid-cols-[1fr_120px_120px_130px] ${busy === `category-${category.id}` ? "opacity-50" : ""}`}><div><p className="font-medium">{category.name}</p><p className="text-xs text-muted-foreground">/{category.slug}</p></div><span className="hidden text-muted-foreground sm:block">{productCount}</span><span className={category.is_active ? "text-emerald-600" : "text-muted-foreground"}>{category.is_active ? "Published" : "Hidden"}</span><button onClick={() => toggleCategory(category)} className="justify-self-end rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">{category.is_active ? "Hide" : "Publish"}</button></div>
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">Categories with products are hidden instead of deleted, preserving product and order history.</p>
+        </div>
+      )}
+
+      {tab === "inventory" && (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-semibold">Inventory</h2><p className="text-xs text-muted-foreground">Update live stock counts without opening each product.</p></div><button onClick={() => setLowOnly((value) => !value)} className={`rounded-lg border px-4 py-2 text-xs font-medium ${lowOnly ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-border"}`}>{lowOnly ? "Showing low stock" : "Show low stock only"}</button></div>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-left text-sm"><thead className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground"><tr><th className="px-4 py-3">Product</th><th className="px-4 py-3">Category</th><th className="px-4 py-3 text-center">Available</th><th className="px-4 py-3 text-right">Storefront</th></tr></thead><tbody className="divide-y divide-border/60">{filteredProducts.map((product) => <tr key={product.slug}><td className="px-4 py-3 font-medium">{product.name}</td><td className="px-4 py-3 text-muted-foreground">{product.category_name}</td><td className="px-4 py-3 text-center">{product.track_stock ? <input type="number" min={0} key={product.stock_quantity} defaultValue={product.stock_quantity} onBlur={(event) => { const value = Number(event.target.value); if (Number.isInteger(value) && value >= 0 && value !== product.stock_quantity) patchProduct(product, { stock_quantity: value }, "Stock updated") }} className={`w-24 rounded-lg border px-2 py-1.5 text-center ${product.stock_quantity <= LOW_STOCK ? "border-amber-500 bg-amber-50" : "border-border"}`} /> : <span className="text-xs text-muted-foreground">Not tracked</span>}</td><td className="px-4 py-3 text-right">{product.is_active ? "Published" : "Hidden"}</td></tr>)}</tbody></table></div>
+        </div>
+      )}
+
       {tab === "orders" && (
         <div className="space-y-4">
           <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row">
@@ -525,6 +569,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
           <p className="text-[11px] text-muted-foreground">Showing the 100 most recent matches. Use search to find older orders.</p>
         </div>
       )}
+      </div>
     </div>
   )
 }

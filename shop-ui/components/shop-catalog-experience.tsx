@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, Search, SlidersHorizontal, Truck } from "lucide-react"
-import { defaultOfferSlides } from "@/shop-ui/lib/products"
+import { ArrowRight, CheckCircle2, Search, SlidersHorizontal, Truck } from "lucide-react"
 import { useShopCatalog } from "@/shop-ui/lib/use-shop-catalog"
 
 const stockFilters = ["All Stock", "In Stock", "Out of Stock"] as const
@@ -22,21 +21,10 @@ export function ShopCatalogExperience() {
 
   const { products, categories, loading, error } = useShopCatalog()
   const categoryNames = useMemo(() => ["All", ...categories.map((c) => c.name)], [categories])
-  const offers = defaultOfferSlides
-
-  const [activeSlide, setActiveSlide] = useState(0)
   const [activeCategory, setActiveCategory] = useState(initialCategory)
   const [searchTerm, setSearchTerm] = useState(initialQuery)
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured")
   const [stockFilter, setStockFilter] = useState<(typeof stockFilters)[number]>("All Stock")
-
-  useEffect(() => {
-    if (offers.length <= 1) return
-    const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % offers.length)
-    }, 6000)
-    return () => window.clearInterval(timer)
-  }, [offers.length])
 
   const filteredProducts = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
@@ -62,110 +50,9 @@ export function ShopCatalogExperience() {
       })
   }, [activeCategory, products, searchTerm, sortBy, stockFilter])
 
-  const currentOffer = offers[activeSlide] || offers[0]
-
   return (
     <>
-      <section className="relative flex min-h-[58vh] items-end overflow-hidden bg-foreground text-white md:min-h-[54vh] lg:min-h-[50vh]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentOffer?.id || "shop-offer"}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.05, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            {currentOffer && (
-              <Image
-                src={currentOffer.image}
-                alt={currentOffer.title}
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/32 to-black/82" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_78%,rgba(27,94,255,0.28),transparent_34%)]" />
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="relative z-10 mx-auto flex min-h-[58vh] w-full max-w-7xl items-end px-6 pb-16 pt-28 md:min-h-[54vh] lg:min-h-[50vh] lg:px-8 lg:pb-20">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentOffer?.id || "shop-copy"}
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -18 }}
-              transition={{ duration: 0.75, delay: 0.15, ease: "easeOut" }}
-              className="max-w-2xl"
-            >
-              <h1 className="max-w-3xl whitespace-pre-line font-serif text-4xl leading-[1.05] text-white md:text-5xl lg:text-6xl">
-                {currentOffer?.title || "ISP hardware ready for the field"}
-              </h1>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={currentOffer?.href || "/shop/catalog"}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-sm font-semibold uppercase text-foreground transition hover:bg-white/90"
-                >
-                  {currentOffer?.ctaLabel || "Shop offers"}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="#catalog"
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/35 bg-white/8 px-8 text-sm font-semibold uppercase text-white backdrop-blur transition hover:bg-white/14"
-                >
-                  Browse catalog
-                </Link>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {offers.length > 1 && (
-          <div className="absolute bottom-6 right-6 z-20 flex items-center gap-4 lg:right-20">
-            <div className="flex items-center gap-2">
-              {offers.map((offer, index) => (
-                <button
-                  key={offer.id}
-                  type="button"
-                  onClick={() => setActiveSlide(index)}
-                  aria-label={`Show offer ${index + 1}`}
-                  className="py-2 focus:outline-none"
-                >
-                  <span
-                    className={`block h-1.5 rounded-full transition-all duration-500 ${
-                      index === activeSlide ? "w-10 bg-white" : "w-4 bg-white/42 hover:bg-white/70"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 border-l border-white/22 pl-5">
-              <button
-                type="button"
-                onClick={() => setActiveSlide((current) => (current - 1 + offers.length) % offers.length)}
-                aria-label="Previous shop offer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/18 bg-white/10 text-white/75 backdrop-blur transition hover:bg-white/18 hover:text-white"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSlide((current) => (current + 1) % offers.length)}
-                aria-label="Next shop offer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/18 bg-white/10 text-white/75 backdrop-blur transition hover:bg-white/18 hover:text-white"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-      </section>
-
-      <section id="catalog" className="bg-background py-10 md:py-14">
+      <section id="catalog" className="bg-background pb-10 pt-24 md:pb-14 lg:pt-36">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mb-8 grid gap-6 lg:grid-cols-[280px_1fr]">
             <aside className="rounded-2xl border border-border bg-white p-4 shadow-sm lg:sticky lg:top-24 lg:self-start">

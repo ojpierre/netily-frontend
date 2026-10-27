@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Search, ShoppingBag, Menu, X, User } from "lucide-react"
+import { Search, ShoppingBag, Menu, X, MapPin, Phone } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MiniCart } from "./mini-cart"
 import { useCart } from "@/shop-ui/lib/cart-context"
@@ -65,10 +65,11 @@ export function Navigation() {
   }
 
   const navLinks = [
-    { href: "/shop", label: "Catalog" },
+    { href: "/shop/catalog", label: "All products" },
     { href: "/shop/catalog?cat=Fiber+Optics+%26+OLT", label: "Fiber" },
     { href: "/shop/catalog?cat=Routers+%26+Gateways", label: "Routers" },
     { href: "/shop/catalog?cat=Wireless+%26+Backhaul", label: "Wireless" },
+    { href: "/shop/track", label: "Track order" },
   ]
 
   const navItemColor = "text-foreground"
@@ -78,14 +79,15 @@ export function Navigation() {
 
   return (
     <>
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-border/70 bg-white/[0.92] text-foreground shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-500"
-      >
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/70 bg-white/[0.96] text-foreground shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-md">
+        <div className="hidden border-b border-border/70 bg-[#06183b] text-white lg:block">
+          <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-8 text-[11px]">
+            <span className="flex items-center gap-2 text-white/70"><MapPin className="h-3 w-3" />Network equipment for Kenya and regional projects</span>
+            <div className="flex items-center gap-5"><a href="tel:+254100034307" className="flex items-center gap-1.5"><Phone className="h-3 w-3" />0100 034 307</a><Link href="/shop/track">Track an order</Link></div>
+          </div>
+        </div>
         <nav className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex h-16 lg:h-20 items-center justify-between">
+          <div className="flex h-16 lg:h-[72px] items-center justify-between">
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -96,12 +98,12 @@ export function Navigation() {
             </button>
 
             {/* Desktop navigation */}
-            <div className="hidden lg:flex items-center gap-12">
+            <div className="hidden lg:order-2 lg:flex lg:flex-1 items-center justify-center gap-8">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-sm tracking-[0.2em] uppercase transition-colors duration-500 ${
+                  className={`text-xs tracking-[0.14em] uppercase transition-colors duration-500 ${
                     pathname === link.href ? navItemColor : navItemHoverColor
                   }`}
                 >
@@ -113,20 +115,20 @@ export function Navigation() {
             {/* Logo â€” centered luxury editorial */}
             <Link
               href="/shop"
-              className={`absolute left-1/2 -translate-x-1/2 flex items-center transition-colors duration-500 ${logoColor}`}
+              className={`absolute left-1/2 flex -translate-x-1/2 items-center transition-colors duration-500 lg:static lg:order-1 lg:mr-8 lg:translate-x-0 ${logoColor}`}
             >
               <Image
                 src="/internetily-logo-320.webp"
                 alt="Internetily Shop"
-                width={160}
-                height={48}
+                width={220}
+                height={66}
                 priority
-                className="h-9 w-auto object-contain lg:h-11"
+                className="h-10 w-auto object-contain lg:h-12"
               />
             </Link>
 
             {/* Right icons */}
-            <div className="flex items-center gap-2 lg:gap-4">
+            <div className="flex items-center gap-2 lg:order-3 lg:gap-4">
               <div ref={searchContainerRef} className="relative hidden sm:flex items-center">
                 <AnimatePresence>
                   {isSearchOpen && (
@@ -175,7 +177,7 @@ export function Navigation() {
             </div>
           </div>
         </nav>
-      </motion.header>
+      </header>
 
       {/* Mobile menu */}
       <AnimatePresence>

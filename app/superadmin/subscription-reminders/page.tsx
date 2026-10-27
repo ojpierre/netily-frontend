@@ -1,703 +1,257 @@
-﻿"use client"
+"use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { AlertCircle, Bell, BellRing, CalendarClock, CheckCircle2, Clock3, Loader2, Mail, MessageSquareText, Save, Search, Send, Smartphone, Users, Wallet } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { AlertCircle, Bell, CalendarClock, Check, CheckCircle2, Clock3, FileText, History, Loader2, Mail, MessageSquareText, Play, Save, Search, Send, Smartphone, Wallet, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import {
-  superadminApi,
-  type SubscriptionReminderBalanceSummary,
-  type SubscriptionReminderTemplate,
-  type SubscriptionReminderLogEntry,
-  type SubscriptionReminderManualResult,
-  type SubscriptionReminderRecipient,
-} from "@/lib/superadmin-api"
+import { superadminApi, type SubscriptionReminderBalanceSummary, type SubscriptionReminderLogEntry, type SubscriptionReminderManualResult, type SubscriptionReminderRecipient, type SubscriptionReminderTemplate } from "@/lib/superadmin-api"
 
-type ReminderChannel = "email" | "sms" | "in_app"
+type Channel = "sms" | "email" | "in_app"
+type PageTab = "manual" | "automation" | "templates" | "history"
 type RecipientFilter = "needs_attention" | "all" | "expired" | "due_soon" | "active" | "trial"
 
-const TEMPLATE_PRESETS = [
-  {
-    name: "Upcoming renewal",
-    content:
-      "Hi {admin_name}, your Netily subscription for {company_name} ({plan_name}) is due in {days_left} day(s) on {expiry_date}. Please open Admin > Subscription and renew to keep your account active.",
-  },
-  {
-    name: "Due today",
-    content:
-      "Hi {admin_name}, your Netily subscription for {company_name} is due today. Please open Admin > Subscription and renew to avoid account interruption.",
-  },
-  {
-    name: "Expired",
-    content:
-      "Hi {admin_name}, your Netily subscription for {company_name} has expired. Please open Admin > Subscription and renew to restore full access.",
-  },
-]
-
 const LOG_PAGE_SIZE = 20
-
-const CHANNELS: Array<{ id: ReminderChannel; label: string; description: string; icon: typeof Mail }> = [
-  { id: "sms", label: "SMS", description: "Send from the Netily platform wallet", icon: Smartphone },
-  { id: "email", label: "Email", description: "Send to the account email", icon: Mail },
-  { id: "in_app", label: "In-app", description: "Show inside the tenant dashboard", icon: Bell },
+const CHANNELS: Array<{ id: Channel; label: string; description: string; icon: typeof Mail }> = [
+  { id: "sms", label: "SMS", description: "Netily platform wallet", icon: Smartphone },
+  { id: "email", label: "Email", description: "Tenant account email", icon: Mail },
+  { id: "in_app", label: "In-app", description: "Tenant dashboard", icon: Bell },
+]
+const FILTERS: Array<{ id: RecipientFilter; label: string }> = [
+  { id: "needs_attention", label: "Needs attention" }, { id: "expired", label: "Expired" },
+  { id: "due_soon", label: "Due soon" }, { id: "active", label: "Active" },
+  { id: "trial", label: "Trial" }, { id: "all", label: "All" },
+]
+const PRESETS = [
+  { name: "Upcoming renewal", content: "Hi {admin_name}, your Internetily subscription for {company_name} ({plan_name}) is due in {days_left} day(s) on {expiry_date}. Open Admin > Subscription to renew and keep your account active." },
+  { name: "Due today", content: "Hi {admin_name}, your Internetily subscription for {company_name} is due today. Open Admin > Subscription to renew and avoid service interruption." },
+  { name: "Expired", content: "Hi {admin_name}, your Internetily subscription for {company_name} has expired. Open Admin > Subscription to renew and restore full access." },
 ]
 
-const RECIPIENT_FILTERS: Array<{ id: RecipientFilter; label: string }> = [
-  { id: "needs_attention", label: "Needs attention" },
-  { id: "expired", label: "Expired" },
-  { id: "due_soon", label: "Due soon" },
-  { id: "active", label: "Active" },
-  { id: "trial", label: "Trial" },
-  { id: "all", label: "All" },
-]
-
-function recipientStatusLabel(status: string) {
-  if (status === "due_soon") return "Due soon"
-  return status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+function statusLabel(value: string) {
+  if (value === "due_soon") return "Due soon"
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
-
-function recipientTiming(recipient: SubscriptionReminderRecipient) {
-  if (recipient.days_left === null) return "No renewal date"
-  if (recipient.days_left < 0) return `Expired ${Math.abs(recipient.days_left)} day${Math.abs(recipient.days_left) === 1 ? "" : "s"} ago`
-  if (recipient.days_left === 0) return "Due today"
-  return `${recipient.days_left} day${recipient.days_left === 1 ? "" : "s"} remaining`
+function timing(row: SubscriptionReminderRecipient) {
+  if (row.days_left === null) return "No renewal date"
+  if (row.days_left < 0) return `Expired ${Math.abs(row.days_left)} day${row.days_left === -1 ? "" : "s"} ago`
+  if (row.days_left === 0) return "Due today"
+  return `${row.days_left} day${row.days_left === 1 ? "" : "s"} remaining`
 }
-
-function reminderMilestoneLabel(milestone: string) {
-  if (milestone.startsWith("manual-")) return "Manual reminder"
-  if (milestone === "expired") return "Expired notice"
-  if (milestone === "5") return "5 days before"
-  if (milestone === "3" || milestone === "3_day") return "3 days before"
-  if (milestone === "1" || milestone === "1_day") return "1 day before"
-  return `${milestone} reminder`
+function milestoneLabel(value: string) {
+  if (value.startsWith("manual-")) return "Manual reminder"
+  if (value === "expired") return "Expired notice"
+  if (["5", "3", "3_day", "1", "1_day"].includes(value)) return `${value.replace("_day", "")} day${value.startsWith("1") ? "" : "s"} before`
+  return `${value} reminder`
 }
-
-function reminderDestination(log: SubscriptionReminderLogEntry) {
-  if (log.channel === "email") return log.recipient_email || "no email"
-  if (log.channel === "in_app") return log.recipient_name || "in-app"
-  return log.recipient_phone || log.phone_number || "no phone"
+function destination(log: SubscriptionReminderLogEntry) {
+  if (log.channel === "email") return log.recipient_email || "No email"
+  if (log.channel === "in_app") return log.recipient_name || "In-app"
+  return log.recipient_phone || log.phone_number || "No phone"
 }
-
 function formatUnits(value?: string | number | null) {
-  const numeric = Number(value || 0)
-  return Number.isFinite(numeric) ? numeric.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "0"
+  const number = Number(value || 0)
+  return Number.isFinite(number) ? number.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "0"
 }
-
-function providerBalanceDisplay(balance: SubscriptionReminderBalanceSummary | null) {
-  if (!balance?.success) return null
-  const raw = balance.raw as { remaining_balance?: string; expired_on?: string } | undefined
-  if (raw?.remaining_balance) {
-    const numeric = Number(raw.remaining_balance.replace(/[^0-9.]/g, ""))
-    return {
-      value: Number.isFinite(numeric)
-        ? `Ksh ${numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-        : raw.remaining_balance,
-      meta: raw.expired_on ? `Expires: ${raw.expired_on}` : balance.provider || "bytewave_master",
-    }
+function renderPreview(content: string, recipient?: SubscriptionReminderRecipient | null) {
+  const values: Record<string, string> = {
+    company_name: recipient?.company_name || "Example Network", plan_name: recipient?.plan_name || "Starter",
+    days_left: String(Math.max(recipient?.days_left ?? 3, 0)),
+    expiry_date: recipient?.expiry ? new Date(recipient.expiry).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" }) : "30 Oct 2026",
+    amount_due: "", admin_name: recipient?.recipient_name?.split(" ")[0] || "James", invoice_number: "",
   }
-
-  const currency = (balance.currency || "SMS_UNITS").toUpperCase()
-  const value = currency === "KES"
-    ? `Ksh ${formatUnits(balance.balance)}`
-    : `${formatUnits(balance.balance)} units`
-  return { value, meta: balance.provider || "bytewave_master" }
+  return Object.entries(values).reduce((message, [key, value]) => message.replaceAll(`{${key}}`, value), content)
 }
 
 export default function SubscriptionRemindersPage() {
+  const [tab, setTab] = useState<PageTab>("manual")
   const [template, setTemplate] = useState<SubscriptionReminderTemplate | null>(null)
-  const [content, setContent] = useState("")
+  const [savedContent, setSavedContent] = useState("")
+  const [manualContent, setManualContent] = useState("")
   const [balance, setBalance] = useState<SubscriptionReminderBalanceSummary | null>(null)
+  const [recipients, setRecipients] = useState<SubscriptionReminderRecipient[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [channels, setChannels] = useState<Channel[]>(["sms"])
+  const [search, setSearch] = useState("")
+  const [filter, setFilter] = useState<RecipientFilter>("needs_attention")
+  const [results, setResults] = useState<Array<SubscriptionReminderManualResult & { tenant_id: string }>>([])
   const [logs, setLogs] = useState<SubscriptionReminderLogEntry[]>([])
   const [logsPage, setLogsPage] = useState(1)
   const [logsTotal, setLogsTotal] = useState(0)
-  const [logsLoadingMore, setLogsLoadingMore] = useState(false)
-  const [recipients, setRecipients] = useState<SubscriptionReminderRecipient[]>([])
-  const [selectedTenantId, setSelectedTenantId] = useState("")
-  const [manualChannels, setManualChannels] = useState<ReminderChannel[]>(["sms"])
-  const [recipientSearch, setRecipientSearch] = useState("")
-  const [recipientFilter, setRecipientFilter] = useState<RecipientFilter>("needs_attention")
-  const [manualResult, setManualResult] = useState<SubscriptionReminderManualResult | null>(null)
+  const [logStatus, setLogStatus] = useState("all")
+  const [logChannel, setLogChannel] = useState("all")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
-  const [manualSending, setManualSending] = useState(false)
-  const providerDisplay = providerBalanceDisplay(balance)
-  const platformWallet = balance?.platform_wallet
-  const logsSentinelRef = useRef<HTMLDivElement | null>(null)
-  const selectedRecipient = useMemo(
-    () => recipients.find((recipient) => recipient.tenant_id === selectedTenantId) || null,
-    [recipients, selectedTenantId],
-  )
-  const filteredRecipients = useMemo(() => {
-    const query = recipientSearch.trim().toLowerCase()
-    return recipients.filter((recipient) => {
-      const matchesStatus = recipientFilter === "all"
-        || (recipientFilter === "needs_attention" && ["expired", "due_soon"].includes(recipient.reminder_status))
-        || recipient.reminder_status === recipientFilter
-      const matchesSearch = !query || [
-        recipient.company_name,
-        recipient.subdomain,
-        recipient.recipient_name,
-        recipient.recipient_email,
-        recipient.recipient_phone,
-      ].some((value) => value.toLowerCase().includes(query))
-      return matchesStatus && matchesSearch
-    })
-  }, [recipientFilter, recipientSearch, recipients])
-  const recipientCounts = useMemo(() => ({
-    all: recipients.length,
-    needs_attention: recipients.filter((recipient) => ["expired", "due_soon"].includes(recipient.reminder_status)).length,
-    expired: recipients.filter((recipient) => recipient.reminder_status === "expired").length,
-    due_soon: recipients.filter((recipient) => recipient.reminder_status === "due_soon").length,
-    active: recipients.filter((recipient) => recipient.reminder_status === "active").length,
-    trial: recipients.filter((recipient) => recipient.reminder_status === "trial").length,
-  }), [recipients])
+  const [sweeping, setSweeping] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinel = useRef<HTMLDivElement | null>(null)
 
-  const applyLogPage = useCallback((results: SubscriptionReminderLogEntry[], append: boolean) => {
-    setLogs((current) => {
-      if (!append) return results
-      const seen = new Set(current.map((log) => log.id))
-      return [...current, ...results.filter((log) => !seen.has(log.id))]
+  const selected = useMemo(() => recipients.filter((row) => selectedIds.includes(row.tenant_id)), [recipients, selectedIds])
+  const primary = selected[0] || null
+  const counts = useMemo(() => ({
+    all: recipients.length,
+    needs_attention: recipients.filter((r) => ["expired", "due_soon"].includes(r.reminder_status)).length,
+    expired: recipients.filter((r) => r.reminder_status === "expired").length,
+    due_soon: recipients.filter((r) => r.reminder_status === "due_soon").length,
+    active: recipients.filter((r) => r.reminder_status === "active").length,
+    trial: recipients.filter((r) => r.reminder_status === "trial").length,
+  }), [recipients])
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return recipients.filter((row) => {
+      const filterMatch = filter === "all" || (filter === "needs_attention" && ["expired", "due_soon"].includes(row.reminder_status)) || row.reminder_status === filter
+      const searchMatch = !query || [row.company_name, row.subdomain, row.recipient_name, row.recipient_email, row.recipient_phone].some((value) => value.toLowerCase().includes(query))
+      return filterMatch && searchMatch
     })
+  }, [filter, recipients, search])
+  const providerValue = useMemo(() => {
+    if (!balance?.success) return "Unavailable"
+    const raw = balance.raw as { remaining_balance?: string } | undefined
+    return raw?.remaining_balance || `${formatUnits(balance.balance)} units`
+  }, [balance])
+
+  const loadLogs = useCallback(async (page = 1, append = false) => {
+    const params: Record<string, string> = { page: String(page), page_size: String(LOG_PAGE_SIZE) }
+    if (logStatus !== "all") params.status = logStatus
+    if (logChannel !== "all") params.channel = logChannel
+    const response = await superadminApi.getSubscriptionReminderLogs(params)
+    setLogs((current) => append ? [...current, ...response.results.filter((row) => !current.some((item) => item.id === row.id))] : response.results)
+    setLogsPage(response.page || page); setLogsTotal(response.count || 0)
+  }, [logChannel, logStatus])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const [templateResult, balanceResult, recipientResult, logResult] = await Promise.allSettled([
+      superadminApi.getSubscriptionReminderTemplate(), superadminApi.getSubscriptionReminderBalance(),
+      superadminApi.getSubscriptionReminderRecipients(), superadminApi.getSubscriptionReminderLogs({ page: "1", page_size: String(LOG_PAGE_SIZE) }),
+    ])
+    if (templateResult.status === "fulfilled") {
+      setTemplate(templateResult.value); setSavedContent(templateResult.value.content); setManualContent((value) => value || templateResult.value.content)
+    }
+    if (balanceResult.status === "fulfilled") setBalance(balanceResult.value)
+    if (recipientResult.status === "fulfilled") {
+      const rows = recipientResult.value.results || []
+      setRecipients(rows)
+      const first = rows.find((row) => row.can_send && ["expired", "due_soon"].includes(row.reminder_status)) || rows.find((row) => row.can_send)
+      setSelectedIds((current) => current.length ? current : first ? [first.tenant_id] : [])
+    }
+    if (logResult.status === "fulfilled") { setLogs(logResult.value.results || []); setLogsPage(logResult.value.page || 1); setLogsTotal(logResult.value.count || 0) }
+    const failed = [templateResult, balanceResult, recipientResult, logResult].filter((result) => result.status === "rejected").length
+    if (failed) toast.info(`${failed} reminder section${failed === 1 ? "" : "s"} could not be refreshed. Available controls still work.`)
+    setLoading(false)
   }, [])
 
-  const loadLogsPage = useCallback(async (page = 1, append = false) => {
-    const response = await superadminApi.getSubscriptionReminderLogs({
-      page: String(page),
-      page_size: String(LOG_PAGE_SIZE),
-    })
-    applyLogPage(response.results || [], append)
-    setLogsPage(response.page || page)
-    setLogsTotal(response.count || 0)
-    return response
-  }, [applyLogPage])
-
-  const load = async () => {
-    setLoading(true)
-    try {
-      const [tplRes, balRes, logRes, recipientRes] = await Promise.allSettled([
-        superadminApi.getSubscriptionReminderTemplate(),
-        superadminApi.getSubscriptionReminderBalance(),
-        superadminApi.getSubscriptionReminderLogs({ page: "1", page_size: String(LOG_PAGE_SIZE) }),
-        superadminApi.getSubscriptionReminderRecipients(),
-      ])
-
-      if (tplRes.status === "fulfilled") {
-        setTemplate(tplRes.value)
-        setContent(tplRes.value.content)
-      }
-      if (balRes.status === "fulfilled") {
-        setBalance(balRes.value)
-      } else {
-        setBalance({ success: false, balance: 0, error: balRes.reason?.message || "Could not load balance" })
-      }
-      if (logRes.status === "fulfilled") {
-        applyLogPage(logRes.value.results || [], false)
-        setLogsPage(logRes.value.page || 1)
-        setLogsTotal(logRes.value.count || 0)
-      } else {
-        setLogs([])
-        setLogsPage(1)
-        setLogsTotal(0)
-      }
-      if (recipientRes.status === "fulfilled") {
-        const rows = recipientRes.value.results || []
-        setRecipients(rows)
-        const attentionRecipient = rows.find((row) => row.can_send && ["expired", "due_soon"].includes(row.reminder_status))
-        const selected = rows.find((row) => row.tenant_id === selectedTenantId) || attentionRecipient || rows.find((row) => row.can_send)
-        setSelectedTenantId(selected?.tenant_id || "")
-        if (!selectedTenantId && selected) {
-          const preferred = (["sms", "email", "in_app"] as ReminderChannel[])
-            .find((channel) => selected.available_channels[channel])
-          setManualChannels(preferred ? [preferred] : [])
-        }
-        if (!attentionRecipient) setRecipientFilter("all")
-      } else {
-        setRecipients([])
-      }
-
-      const failures = [tplRes, balRes, logRes, recipientRes].filter((result) => result.status === "rejected")
-      if (failures.length) {
-        const failedSections = [
-          tplRes.status === "rejected" ? "template" : "",
-          balRes.status === "rejected" ? "balance" : "",
-          logRes.status === "rejected" ? "history" : "",
-          recipientRes.status === "rejected" ? "recipients" : "",
-        ].filter(Boolean).join(", ")
-        toast.info(failedSections
-          ? `Some reminder data could not load: ${failedSections}. Other controls remain usable.`
-          : "Some reminder data could not load. Other controls remain usable.")
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load reminder settings")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
-
-  const loadMoreLogs = useCallback(async () => {
-    if (logsLoadingMore || logs.length >= logsTotal) return
-    setLogsLoadingMore(true)
-    try {
-      await loadLogsPage(logsPage + 1, true)
-    } catch (err: any) {
-      toast.error(err.message || "Could not load more reminders")
-    } finally {
-      setLogsLoadingMore(false)
-    }
-  }, [loadLogsPage, logs.length, logsLoadingMore, logsPage, logsTotal])
-
+  useEffect(() => { load() }, [load])
+  useEffect(() => { if (tab === "history") loadLogs(1).catch((error) => toast.error(error.message || "Could not load reminder history")) }, [loadLogs, tab])
   useEffect(() => {
-    const node = logsSentinelRef.current
-    if (!node || logs.length >= logsTotal) return
+    const node = sentinel.current
+    if (!node || tab !== "history" || logs.length >= logsTotal) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || loadingMore) return
+      setLoadingMore(true)
+      loadLogs(logsPage + 1, true).catch((error) => toast.error(error.message || "Could not load more reminders")).finally(() => setLoadingMore(false))
+    }, { rootMargin: "240px" })
+    observer.observe(node); return () => observer.disconnect()
+  }, [loadLogs, loadingMore, logs.length, logsPage, logsTotal, tab])
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMoreLogs()
-      },
-      { rootMargin: "240px" },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [loadMoreLogs, logs.length, logsTotal])
-
-  const save = async () => {
-    setSaving(true)
-    try {
-      const updated = await superadminApi.updateSubscriptionReminderTemplate(content)
-      setTemplate((current) => ({
-        ...updated,
-        variables: updated.variables || current?.variables || [],
-      }))
-      toast.success("Template updated")
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save template")
-    } finally {
-      setSaving(false)
-    }
+  function toggleRecipient(row: SubscriptionReminderRecipient) {
+    if (!row.can_send) return
+    setSelectedIds((current) => current.includes(row.tenant_id) ? current.filter((id) => id !== row.tenant_id) : [...current, row.tenant_id]); setResults([])
   }
-
-  const sendNow = async () => {
-    setSending(true)
-    try {
-      const res = await superadminApi.sendSubscriptionRemindersNow()
-      toast.success(res.detail)
-      load()
-    } catch (err: any) {
-      toast.error(err.message || "Failed to trigger reminder sweep")
-    } finally {
-      setSending(false)
-    }
+  function toggleChannel(channel: Channel) {
+    setChannels((current) => current.includes(channel) ? current.filter((item) => item !== channel) : [...current, channel]); setResults([])
   }
-
-  const toggleManualChannel = (channel: ReminderChannel) => {
-    if (!selectedRecipient?.available_channels[channel]) return
-    setManualChannels((current) => current.includes(channel)
-      ? current.filter((item) => item !== channel)
-      : [...current, channel])
-    setManualResult(null)
-  }
-
-  const selectRecipient = (recipient: SubscriptionReminderRecipient) => {
-    setSelectedTenantId(recipient.tenant_id)
-    setManualChannels((current) => {
-      const available = current.filter((channel) => recipient.available_channels[channel])
-      if (available.length) return available
-      const preferred = (["sms", "email", "in_app"] as ReminderChannel[])
-        .find((channel) => recipient.available_channels[channel])
-      return preferred ? [preferred] : []
-    })
-    setManualResult(null)
-  }
-
-  const sendManual = async () => {
-    if (!selectedTenantId) {
-      toast.error("Select a tenant first")
-      return
-    }
-    if (!manualChannels.length) {
-      toast.error("Select at least one available channel")
-      return
-    }
-    setManualSending(true)
-    try {
-      const result = await superadminApi.sendSubscriptionReminderManual({
-        tenant_id: selectedTenantId,
-        channels: manualChannels,
-      })
-      setManualResult(result)
-      const sentCount = result.email + result.sms + result.in_app
-      if (sentCount > 0 && result.failed === 0 && result.skipped === 0) {
-        toast.success(`Reminder delivered through ${sentCount} channel${sentCount === 1 ? "" : "s"}.`)
-      } else if (sentCount > 0) {
-        toast.info(`Reminder partly delivered: ${sentCount} sent, ${result.failed} failed, ${result.skipped} skipped.`)
-      } else {
-        toast.error(`Reminder was not delivered. ${result.detail}`)
+  async function sendManual() {
+    if (!selected.length || !channels.length) return toast.error("Select at least one tenant and one delivery channel.")
+    if (!manualContent.trim()) return toast.error("Write or choose reminder copy before sending.")
+    if (selected.length > 1 && !window.confirm(`Send this reminder to ${selected.length} tenant account admins?`)) return
+    setSending(true); setResults([])
+    const processed: Array<SubscriptionReminderManualResult & { tenant_id: string }> = []
+    for (const row of selected) {
+      const available = channels.filter((channel) => row.available_channels[channel])
+      if (!available.length) continue
+      try {
+        const result = await superadminApi.sendSubscriptionReminderManual({ tenant_id: row.tenant_id, channels: available, message: manualContent.trim() })
+        processed.push({ ...result, tenant_id: row.tenant_id })
+      } catch (error) {
+        processed.push({ tenant_id: row.tenant_id, tenant_name: row.company_name, detail: error instanceof Error ? error.message : "Send failed", invoice_number: "", milestone: "manual", recipient_name: row.recipient_name, email: 0, sms: 0, in_app: 0, failed: 1, skipped: 0, deliveries: [] })
       }
-      const [logResult, balanceResult] = await Promise.allSettled([
-        loadLogsPage(1, false),
-        superadminApi.getSubscriptionReminderBalance(),
-      ])
-      if (balanceResult.status === "fulfilled") setBalance(balanceResult.value)
-      if (logResult.status === "rejected") toast.info("The reminder was processed, but history could not refresh.")
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send manual reminder")
-    } finally {
-      setManualSending(false)
+      setResults([...processed])
     }
+    const delivered = processed.reduce((sum, result) => sum + result.email + result.sms + result.in_app, 0)
+    const failed = processed.reduce((sum, result) => sum + result.failed, 0)
+    delivered ? toast.success(`${delivered} delivery${delivered === 1 ? "" : "ies"} sent${failed ? `, ${failed} failed` : ""}.`) : toast.error("No reminders were delivered.")
+    await Promise.allSettled([loadLogs(1), superadminApi.getSubscriptionReminderBalance().then(setBalance)]); setSending(false)
+  }
+  async function saveTemplate() {
+    if (!savedContent.trim()) return toast.error("Template content cannot be empty.")
+    setSaving(true)
+    try { const value = await superadminApi.updateSubscriptionReminderTemplate(savedContent.trim()); setTemplate(value); toast.success("Automatic SMS template saved") }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not save template") }
+    finally { setSaving(false) }
+  }
+  async function runSweep() {
+    if (!window.confirm("Run the automatic reminder sweep now? Eligible tenants will be contacted once per milestone.")) return
+    setSweeping(true)
+    try { const response = await superadminApi.sendSubscriptionRemindersNow(); toast.success(response.detail) }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not queue reminder sweep") }
+    finally { setSweeping(false) }
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-violet-400" /></div>
+  const tabs: Array<{ id: PageTab; label: string; icon: typeof Send }> = [
+    { id: "manual", label: "Manual send", icon: Send }, { id: "automation", label: "Automation", icon: CalendarClock },
+    { id: "templates", label: "Templates", icon: FileText }, { id: "history", label: "Delivery history", icon: History },
+  ]
+
+  return <div className="space-y-5">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><h1 className="flex items-center gap-2 text-2xl font-bold text-white"><MessageSquareText className="h-6 w-6 text-violet-400" />Subscription reminders</h1><p className="mt-1 text-sm text-slate-400">Manage renewal communication without contacting tenant staff or platform superadmins.</p></div><div className="flex items-center gap-2 text-xs text-slate-400"><span className="h-2 w-2 rounded-full bg-emerald-400" />Automatic schedule enabled</div></div>
+
+    <div className="grid gap-3 md:grid-cols-3">{[
+      { title: "Bytewave master", value: providerValue, meta: balance?.provider || "Platform provider", icon: Wallet, color: "text-emerald-400" },
+      { title: "Platform wallet", value: `${formatUnits(balance?.platform_wallet?.sms_units)} units`, meta: `${formatUnits(balance?.platform_wallet?.debited_units)} units used`, icon: Smartphone, color: "text-sky-400" },
+      { title: "Needs attention", value: String(counts.needs_attention), meta: `${counts.expired} expired · ${counts.due_soon} due soon`, icon: AlertCircle, color: "text-amber-400" },
+    ].map((item) => <Card key={item.title} className="border-slate-800 bg-slate-900"><CardContent className="flex items-center justify-between p-5"><div><p className="text-xs font-medium text-slate-400">{item.title}</p><p className="mt-1 text-2xl font-semibold text-white">{item.value}</p><p className="mt-1 text-xs text-slate-500">{item.meta}</p></div><item.icon className={`h-5 w-5 ${item.color}`} /></CardContent></Card>)}</div>
+
+    <div className="flex gap-1 overflow-x-auto border-b border-slate-800" role="tablist">{tabs.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${tab === item.id ? "border-violet-400 text-white" : "border-transparent text-slate-500 hover:text-slate-300"}`}><item.icon className="h-4 w-4" />{item.label}</button>)}</div>
+
+    {tab === "manual" && <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
+      <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-base text-white">1. Choose subscribers</CardTitle><CardDescription>Select one tenant or a small, intentional group.</CardDescription></CardHeader><CardContent className="space-y-3">
+        <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, admin, email or phone" className="border-slate-700 bg-slate-950 pl-9 text-white" /></div>
+        <div className="flex gap-2 overflow-x-auto pb-1">{FILTERS.map((item) => <button key={item.id} onClick={() => setFilter(item.id)} className={`shrink-0 rounded-md border px-3 py-1.5 text-xs ${filter === item.id ? "border-violet-500 bg-violet-500/15 text-violet-200" : "border-slate-700 text-slate-400"}`}>{item.label} <span className="ml-1 opacity-60">{counts[item.id]}</span></button>)}</div>
+        <div className="max-h-[520px] overflow-y-auto rounded-md border border-slate-800">{filtered.length ? filtered.map((row) => {
+          const checked = selectedIds.includes(row.tenant_id)
+          return <button key={row.tenant_id} type="button" disabled={!row.can_send} onClick={() => toggleRecipient(row)} className={`flex w-full items-start gap-3 border-b border-slate-800 p-3 text-left last:border-0 ${checked ? "bg-violet-500/10" : "hover:bg-slate-800/40"} ${!row.can_send ? "opacity-50" : ""}`}><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${checked ? "border-violet-400 bg-violet-500 text-white" : "border-slate-600"}`}>{checked && <Check className="h-3.5 w-3.5" />}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-white">{row.company_name}</span><span className="block truncate text-xs text-slate-500">{row.recipient_name} · {row.recipient_email || row.recipient_phone || "Contact missing"}</span><span className="mt-1.5 flex items-center gap-1 text-xs text-slate-400"><Clock3 className="h-3 w-3" />{timing(row)}</span></span><Badge className={row.reminder_status === "expired" ? "bg-red-500/15 text-red-300" : row.reminder_status === "due_soon" ? "bg-amber-500/15 text-amber-300" : "bg-slate-700 text-slate-300"}>{statusLabel(row.reminder_status)}</Badge></button>
+        }) : <div className="p-10 text-center text-sm text-slate-500">No subscribers match this view.</div>}</div><p className="text-xs text-slate-500">{selected.length} selected · each reminder goes only to the resolved tenant account admin.</p>
+      </CardContent></Card>
+
+      <div className="space-y-4">
+        <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-base text-white">2. Choose delivery channels</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">{CHANNELS.map((item) => {
+          const enabled = selected.some((row) => row.available_channels[item.id]); const active = channels.includes(item.id)
+          return <button key={item.id} type="button" disabled={!enabled} onClick={() => toggleChannel(item.id)} className={`flex items-center gap-3 rounded-md border p-3 text-left ${active ? "border-violet-500 bg-violet-500/10" : "border-slate-800 bg-slate-950"} ${!enabled ? "opacity-40" : ""}`}><span className={`flex h-9 w-9 items-center justify-center rounded-md ${active ? "bg-violet-500 text-white" : "bg-slate-800 text-slate-400"}`}><item.icon className="h-4 w-4" /></span><span><span className="block text-sm font-medium text-white">{item.label}</span><span className="text-xs text-slate-500">{enabled ? item.description : "Unavailable"}</span></span></button>
+        })}</CardContent></Card>
+        <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-base text-white">3. Review the message</CardTitle><CardDescription>This edit applies only to this send. It does not change automation.</CardDescription></CardHeader><CardContent className="space-y-3">
+          <div className="flex gap-2 overflow-x-auto">{PRESETS.map((preset) => <button key={preset.name} type="button" onClick={() => setManualContent(preset.content)} className="shrink-0 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-violet-500">{preset.name}</button>)}</div>
+          <Textarea value={manualContent} onChange={(event) => setManualContent(event.target.value)} rows={6} maxLength={1200} className="border-slate-700 bg-slate-950 text-white" />
+          <div className="rounded-md border border-slate-800 bg-slate-950 p-3"><p className="text-[11px] font-medium uppercase text-slate-500">Preview {primary ? `for ${primary.company_name}` : ""}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{renderPreview(manualContent, primary)}</p></div>
+          <div className="flex items-center justify-between text-xs text-slate-500"><span>{manualContent.length}/1,200 characters</span><span>{channels.length} channel{channels.length === 1 ? "" : "s"}</span></div>
+          <Button onClick={sendManual} disabled={sending || !selected.length || !channels.length || !manualContent.trim()} className="h-11 w-full">{sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{sending ? `Sending ${results.length + 1} of ${selected.length}` : `Review and send to ${selected.length || 0} tenant${selected.length === 1 ? "" : "s"}`}</Button>
+        </CardContent></Card>
+        {results.length > 0 && <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-base text-white">Delivery results</CardTitle></CardHeader><CardContent className="space-y-2">{results.map((result) => <div key={result.tenant_id} className="flex items-start justify-between rounded-md border border-slate-800 bg-slate-950 p-3"><div><p className="text-sm font-medium text-white">{result.tenant_name}</p><p className="mt-0.5 text-xs text-slate-500">{result.email + result.sms + result.in_app} sent · {result.failed} failed · {result.skipped} skipped</p></div>{result.failed ? <XCircle className="h-4 w-4 text-red-400" /> : <CheckCircle2 className="h-4 w-4 text-emerald-400" />}</div>)}</CardContent></Card>}
       </div>
-    )
-  }
+    </div>}
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <MessageSquareText className="w-6 h-6 text-violet-400" />
-            Subscription Payment Reminders
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Sends tenant subscription invoice reminders 5 days, 3 days, 1 day, and once expired using Netily's platform SMS wallet.
-          </p>
-        </div>
-        <Button onClick={sendNow} disabled={sending} variant="outline" className="h-11 border-slate-700 text-slate-300">
-          {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-          Run Sweep Now
-        </Button>
-      </div>
+    {tab === "automation" && <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-white">Automatic renewal schedule</CardTitle><CardDescription>Each milestone is deduplicated per billing cycle. Paid or renewed subscriptions are skipped.</CardDescription></CardHeader><CardContent className="space-y-2">{[["5 days before", "A calm early reminder with time to prepare payment"], ["3 days before", "A practical follow-up before the due date"], ["1 day before", "A final reminder before access may be affected"], ["Once expired", "One overdue notice, when expired notices are enabled"]].map(([title, copy], index) => <div key={title} className="flex items-center gap-4 rounded-md border border-slate-800 bg-slate-950 p-4"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/15 text-xs font-semibold text-violet-300">{index + 1}</span><div className="flex-1"><p className="text-sm font-medium text-white">{title}</p><p className="text-xs text-slate-500">{copy}</p></div><Badge className="bg-emerald-500/15 text-emerald-300">Enabled</Badge></div>)}</CardContent></Card>
+      <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-white">Run a sweep</CardTitle><CardDescription>Queue the same eligibility checks used by the daily schedule.</CardDescription></CardHeader><CardContent><div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400"><p className="font-medium text-white">Before anything sends</p><ul className="mt-2 space-y-2 text-xs"><li>Checks the current billing cycle</li><li>Skips paid and renewed tenants</li><li>Contacts one tenant account admin</li><li>Prevents a duplicate milestone delivery</li></ul></div><Button onClick={runSweep} disabled={sweeping} className="mt-4 h-11 w-full">{sweeping ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}Run sweep now</Button></CardContent></Card>
+    </div>}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-sm flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-emerald-400" />
-              Bytewave Master
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {balance?.success ? (
-              <>
-                <p className="text-3xl font-bold text-white">{providerDisplay?.value}</p>
-                <p className="mt-1 text-xs text-slate-500">{providerDisplay?.meta}</p>
-              </>
-            ) : (
-              <p className="text-sm text-red-400">{balance?.error || "Could not load balance"}</p>
-            )}
-          </CardContent>
-        </Card>
+    {tab === "templates" && <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-white">Automatic SMS template</CardTitle><CardDescription>This saved copy is used by scheduled SMS reminders. Manual sends can edit their own one-off copy.</CardDescription></CardHeader><CardContent className="grid gap-5 lg:grid-cols-[1fr_360px]"><div className="space-y-3"><div className="flex gap-2 overflow-x-auto">{PRESETS.map((preset) => <button key={preset.name} onClick={() => setSavedContent(preset.content)} className="shrink-0 rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-violet-500">{preset.name}</button>)}</div><Textarea value={savedContent} onChange={(event) => setSavedContent(event.target.value)} rows={9} className="border-slate-700 bg-slate-950 text-white" /><div className="flex flex-wrap gap-1.5">{template?.variables.map((variable) => <button key={variable.key} type="button" onClick={() => setSavedContent((value) => `${value}${value.endsWith(" ") || !value ? "" : " "}${variable.key}`)} className="rounded border border-slate-700 px-2 py-1 font-mono text-[11px] text-slate-400">{variable.key}</button>)}</div><Button onClick={saveTemplate} disabled={saving || savedContent.trim() === template?.content}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save automatic template</Button></div><div className="rounded-md border border-slate-800 bg-slate-950 p-4"><p className="text-xs font-medium uppercase text-slate-500">Message preview</p><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-300">{renderPreview(savedContent, primary)}</p><div className="mt-4 border-t border-slate-800 pt-3 text-xs text-slate-500">Last updated {template?.updated_at ? new Date(template.updated_at).toLocaleString("en-KE") : "not available"}</div></div></CardContent></Card>}
 
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-sm flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-amber-400" />
-              Netily Platform Wallet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-white">{formatUnits(platformWallet?.sms_units)} units</p>
-            <p className="mt-1 text-xs text-slate-500">
-              {platformWallet?.enforce_balance ? "Balance enforced" : "Tracking mode"} - {formatUnits(platformWallet?.debited_units)} units used
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-sm flex items-center gap-2">
-              <Users className="w-4 h-4 text-sky-400" />
-              Tenant SMS Wallets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-white">{formatUnits(balance?.total_inbuilt_units)} units</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Visibility only - {balance?.inbuilt_tenant_count || 0} tenant{balance?.inbuilt_tenant_count === 1 ? "" : "s"} using Netily SMS
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-sm flex items-center gap-2">
-              <CalendarClock className="w-4 h-4 text-violet-400" />
-              Automatic Sweep
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-white">5 / 3 / 1</p>
-            <p className="mt-1 text-xs text-slate-500">Daily sweep, plus one expired notice when enabled</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <BellRing className="w-4 h-4 text-violet-400" />
-            Manual Reminder
-          </CardTitle>
-          <CardDescription>
-            Find a tenant, choose how to contact their account admin, and send a renewal reminder immediately.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recipients.length === 0 ? (
-            <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-              No tenant subscriptions are available for manual reminders.
-            </div>
-          ) : (
-            <div className="grid min-h-[460px] overflow-hidden rounded-lg border border-slate-800 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-              <div className="border-b border-slate-800 lg:border-b-0 lg:border-r">
-                <div className="space-y-3 border-b border-slate-800 p-4">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    <Input
-                      value={recipientSearch}
-                      onChange={(event) => setRecipientSearch(event.target.value)}
-                      placeholder="Search company, admin, email or phone"
-                      className="h-10 border-slate-700 bg-slate-950 pl-9 text-slate-100 placeholder:text-slate-600"
-                    />
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {RECIPIENT_FILTERS.map((filter) => (
-                      <Button
-                        key={filter.id}
-                        type="button"
-                        size="sm"
-                        variant={recipientFilter === filter.id ? "default" : "outline"}
-                        onClick={() => setRecipientFilter(filter.id)}
-                        className={recipientFilter === filter.id ? "shrink-0" : "shrink-0 border-slate-700 text-slate-300"}
-                      >
-                        {filter.label}
-                        <span className="ml-1.5 text-xs opacity-70">{recipientCounts[filter.id]}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div className="max-h-[390px] overflow-y-auto">
-                  {filteredRecipients.length === 0 ? (
-                    <div className="flex min-h-40 flex-col items-center justify-center px-6 text-center">
-                      <Search className="mb-2 h-5 w-5 text-slate-600" />
-                      <p className="text-sm font-medium text-slate-300">No matching tenants</p>
-                      <p className="mt-1 text-xs text-slate-500">Change the status filter or search term.</p>
-                    </div>
-                  ) : filteredRecipients.map((recipient) => {
-                    const selected = recipient.tenant_id === selectedTenantId
-                    return (
-                      <button
-                        key={recipient.tenant_id}
-                        type="button"
-                        onClick={() => selectRecipient(recipient)}
-                        className={`flex w-full items-start justify-between gap-3 border-b border-slate-800/80 px-4 py-3 text-left transition ${selected ? "bg-violet-500/10" : "hover:bg-slate-800/50"}`}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium text-slate-100">{recipient.company_name}</span>
-                          <span className="mt-0.5 block truncate text-xs text-slate-500">{recipient.subdomain} · {recipient.plan_name}</span>
-                          <span className={`mt-2 inline-flex items-center gap-1 text-xs ${recipient.days_left !== null && recipient.days_left <= 5 ? "text-amber-300" : "text-slate-400"}`}>
-                            <Clock3 className="h-3.5 w-3.5" />
-                            {recipientTiming(recipient)}
-                          </span>
-                        </span>
-                        <Badge className={
-                          recipient.reminder_status === "expired" ? "bg-red-500/15 text-red-300" :
-                          recipient.reminder_status === "due_soon" ? "bg-amber-500/15 text-amber-300" :
-                          recipient.reminder_status === "active" ? "bg-emerald-500/15 text-emerald-300" :
-                          "bg-slate-700 text-slate-300"
-                        }>
-                          {recipientStatusLabel(recipient.reminder_status)}
-                        </Badge>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="flex flex-col p-5">
-                {!selectedRecipient ? (
-                  <div className="flex flex-1 flex-col items-center justify-center text-center">
-                    <Users className="mb-3 h-6 w-6 text-slate-600" />
-                    <p className="text-sm text-slate-400">Select a tenant to prepare a reminder.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <p className="text-xs font-medium uppercase text-slate-500">Send to</p>
-                      <p className="mt-1 text-base font-semibold text-white">{selectedRecipient.recipient_name}</p>
-                      <p className="mt-1 text-xs text-slate-500">Account admin for {selectedRecipient.company_name}</p>
-                    </div>
-
-                    {selectedRecipient.recipient_error && (
-                      <div className="mt-4 flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>{selectedRecipient.recipient_error}</span>
-                      </div>
-                    )}
-
-                    <div className="mt-5 space-y-2">
-                      <p className="text-xs font-medium uppercase text-slate-500">Delivery channels</p>
-                      {CHANNELS.map(({ id, label, description, icon: Icon }) => {
-                        const available = selectedRecipient.available_channels[id]
-                        const selected = manualChannels.includes(id)
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            disabled={!available}
-                            onClick={() => toggleManualChannel(id)}
-                            className={`flex w-full items-center gap-3 rounded-md border p-3 text-left transition ${selected ? "border-violet-500 bg-violet-500/10" : "border-slate-800 bg-slate-950"} ${available ? "hover:border-slate-600" : "cursor-not-allowed opacity-45"}`}
-                          >
-                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${selected ? "bg-violet-500 text-white" : "bg-slate-800 text-slate-400"}`}>
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-sm font-medium text-slate-100">{label}</span>
-                              <span className="block truncate text-xs text-slate-500">{available ? description : `No ${label.toLowerCase()} contact available`}</span>
-                            </span>
-                            <span className={`h-4 w-4 rounded-full border ${selected ? "border-violet-400 bg-violet-500 shadow-[inset_0_0_0_3px_rgb(15,23,42)]" : "border-slate-600"}`} />
-                          </button>
-                        )
-                      })}
-                    </div>
-
-                    {manualResult && (
-                      <div className="mt-4 rounded-md border border-slate-700 bg-slate-950 p-3">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
-                          {manualResult.failed === 0 && manualResult.skipped === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <AlertCircle className="h-4 w-4 text-amber-400" />}
-                          Delivery result
-                        </div>
-                        <div className="mt-2 space-y-1.5">
-                          {manualResult.deliveries.map((delivery) => (
-                            <div key={`${delivery.channel}-${delivery.destination}`} className="flex items-start justify-between gap-3 text-xs">
-                              <span className="min-w-0 text-slate-400">
-                                <span className="block truncate">
-                                  {delivery.channel === "in_app" ? "In-app" : delivery.channel.toUpperCase()}
-                                  {delivery.destination ? ` · ${delivery.destination}` : ""}
-                                </span>
-                                {delivery.error && <span className="mt-0.5 block text-red-300">{delivery.error}</span>}
-                              </span>
-                              <span className={delivery.status === "sent" ? "text-emerald-400" : delivery.status === "failed" ? "text-red-400" : "text-amber-400"}>
-                                {delivery.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-auto pt-5">
-                      <Button
-                        onClick={sendManual}
-                        disabled={manualSending || !selectedRecipient.can_send || manualChannels.length === 0}
-                        className="h-11 w-full"
-                      >
-                        {manualSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                        {manualSending ? "Sending reminder" : `Send via ${manualChannels.length || 0} channel${manualChannels.length === 1 ? "" : "s"}`}
-                      </Button>
-                      <p className="mt-2 text-center text-xs text-slate-500">Only this tenant account admin will be contacted.</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white text-base">SMS Template</CardTitle>
-          <CardDescription>
-            Pick a starting point, then adjust the copy for the next reminder run. Available variables:{" "}
-            {(template?.variables || []).map((v) => (
-              <Badge key={v.key} variant="outline" className="mr-1 mb-1">{v.key}</Badge>
-            ))}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-2 md:grid-cols-3">
-            {TEMPLATE_PRESETS.map((preset) => (
-              <button
-                key={preset.name}
-                type="button"
-                onClick={() => setContent(preset.content)}
-                className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-left transition hover:border-violet-500/70 hover:bg-slate-900"
-              >
-                <span className="block text-sm font-medium text-slate-100">{preset.name}</span>
-                <span className="mt-1 line-clamp-2 block text-xs text-slate-500">{preset.content}</span>
-              </button>
-            ))}
-          </div>
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={5}
-            className="bg-slate-950 border-slate-700 text-slate-100"
-          />
-          <Button onClick={save} disabled={saving || content === template?.content}>
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            Save Template
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white text-base">Recent Reminders</CardTitle>
-          <CardDescription>
-            Manual sends appear here immediately. Automatic sends appear after the scheduled sweep finds a matching billing milestone.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {logs.length === 0 && (
-              <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-                No reminders have been recorded yet. Send one manually or run the sweep after the backend deploys and the delivery rows will appear here.
-              </div>
-            )}
-            {logs.map((log) => (
-              <div key={log.id} className="flex flex-col gap-3 border-b border-slate-800 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-white font-medium">{log.company_name}</p>
-                  <p className="text-slate-500 text-xs">
-                    {reminderMilestoneLabel(log.milestone)}
-                    {log.invoice_number ? ` - ${log.invoice_number}` : ""}
-                    {` - ${log.channel || "sms"} - ${reminderDestination(log)}`}
-                  </p>
-                </div>
-                <Badge className={log.status === "sent" ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}>
-                  {log.status}
-                </Badge>
-              </div>
-            ))}
-            <div ref={logsSentinelRef} className="flex min-h-10 items-center justify-center pt-2 text-xs text-slate-500">
-              {logsLoadingMore ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Loading more reminders
-                </span>
-              ) : logs.length > 0 && logs.length >= logsTotal ? (
-                <span>All reminder history loaded</span>
-              ) : logs.length > 0 ? (
-                <span>Scroll to load more</span>
-              ) : null}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
+    {tab === "history" && <Card className="border-slate-800 bg-slate-900"><CardHeader className="gap-4 sm:flex-row sm:items-end sm:justify-between"><div><CardTitle className="text-white">Delivery history</CardTitle><CardDescription>Manual and automatic attempts across all supported channels.</CardDescription></div><div className="flex gap-2"><select value={logChannel} onChange={(event) => setLogChannel(event.target.value)} className="h-9 rounded-md border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300"><option value="all">All channels</option><option value="sms">SMS</option><option value="email">Email</option><option value="in_app">In-app</option></select><select value={logStatus} onChange={(event) => setLogStatus(event.target.value)} className="h-9 rounded-md border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300"><option value="all">All statuses</option><option value="sent">Sent</option><option value="failed">Failed</option><option value="skipped">Skipped</option></select></div></CardHeader><CardContent><div className="divide-y divide-slate-800">{logs.map((log) => <div key={log.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-md ${log.status === "sent" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>{log.channel === "email" ? <Mail className="h-4 w-4" /> : log.channel === "in_app" ? <Bell className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="text-sm font-medium text-white">{log.company_name}</p><p className="truncate text-xs text-slate-500">{milestoneLabel(log.milestone)} · {destination(log)}{log.error ? ` · ${log.error}` : ""}</p></div><div className="flex items-center gap-3"><span className="text-xs text-slate-500">{log.created_at ? new Date(log.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" }) : ""}</span><Badge className={log.status === "sent" ? "bg-emerald-500/15 text-emerald-300" : "bg-red-500/15 text-red-300"}>{log.status}</Badge></div></div>)}{!logs.length && <div className="py-12 text-center text-sm text-slate-500">No reminder deliveries match these filters.</div>}</div><div ref={sentinel} className="flex min-h-12 items-center justify-center text-xs text-slate-500">{loadingMore ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Loading more</> : logs.length && logs.length >= logsTotal ? "All matching reminders loaded" : ""}</div></CardContent></Card>}
+  </div>
 }
-
