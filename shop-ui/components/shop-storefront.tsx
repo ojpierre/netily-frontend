@@ -7,8 +7,9 @@ import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, CircleDollarSign, Headphones, PackageCheck, Search, ShieldCheck, ShoppingBag, Wifi } from "lucide-react"
 import { defaultOfferSlides, type Product } from "@/shop-ui/lib/products"
 import { useShopCatalog } from "@/shop-ui/lib/use-shop-catalog"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
-function price(value: number) { return `$${Number(value).toLocaleString()} USD` }
+function price(value: number, currency = "KES") { return formatShopMoney(value, currency) }
 
 function ProductTile({ product }: { product: Product }) {
   return <Link href={`/shop/product/${product.id}`} className="group min-w-0 border border-border bg-white p-3 transition hover:border-[#1b5eff]/55 hover:shadow-lg">
@@ -16,7 +17,7 @@ function ProductTile({ product }: { product: Product }) {
       <Image src={product.image || "/placeholder.svg"} alt={product.name} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
       {product.inStock === false && <span className="absolute left-2 top-2 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-red-600">Out of stock</span>}
     </div>
-    <div className="pt-3"><p className="text-[10px] font-semibold uppercase text-[#1b5eff]">{product.brand || product.category}</p><h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-semibold leading-5">{product.name}</h3><div className="mt-3 flex items-center justify-between border-t border-border pt-3"><span className="text-sm font-semibold">{price(product.price)}</span><ArrowRight className="h-4 w-4 text-[#1b5eff] transition group-hover:translate-x-1" /></div></div>
+    <div className="pt-3"><p className="text-[10px] font-semibold uppercase text-[#1b5eff]">{product.brand || product.category}</p><h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-semibold leading-5">{product.name}</h3><div className="mt-3 flex items-center justify-between border-t border-border pt-3"><span className="text-sm font-semibold">{price(product.price, product.currency)}</span><ArrowRight className="h-4 w-4 text-[#1b5eff] transition group-hover:translate-x-1" /></div></div>
   </Link>
 }
 

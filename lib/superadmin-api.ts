@@ -2087,7 +2087,7 @@ class SuperadminApiService {
   }
 
   // ── Shop ──
-  async getShopStats(): Promise<Record<string, number>> {
+  async getShopStats(): Promise<Record<string, number | string>> {
     return this.request("/shop/admin/orders/stats/")
   }
   async getShopOrders(params?: Record<string, string>): Promise<{ count: number; next: string | null; previous: string | null; results: any[] }> {

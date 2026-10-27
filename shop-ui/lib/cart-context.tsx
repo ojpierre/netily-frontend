@@ -6,6 +6,7 @@ export interface CartItem {
   id: string
   name: string
   price: number
+  currency: string
   image: string
   category: string
   selectedStorage?: string
@@ -13,7 +14,8 @@ export interface CartItem {
   quantity: number
 }
 
-const CART_KEY = "netily_shop_cart_v1"
+// Currency changed from USD to native KES; do not hydrate stale USD-priced carts.
+const CART_KEY = "netily_shop_cart_v2"
 const MAX_QTY = 1000
 
 export const cartItemKey = (i: Pick<CartItem, "id" | "selectedStorage" | "selectedColor">) =>
@@ -74,7 +76,11 @@ function sanitize(raw: unknown): CartItem[] {
         i && typeof i.id === "string" && typeof i.name === "string" &&
         Number.isFinite(i.price) && Number.isInteger(i.quantity) && i.quantity > 0
     )
-    .map((i) => ({ ...i, quantity: Math.min(i.quantity, MAX_QTY) }))
+    .map((i) => ({
+      ...i,
+      currency: typeof i.currency === "string" ? i.currency.toUpperCase() : "KES",
+      quantity: Math.min(i.quantity, MAX_QTY),
+    }))
 }
 
 interface CartContextValue {

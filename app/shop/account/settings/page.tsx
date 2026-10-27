@@ -109,7 +109,7 @@ export default function SettingsPage() {
                         Two-Factor Authentication (2FA)
                       </Label>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Require an OTP code to authorize orders over $5,000 USD.
+                        Require an OTP code to authorize high-value equipment orders.
                       </p>
                     </div>
                     <Switch defaultChecked />

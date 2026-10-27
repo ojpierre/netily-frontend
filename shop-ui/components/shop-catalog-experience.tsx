@@ -7,11 +7,12 @@ import { useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight, CheckCircle2, Search, SlidersHorizontal, Truck } from "lucide-react"
 import { useShopCatalog } from "@/shop-ui/lib/use-shop-catalog"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 const stockFilters = ["All Stock", "In Stock", "Out of Stock"] as const
 
-function formatPrice(price: number) {
-  return `$${Number(price).toLocaleString()} USD`
+function formatPrice(price: number, currency = "KES") {
+  return formatShopMoney(price, currency)
 }
 
 export function ShopCatalogExperience() {
@@ -170,7 +171,7 @@ export function ShopCatalogExperience() {
                         <h3 className="min-h-12 text-lg font-semibold leading-snug group-hover:text-[#1b5eff]">{product.name}</h3>
                         <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{product.description}</p>
                         <div className="flex items-center justify-between border-t border-border pt-3">
-                          <span className="text-base font-semibold">{formatPrice(product.price)}</span>
+                          <span className="text-base font-semibold">{formatPrice(product.price, product.currency)}</span>
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#1b5eff]">
                             View
                             <ArrowRight className="h-3.5 w-3.5" />

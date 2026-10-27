@@ -327,17 +327,14 @@ The success copy must say `Track order`, not `Track in account`, because custome
 
 ## Currency Decision
 
-The catalog currently stores and returns USD while checkout charges the converted KES amount. A Kenyan storefront should avoid surprising the customer at payment.
+KES is the shop's native catalog, checkout, payment, and reporting currency while the initial market is Kenya.
 
-Recommended backend addition:
-
-- expose `display_currency`, `fx_rate`, and a server-calculated display amount through `/api/v1/shop/config/` or each product payload;
-- keep USD as the catalog source price and snapshot the rate on the order;
-- show KES as the primary storefront price when the shop is configured for Kenya;
-- optionally show the USD source price in smaller text;
-- never hardcode the exchange rate in the frontend.
-
-Until this contract exists, keep the current USD display and clearly show the KES payable amount before order creation.
+- Product payloads expose `currency`, currently `KES`.
+- Product prices and shipping fees are stored in KES.
+- New orders snapshot `currency=KES`, `fx_rate=1`, and the exact M-Pesa amount.
+- Existing USD orders retain their historical currency and conversion details.
+- The frontend formats money through one shared currency helper rather than hardcoded symbols.
+- Future multi-country support should introduce an explicit shop configuration contract before adding another currency.
 
 ## Superadmin Shop Management Refresh
 
@@ -464,8 +461,8 @@ Columns:
 - created time;
 - payment state;
 - fulfilment state;
-- total USD;
-- charged KES;
+- total in the order's recorded currency;
+- charged KES for historical converted orders;
 - M-Pesa receipt;
 - action.
 

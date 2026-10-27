@@ -2,23 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { BarChart3, Boxes, ExternalLink, FolderTree, Package, Plus, Search, ShoppingBag, Trash2 } from "lucide-react"
+import { AlertTriangle, BarChart3, Boxes, ExternalLink, FolderTree, Package, Pencil, Plus, RefreshCw, Search, ShoppingBag, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { superadminApi } from "@/lib/superadmin-api"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 type Tab = "overview" | "orders" | "products" | "add" | "categories" | "inventory"
 
 type AdminCategory = { id: number; name: string; slug: string; is_active: boolean }
 type AdminProduct = {
   id: number; slug: string; name: string; category: number; category_name: string
-  price: string; image: string; stock_quantity: number; track_stock: boolean
-  is_active: boolean; warranty: string
+  price: string; currency: string; image: string; stock_quantity: number; track_stock: boolean
+  is_active: boolean; warranty: string; long_description: string; made_in: string; is_featured: boolean
 }
 type AdminOrder = {
   reference: string; status: string; payment_status: string; payment_method: string
   first_name: string; last_name: string; email: string; phone: string
   address: string; city: string; country: string; notes: string
-  total: string; amount_kes: number; mpesa_receipt: string; created_at: string
+  total: string; currency: string; amount_kes: number; mpesa_receipt: string; created_at: string
   items?: { name: string; quantity: number; selected_storage: string; selected_color: string; line_total: string }[]
 }
 
@@ -44,7 +45,8 @@ export function ShopManagement(_props: { embedded?: boolean }) {
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [orders, setOrders] = useState<AdminOrder[]>([])
-  const [stats, setStats] = useState<Record<string, number>>({})
+  const [stats, setStats] = useState<Record<string, number | string>>({})
+  const [loadErrors, setLoadErrors] = useState<string[]>([])
   const [busy, setBusy] = useState<string | null>(null)
 
   const [productSearch, setProductSearch] = useState("")
@@ -57,26 +59,28 @@ export function ShopManagement(_props: { embedded?: boolean }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [newCategory, setNewCategory] = useState("")
   const [saving, setSaving] = useState(false)
+  const [editingSlug, setEditingSlug] = useState<string | null>(null)
 
   const refreshStats = useCallback(() => {
     superadminApi.getShopStats().then(setStats).catch(() => {})
   }, [])
 
   const loadAll = useCallback(async () => {
-    try {
-      const [c, p, s] = await Promise.all([
-        superadminApi.getShopCategories(),
-        superadminApi.getShopProducts({ page_size: "200" }),
-        superadminApi.getShopStats(),
-      ])
-      setCategories(c.results)
-      setProducts(p.results)
-      setStats(s)
-    } catch (e) {
-      toast.error(errText(e))
-    } finally {
-      setLoading(false)
-    }
+    setLoadErrors([])
+    const [categoriesResult, productsResult, statsResult] = await Promise.allSettled([
+      superadminApi.getShopCategories(),
+      superadminApi.getShopProducts({ page_size: "200" }),
+      superadminApi.getShopStats(),
+    ])
+    const errors: string[] = []
+    if (categoriesResult.status === "fulfilled") setCategories(categoriesResult.value.results)
+    else errors.push(`Categories: ${errText(categoriesResult.reason)}`)
+    if (productsResult.status === "fulfilled") setProducts(productsResult.value.results)
+    else errors.push(`Products: ${errText(productsResult.reason)}`)
+    if (statsResult.status === "fulfilled") setStats(statsResult.value)
+    else errors.push(`Summary: ${errText(statsResult.reason)}`)
+    setLoadErrors(errors)
+    setLoading(false)
   }, [])
 
   const loadOrders = useCallback(async () => {
@@ -165,29 +169,54 @@ export function ShopManagement(_props: { embedded?: boolean }) {
     }
   }
 
-  async function createProduct(e: React.FormEvent) {
+  function startNewProduct() {
+    setEditingSlug(null)
+    setForm({ ...EMPTY_FORM, category: form.category || String(categories[0]?.id || "") })
+    setTab("add")
+  }
+
+  function editProduct(product: AdminProduct) {
+    setEditingSlug(product.slug)
+    setForm({
+      name: product.name,
+      category: String(product.category),
+      price: String(product.price),
+      stock_quantity: String(product.stock_quantity),
+      image: product.image || "",
+      long_description: product.long_description || "",
+      warranty: product.warranty || "",
+      made_in: product.made_in || "",
+    })
+    setTab("add")
+  }
+
+  async function saveProduct(e: React.FormEvent) {
     e.preventDefault()
     const price = Number(form.price)
     const stock = Number(form.stock_quantity)
     if (!form.name.trim()) { toast.error("Enter a product name"); return }
     if (!form.category) { toast.error("Create or choose a category first"); return }
-    if (!Number.isFinite(price) || price <= 0) { toast.error("Enter a valid USD price"); return }
+    if (!Number.isFinite(price) || price <= 0) { toast.error("Enter a valid KES price"); return }
     if (!Number.isInteger(stock) || stock < 0) { toast.error("Stock must be a whole number"); return }
     setSaving(true)
     try {
-      await superadminApi.createShopProduct({
+      const payload: Record<string, unknown> = {
         name: form.name.trim(),
         category: Number(form.category),
         price: price.toFixed(2),
+        currency: "KES",
         stock_quantity: stock,
         track_stock: true,
         image: form.image.trim(),
         long_description: form.long_description.trim(),
         warranty: form.warranty.trim(),
         made_in: form.made_in.trim(),
-        is_active: true,
-      })
-      toast.success("Product published")
+      }
+      if (!editingSlug) payload.is_active = true
+      if (editingSlug) await superadminApi.updateShopProduct(editingSlug, payload)
+      else await superadminApi.createShopProduct(payload)
+      toast.success(editingSlug ? "Product changes saved" : "Product published")
+      setEditingSlug(null)
       setForm({ ...EMPTY_FORM, category: form.category })
       await loadAll()
       setTab("products")
@@ -261,7 +290,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
         {tabs.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => t.id === "add" ? startNewProduct() : setTab(t.id)}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${
               tab === t.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
@@ -275,6 +304,13 @@ export function ShopManagement(_props: { embedded?: boolean }) {
       </aside>
 
       <div className="min-w-0 space-y-6">
+
+      {loadErrors.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><div><p className="font-medium">Part of shop management could not load</p><p className="mt-1 text-xs text-muted-foreground">{loadErrors.join(" | ")}</p></div></div>
+          <button onClick={() => void loadAll()} className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium"><RefreshCw className="h-3.5 w-3.5" /> Retry</button>
+        </div>
+      )}
 
       {tab === "overview" && (
         <div className="space-y-6">
@@ -324,7 +360,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
               <input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} />
               Low stock only
             </label>
-            <button onClick={() => setTab("add")} className="flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-xs uppercase text-background">
+            <button onClick={startNewProduct} className="flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-xs uppercase text-background">
               <Plus className="h-3.5 w-3.5" /> Add product
             </button>
           </div>
@@ -357,7 +393,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{p.category_name}</td>
-                    <td className="px-4 py-3 text-right font-medium">${Number(p.price).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-medium">{formatShopMoney(p.price, p.currency)}</td>
                     <td className="px-4 py-3 text-center">
                       {p.track_stock ? (
                         <input
@@ -390,6 +426,9 @@ export function ShopManagement(_props: { embedded?: boolean }) {
                         <Link href={`/shop/product/${p.slug}`} className="rounded-full border border-border p-1.5 text-muted-foreground hover:bg-muted" title="View in shop">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
+                        <button onClick={() => editProduct(p)} className="rounded-full border border-border p-1.5 text-muted-foreground hover:bg-muted" title="Edit product">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button onClick={() => removeProduct(p)} className="rounded-full border border-border p-1.5 text-red-600 hover:bg-red-500/10" title="Delete">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -409,8 +448,8 @@ export function ShopManagement(_props: { embedded?: boolean }) {
       {tab === "add" && (
         <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-border bg-card p-6 md:p-8">
           <div>
-            <h2 className="font-serif text-2xl">Add product</h2>
-            <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">Goes live on the storefront immediately.</p>
+            <h2 className="font-serif text-2xl">{editingSlug ? "Edit product" : "Add product"}</h2>
+            <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">{editingSlug ? "Update catalog details, price, imagery, and stock." : "Goes live on the storefront immediately."}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-muted/20 p-4">
@@ -421,7 +460,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
             </div>
           </div>
 
-          <form onSubmit={createProduct} className="space-y-5">
+          <form onSubmit={saveProduct} className="space-y-5">
             <div>
               <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Name *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={input} />
@@ -434,8 +473,8 @@ export function ShopManagement(_props: { embedded?: boolean }) {
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Price (USD) *</label>
-                <input type="number" min="0.01" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={input} />
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Price (KES) *</label>
+                <input type="number" min="1" step="1" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={input} />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Stock quantity</label>
@@ -461,9 +500,9 @@ export function ShopManagement(_props: { embedded?: boolean }) {
               </div>
             </div>
             <div className="flex justify-end gap-3 border-t border-border pt-4">
-              <button type="button" onClick={() => setTab("products")} className="rounded-full border border-border px-5 py-2.5 text-xs uppercase hover:bg-muted">Cancel</button>
+              <button type="button" onClick={() => { setEditingSlug(null); setTab("products") }} className="rounded-full border border-border px-5 py-2.5 text-xs uppercase hover:bg-muted">Cancel</button>
               <button type="submit" disabled={saving} className="rounded-full bg-foreground px-6 py-2.5 text-xs uppercase text-background disabled:opacity-50">
-                {saving ? "Publishing..." : "Publish product"}
+                {saving ? "Saving..." : editingSlug ? "Save changes" : "Publish product"}
               </button>
             </div>
           </form>
@@ -527,8 +566,8 @@ export function ShopManagement(_props: { embedded?: boolean }) {
                         : o.payment_status === "failed" ? "border-red-500/40 bg-red-500/10 text-red-600"
                         : "border-border bg-muted"
                       }`}>{o.payment_status}</span>
-                      <span className="font-serif text-base">${Number(o.total).toLocaleString()}</span>
-                      <span className="text-[11px] text-muted-foreground">KES {o.amount_kes.toLocaleString()}</span>
+                      <span className="font-serif text-base">{formatShopMoney(o.total, o.currency)}</span>
+                      {o.currency !== "KES" && <span className="text-[11px] text-muted-foreground">Charged KES {o.amount_kes.toLocaleString()}</span>}
                     </div>
                   </div>
 
@@ -556,7 +595,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
                       {d?.items?.map((i, idx) => (
                         <div key={idx} className="flex justify-between border-b border-border/40 pb-2 last:border-0">
                           <span>{i.name} × {i.quantity}{i.selected_storage ? ` · ${i.selected_storage}` : ""}{i.selected_color ? ` · ${i.selected_color}` : ""}</span>
-                          <span>${Number(i.line_total).toLocaleString()}</span>
+                          <span>{formatShopMoney(i.line_total, o.currency)}</span>
                         </div>
                       ))}
                     </div>

@@ -10,6 +10,7 @@ import { Label } from "@/shop-ui/components/ui/label"
 import { useCart } from "@/shop-ui/lib/cart-context"
 import { toast } from "sonner"
 import { shopApi, ShopApiError } from "@/shop-ui/lib/shop-api"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 type Step = "shipping" | "payment" | "success"
 type PayState = "idle" | "waiting" | "failed" | "delayed"
@@ -541,7 +542,7 @@ export default function CheckoutPage() {
                       ? "Processing..."
                       : order
                         ? "Resend M-Pesa prompt"
-                        : `Pay with M-Pesa - $${orderTotal.toLocaleString()} USD`}
+                        : `Pay with M-Pesa - ${formatShopMoney(orderTotal)}`}
                   </button>
 
                   {!order && (
@@ -590,10 +591,10 @@ export default function CheckoutPage() {
                         {item.selectedColor && (
                           <p className="text-xs text-muted-foreground">{item.selectedColor}</p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-2">${item.price.toLocaleString()} each</p>
+                        <p className="text-xs text-muted-foreground mt-2">{formatShopMoney(item.price, item.currency)} each</p>
                       </div>
                       <div className="text-sm font-medium">
-                        ${(item.price * item.quantity).toLocaleString()}
+                        {formatShopMoney(item.price * item.quantity, item.currency)}
                       </div>
                     </motion.div>
                   ))}
@@ -602,7 +603,7 @@ export default function CheckoutPage() {
                 <div className="border-t border-border pt-6 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal ({items.reduce((a, i) => a + i.quantity, 0)} units)</span>
-                    <span>${total.toLocaleString()}</span>
+                    <span>{formatShopMoney(total)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery and handling</span>
@@ -610,7 +611,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-base font-medium pt-3 border-t border-border">
                     <span>Total</span>
-                    <span className="font-serif text-xl">${orderTotal.toLocaleString()} USD</span>
+                    <span className="font-serif text-xl">{formatShopMoney(orderTotal)}</span>
                   </div>
                 </div>
 

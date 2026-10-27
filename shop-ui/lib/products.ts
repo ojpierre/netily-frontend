@@ -2,6 +2,7 @@ export interface Product {
   id: string // slug from the API
   name: string
   price: number
+  currency: string
   compareAtPrice?: number | null
   category: string
   categorySlug?: string
@@ -32,6 +33,7 @@ export function normalizeProduct(raw: any): Product {
     id: String(raw.id),
     name: raw.name,
     price: Number(raw.price) || 0,
+    currency: String(raw.currency || "KES").toUpperCase(),
     compareAtPrice: raw.compareAtPrice ?? null,
     category: raw.category || "",
     categorySlug: raw.categorySlug,

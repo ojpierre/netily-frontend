@@ -25,7 +25,7 @@ export interface DjangoOrderItem {
   id: string
   productName: string
   quantity: string | number
-  priceUsd: string | number
+  price: string | number
   image?: string
   specs?: string
 }
@@ -36,7 +36,8 @@ export interface DjangoOrder {
   userId: string
   createdAt: string
   status: "PENDING" | "PROCESSING" | "DISPATCHED" | "DELIVERED"
-  totalUsd: string | number
+  total: string | number
+  currency: string
   paymentMethod: string
   shippingAddress: string
   trackingNumber?: string
@@ -77,7 +78,8 @@ export const MOCK_ORDERS: DjangoOrder[] = [
     userId: "usr_netily_8842",
     createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
     status: "PROCESSING",
-    totalUsd: "2050",
+    total: "264450",
+    currency: "KES",
     paymentMethod: "B2B Proforma Invoice (Net 30)",
     shippingAddress: "Nairobi ISP NOC & Datacenter, Westlands Commercial Center, 4th Floor, Nairobi, Kenya",
     trackingNumber: "NTL-EXP-9921448",
@@ -86,7 +88,7 @@ export const MOCK_ORDERS: DjangoOrder[] = [
         id: "item_1",
         productName: "MikroTik Cloud Core Router CCR2004-16G-2S+PC",
         quantity: 2,
-        priceUsd: 495,
+        price: 63855,
         image: "/shop-assets/products/mikrotik_router.jpg",
         specs: "Standard 1U Rackmount / Dual Redundant AC",
       },
@@ -94,7 +96,7 @@ export const MOCK_ORDERS: DjangoOrder[] = [
         id: "item_2",
         productName: "Netily Pro Cat6A Shielded S/FTP Outdoor UV Cable (305m Drum)",
         quantity: 2,
-        priceUsd: 265,
+        price: 34185,
         image: "/shop-assets/products/cat6a_cable.jpg",
         specs: "305m Wooden Drum / UV-Resistant PE",
       },
@@ -102,7 +104,7 @@ export const MOCK_ORDERS: DjangoOrder[] = [
         id: "item_3",
         productName: "10G SFP+ Optical Transceiver Module (10GBASE-LR 1310nm 10km)",
         quantity: 12,
-        priceUsd: 42,
+        price: 5418,
         image: "/shop-assets/products/poe_switch.jpg",
         specs: "Single-Mode LC / 10.3Gbps",
       },
@@ -114,7 +116,8 @@ export const MOCK_ORDERS: DjangoOrder[] = [
     userId: "usr_netily_8842",
     createdAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString(),
     status: "DELIVERED",
-    totalUsd: "1848",
+    total: "238392",
+    currency: "KES",
     paymentMethod: "M-Pesa Express / Mobile Money",
     shippingAddress: "Nairobi ISP NOC & Datacenter, Westlands Commercial Center, 4th Floor, Nairobi, Kenya",
     trackingNumber: "NTL-EXP-8812903",
@@ -123,7 +126,7 @@ export const MOCK_ORDERS: DjangoOrder[] = [
         id: "item_4",
         productName: "MikroTik Cloud Router Switch CRS328-24P-4S+RM",
         quantity: 2,
-        priceUsd: 479,
+        price: 61791,
         image: "/shop-assets/products/poe_switch.jpg",
         specs: "24-Port Gigabit PoE+ (450W)",
       },
@@ -131,7 +134,7 @@ export const MOCK_ORDERS: DjangoOrder[] = [
         id: "item_5",
         productName: "Signal Fire AI-9 6-Motor Optical Fiber Fusion Splicer",
         quantity: 1,
-        priceUsd: 890,
+        price: 114810,
         image: "/shop-assets/products/fusion_splicer.jpg",
         specs: "Complete Master Field Toolkit",
       },
@@ -143,7 +146,8 @@ export const MOCK_ORDERS: DjangoOrder[] = [
     userId: "usr_netily_8842",
     createdAt: new Date(Date.now() - 38 * 24 * 3600 * 1000).toISOString(),
     status: "DELIVERED",
-    totalUsd: "1198",
+    total: "154542",
+    currency: "KES",
     paymentMethod: "Credit Card (Visa ending in 4242)",
     shippingAddress: "Tower Distribution Site B, Ngong Hills Station, Kajiado County, Kenya",
     trackingNumber: "NTL-EXP-7729104",
@@ -152,7 +156,7 @@ export const MOCK_ORDERS: DjangoOrder[] = [
         id: "item_6",
         productName: "Ubiquiti UISP Wave Pro 60GHz PtP Backhaul Radio",
         quantity: 2,
-        priceUsd: 599,
+        price: 77271,
         image: "/shop-assets/products/wireless_dish.jpg",
         specs: "5.4 Gbps Aggregate / 15km+ Link",
       },
@@ -280,7 +284,7 @@ export const djangoApi = {
    */
   async createOrder(orderPayload: {
     items: any[]
-    totalUsd: number
+    total: number
     shippingAddress: string
     paymentMethod: string
     customerNotes?: string
@@ -292,7 +296,8 @@ export const djangoApi = {
       userId: MOCK_USER.id,
       createdAt: new Date().toISOString(),
       status: "PROCESSING",
-      totalUsd: orderPayload.totalUsd,
+      total: orderPayload.total,
+      currency: "KES",
       paymentMethod: orderPayload.paymentMethod,
       shippingAddress: orderPayload.shippingAddress,
       trackingNumber: `NTL-EXP-${Math.floor(1000000 + Math.random() * 9000000)}`,
@@ -300,7 +305,7 @@ export const djangoApi = {
         id: `item_${idx}_${Date.now()}`,
         productName: i.name,
         quantity: i.quantity,
-        priceUsd: i.price,
+        price: i.price,
         image: i.image,
         specs: i.selectedStorage || i.selectedColor || "Standard Unit",
       })),

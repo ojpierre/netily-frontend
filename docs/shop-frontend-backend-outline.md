@@ -341,7 +341,7 @@ Payment provider requirements:
 The shop admin settings area should eventually control:
 
 - Store contact details.
-- Default currency.
+- Default currency. The current production contract is KES for catalog prices, shipping, orders, M-Pesa checkout, and reports.
 - Delivery regions.
 - Delivery pricing.
 - Tax rules.

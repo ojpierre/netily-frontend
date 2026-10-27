@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import type { Product } from "@/shop-ui/lib/products"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 interface RelatedProductsProps {
   products: Product[]
@@ -39,7 +40,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                   <h3 className="font-serif text-sm md:text-base group-hover:underline underline-offset-4">
                     {product.name}
                   </h3>
-                  <p className="text-xs md:text-sm text-muted-foreground">${product.price.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">{formatShopMoney(product.price, product.currency)}</p>
                 </div>
               </Link>
             </motion.div>

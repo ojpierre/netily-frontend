@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, Package, Truck, CheckCircle2, Clock, FileDown } from "lucide-react"
 import { Button } from "@/shop-ui/components/ui/button"
 import { toast } from "sonner"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 const StatusBadge = ({ status }: { status: string }) => {
   switch (status) {
@@ -89,7 +90,7 @@ export function OrdersList({ orders }: { orders: any[] }) {
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground block">
                     Amount
                   </span>
-                  <span className="text-xs font-semibold">${Number(order.total).toLocaleString()} USD</span>
+                  <span className="text-xs font-semibold">{formatShopMoney(order.total, order.currency || "KES")}</span>
                 </div>
               </div>
 
@@ -150,7 +151,7 @@ export function OrdersList({ orders }: { orders: any[] }) {
                           </div>
                         </div>
                         <span className="font-mono font-medium">
-                          ${(Number(item.price) * item.quantity).toLocaleString()}
+                          {formatShopMoney(Number(item.price) * item.quantity, order.currency || "KES")}
                         </span>
                       </div>
                     ))}

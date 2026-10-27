@@ -6,6 +6,7 @@ import { X, Minus, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/shop-ui/components/ui/button"
 import Link from "next/link"
 import { useCart, cartItemKey } from "@/shop-ui/lib/cart-context"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 interface MiniCartProps {
   isOpen: boolean
@@ -132,7 +133,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
                             </button>
                           </div>
                           <div className="text-sm font-medium">
-                            ${(item.price * item.quantity).toLocaleString()}
+                            {formatShopMoney(item.price * item.quantity, item.currency)}
                           </div>
                         </div>
                       </div>
@@ -147,7 +148,7 @@ export function MiniCart({ isOpen, onClose }: MiniCartProps) {
               <div className="border-t border-border p-6 space-y-4">
                 <div className="flex justify-between text-base font-medium">
                   <span>Subtotal</span>
-                  <span className="font-serif text-lg">${total.toLocaleString()} USD</span>
+                  <span className="font-serif text-lg">{formatShopMoney(total)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Shipping and taxes calculated at checkout</p>
                 <Link href="/shop/checkout" onClick={onClose}>

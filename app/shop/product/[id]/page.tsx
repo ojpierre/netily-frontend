@@ -14,6 +14,7 @@ import { RelatedProducts } from "@/shop-ui/components/related-products"
 import type { Product } from "@/shop-ui/lib/products"
 import { shopApi } from "@/shop-ui/lib/shop-api"
 import { useCart } from "@/shop-ui/lib/cart-context"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 import { ChevronRight, ShoppingBag, Check } from "lucide-react"
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -75,6 +76,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       id: p.id,
       name: p.name,
       price: p.price,
+      currency: p.currency,
       image: p.image,
       category: p.category,
       selectedStorage: effectiveStorage,
@@ -148,9 +150,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             <div className="space-y-3">
               <p className="text-xs tracking-widest text-muted-foreground uppercase">{p.category}</p>
               <h1 className="font-serif text-3xl md:text-4xl">{p.name}</h1>
-              <p className="text-2xl font-light">
-                ${p.price.toLocaleString()} <span className="text-sm text-muted-foreground">USD</span>
-              </p>
+              <p className="text-2xl font-light">{formatShopMoney(p.price, p.currency)}</p>
             </div>
 
             {/* Description */}

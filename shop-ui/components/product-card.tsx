@@ -4,18 +4,20 @@ import { useState } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 interface ProductCardProps {
   id: string
   name: string
   price: number
+  currency?: string
   image: string
   hoverImage: string
   category: string
   index: number
 }
 
-export function ProductCard({ id, name, price, image, hoverImage, category, index }: ProductCardProps) {
+export function ProductCard({ id, name, price, currency = "KES", image, hoverImage, category, index }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false)
 
   return (
@@ -66,7 +68,7 @@ export function ProductCard({ id, name, price, image, hoverImage, category, inde
         <div className="space-y-1">
           <p className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{category}</p>
           <h3 className="font-serif text-lg">{name}</h3>
-          <p className="text-sm text-muted-foreground tracking-wide">Starting at ${price.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground tracking-wide">Starting at {formatShopMoney(price, currency)}</p>
         </div>
       </Link>
     </motion.div>
