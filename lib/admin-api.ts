@@ -754,7 +754,9 @@ class AdminApiService {
   }
 
   async getPaymentMethodPinStatus(): Promise<PaymentMethodPinStatus> {
-    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/status/')
+    // A cache-busting query keeps tenant security changes visible immediately
+    // without adding Cache-Control request headers that trigger CORS preflights.
+    return this.request<PaymentMethodPinStatus>(`/core/auth/payment-method-pin/status/?fresh=${Date.now()}`)
   }
 
   async setupPaymentMethodPin(pin: string, pinConfirm: string): Promise<PaymentMethodPinStatus> {

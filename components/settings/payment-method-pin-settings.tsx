@@ -45,6 +45,7 @@ export function PaymentMethodPinSettingsCard() {
       setCurrentPin("")
       setPin("")
       setConfirmation("")
+      window.dispatchEvent(new CustomEvent("netily-payment-pin-status-changed", { detail: next }))
       toast.success(status?.configured ? "Payment Methods PIN changed." : "Payment Methods PIN is now active.")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the PIN.")

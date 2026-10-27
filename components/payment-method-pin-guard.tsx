@@ -55,14 +55,32 @@ export function PaymentMethodPinGuard({ children }: { children: ReactNode }) {
   const [lockedSeconds, setLockedSeconds] = useState(0)
 
   useEffect(() => {
-    adminApi.getPaymentMethodPinStatus()
-      .then((next) => { setStatus(next); setLockedSeconds(next.locked_seconds || 0) })
-      .catch((requestError) => setError(errorMessage(requestError)))
+    let active = true
+    const refresh = async (event?: Event) => {
+      const supplied = (event as CustomEvent<PaymentMethodPinStatus> | undefined)?.detail
+      try {
+        const next = supplied || await adminApi.getPaymentMethodPinStatus()
+        if (!active) return
+        setStatus(next)
+        setLockedSeconds(next.locked_seconds || 0)
+        setError("")
+      } catch (requestError) {
+        if (active) setError(errorMessage(requestError))
+      }
+    }
+    void refresh()
+    window.addEventListener("netily-payment-pin-status-changed", refresh)
+    window.addEventListener("focus", refresh)
+    return () => {
+      active = false
+      window.removeEventListener("netily-payment-pin-status-changed", refresh)
+      window.removeEventListener("focus", refresh)
+    }
   }, [])
 
   useEffect(() => {
     const relock = () => {
-      setStatus((current) => current ? { ...current, unlocked: false, bypass: false } : current)
+      setStatus((current) => current?.bypass ? current : current ? { ...current, unlocked: false } : current)
       setError("Your Payment Methods unlock expired. Enter the PIN to continue.")
     }
     window.addEventListener("netily-payment-pin-required", relock)
@@ -104,7 +122,7 @@ export function PaymentMethodPinGuard({ children }: { children: ReactNode }) {
     return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /><span className="sr-only">Checking Payment Methods security</span></div>
   }
 
-  const setup = status && !status.configured
+  const setup = Boolean(status && !status.configured)
   return <div className="flex min-h-[65vh] items-center justify-center p-4">
     <Card className="w-full max-w-md rounded-lg">
       <CardHeader className="space-y-3 text-center">
