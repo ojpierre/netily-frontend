@@ -4876,14 +4876,38 @@ async activateService(
     return this.request<HotspotClientDetailResponse>(`/hotspot/admin/clients/${clientId}/sessions/${qs}`)
   }
 
-  /**
-   * Get payments for a hotspot client
-   * @param clientId - The HotspotClient ID
-   * @returns Payment history for the client
-   */
-  async getHotspotClientPayments(clientId: number): Promise<any> {
-    // Payments linked to sessions owned by this client's canonical_username
-    return this.request(`/hotspot/admin/clients/${clientId}/`)
+  async getHotspotClientPayments(
+    clientId: number,
+    params?: { page?: number; page_size?: number; status?: string }
+  ): Promise<{
+    summary: { total_payments: number; completed_count: number; completed_total: number }
+    results: Array<{
+      id: number
+      payment_number: string
+      amount: number
+      currency: string
+      status: string
+      mpesa_receipt: string
+      payer_phone: string
+      payment_method: string
+      plan_name: string
+      access_code: string
+      failure_reason: string
+      payment_date: string | null
+    }>
+    count: number
+    page: number
+    page_size: number
+    total_pages: number
+  }> {
+    const qs = params
+      ? '?' + new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])
+          )
+        ).toString()
+      : ''
+    return this.request(`/hotspot/admin/clients/${clientId}/payments/${qs}`)
   }
 
   async getActiveSubscriptions(): Promise<ActiveSubscriptionsResponse> {

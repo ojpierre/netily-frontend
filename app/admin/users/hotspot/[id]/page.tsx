@@ -77,6 +77,12 @@ export default function HotspotClientDetailPage() {
   const [extendManualDate, setExtendManualDate] = useState("")
   const [extendManualTime, setExtendManualTime] = useState("23:59")
   const [activeSubscription, setActiveSubscription] = useState<ActiveSubscription | null>(null)
+  const [payments, setPayments] = useState<any[]>([])
+  const [paymentsSummary, setPaymentsSummary] = useState({ total_payments: 0, completed_count: 0, completed_total: 0 })
+  const [paymentsPage, setPaymentsPage] = useState(1)
+  const [paymentsTotalPages, setPaymentsTotalPages] = useState(1)
+  const [paymentsLoading, setPaymentsLoading] = useState(false)
+  const [paymentsLoaded, setPaymentsLoaded] = useState(false)
 
   const loadClient = useCallback(async () => {
     try {
@@ -103,6 +109,22 @@ export default function HotspotClientDetailPage() {
       toast.error("Failed to load sessions")
     } finally {
       setSessionsLoading(false)
+    }
+  }
+
+  const loadPayments = async (page: number) => {
+    try {
+      setPaymentsLoading(true)
+      const res = await adminApi.getHotspotClientPayments(clientId, { page, page_size: 15 })
+      setPayments(res.results)
+      setPaymentsSummary(res.summary)
+      setPaymentsPage(page)
+      setPaymentsTotalPages(res.total_pages || 1)
+      setPaymentsLoaded(true)
+    } catch (err) {
+      toast.error("Failed to load payments")
+    } finally {
+      setPaymentsLoading(false)
     }
   }
 
@@ -231,10 +253,14 @@ export default function HotspotClientDetailPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200">
-        {["overview", "sessions", "actions"].map((tab) => (
+        {["overview", "sessions", "payments", "actions"].map((tab) => (
           <button
             key={tab}
-            onClick={() => { setActiveTab(tab); if (tab === "sessions" && sessions.length === 0) loadSessions(1) }}
+            onClick={() => {
+              setActiveTab(tab)
+              if (tab === "sessions" && sessions.length === 0) loadSessions(1)
+              if (tab === "payments" && !paymentsLoaded) loadPayments(1)
+            }}
             className={`px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors ${
               activeTab === tab ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
@@ -371,6 +397,84 @@ export default function HotspotClientDetailPage() {
         </div>
       )}
 
+      {/* Payments Tab */}
+      {activeTab === "payments" && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <Card><CardContent className="pt-4 pb-4">
+              <p className="text-xl font-bold">{paymentsSummary.total_payments}</p>
+              <p className="text-xs text-slate-500">Total Attempts</p>
+            </CardContent></Card>
+            <Card><CardContent className="pt-4 pb-4">
+              <p className="text-xl font-bold">{paymentsSummary.completed_count}</p>
+              <p className="text-xs text-slate-500">Completed</p>
+            </CardContent></Card>
+            <Card><CardContent className="pt-4 pb-4">
+              <p className="text-xl font-bold">KES {paymentsSummary.completed_total.toLocaleString()}</p>
+              <p className="text-xs text-slate-500">Total Paid</p>
+            </CardContent></Card>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-500">Payment history</p>
+            <Button variant="outline" size="sm" onClick={() => loadPayments(paymentsPage)} disabled={paymentsLoading}>
+              <RefreshCw className={`w-4 h-4 ${paymentsLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+
+          {paymentsLoading && payments.length === 0 ? (
+            <div className="space-y-2">
+              <Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" />
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">
+              <History className="w-10 h-10 mx-auto mb-3" />
+              <p>No payments recorded</p>
+            </div>
+          ) : (
+            <>
+              {payments.map((p: any) => {
+                const st = String(p.status || "").toUpperCase()
+                const badge =
+                  st === "COMPLETED" ? "bg-green-100 text-green-700"
+                  : st === "FAILED" || st === "CANCELLED" ? "bg-red-100 text-red-700"
+                  : "bg-amber-100 text-amber-700"
+                return (
+                  <Card key={p.id}>
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{p.currency} {Number(p.amount).toLocaleString()}</span>
+                          <Badge className={`${badge} text-xs`}>{st.charAt(0) + st.slice(1).toLowerCase()}</Badge>
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {p.payment_date ? new Date(p.payment_date).toLocaleString() : "—"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
+                        <div><p className="font-semibold uppercase tracking-wide text-[9px]">Receipt</p><p className="font-mono">{p.mpesa_receipt || "—"}</p></div>
+                        <div><p className="font-semibold uppercase tracking-wide text-[9px]">Plan</p><p>{p.plan_name || "—"}</p></div>
+                        <div><p className="font-semibold uppercase tracking-wide text-[9px]">Phone</p><p className="font-mono">{p.payer_phone || "—"}</p></div>
+                      </div>
+                      {p.failure_reason && st !== "COMPLETED" && (
+                        <p className="text-xs text-red-500 mt-2">{p.failure_reason}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+              {paymentsTotalPages > 1 && (
+                <div className="flex justify-between items-center pt-2">
+                  <Button variant="outline" size="sm" disabled={paymentsPage === 1 || paymentsLoading} onClick={() => loadPayments(paymentsPage - 1)}>Previous</Button>
+                  <span className="text-sm text-slate-500">{paymentsPage} / {paymentsTotalPages}</span>
+                  <Button variant="outline" size="sm" disabled={paymentsPage >= paymentsTotalPages || paymentsLoading} onClick={() => loadPayments(paymentsPage + 1)}>Next</Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Actions Tab */}
       {activeTab === "actions" && (
         <div className="space-y-2">
@@ -448,7 +552,7 @@ export default function HotspotClientDetailPage() {
                   <input type="date" value={extendManualDate} min={new Date().toISOString().split("T")[0]} onChange={e => setExtendManualDate(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm mt-1" />
                 </div>
                 <div><label className="text-xs text-slate-500">Time</label>
-                  <input type="time" value={extendManualTime} onChange={e => setExtendManualTime(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm mt-1" />
+                  <input type="time" value={extendManualTime} onChange={e => setExtendManualTime(e.target.value)} className="w-full px-3 py-2 rounded-md text-sm mt-1" />
                 </div>
               </div>
             )}
