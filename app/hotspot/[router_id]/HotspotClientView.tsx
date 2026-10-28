@@ -418,6 +418,7 @@ async function phoneReconnect(data: {
   router_id: string
   mac_address: string
   tenant: string
+  target_device?: "this" | "tv"      // NEW
 }): Promise<{
   status: string
   message: string
@@ -456,6 +457,7 @@ async function credentialReconnect(data: {
   router_id: string
   mac_address: string
   tenant: string
+  target_device?: "this" | "tv"      // NEW
 }): Promise<ReconnectResult> {
   const response = await fetchWithRetry(
     `${getApiBase()}/hotspot/credentials-reconnect/`,
@@ -1403,8 +1405,16 @@ export default function HotspotClientView({
     }
   }
 
+  // Single source of truth for "which device are we acting on"
+  const getReconnectTarget = () => {
+    if (targetDevice !== "tv") return { forTv: false, mac: getMacAddress() }
+    const raw = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput.trim()
+    const hex = raw.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
+    return { forTv: true, mac: hex.length === 12 ? hex.match(/.{2}/g)!.join(":") : raw.toUpperCase() }
+  }
+
   // ── Shared success path for phone + credential reconnect ──
-  const applyReconnectResult = (result: ReconnectResult) => {
+  const applyReconnectResult = (result: ReconnectResult, forTv: boolean) => {
     setAccessCode(result.access_code)
     setExpiresAt(result.expires_at)
     setSelectedPlan({
@@ -1427,6 +1437,9 @@ export default function HotspotClientView({
     setShowPhoneModal(false)
     setPaymentStatus('success')
 
+    // TV: the server pushes the login to the router. The phone must NOT log itself in.
+    if (forTv) return
+
     const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
     if (effectiveLoginUrl && result.credentials) {
       const { username, password } = result.credentials
@@ -1441,16 +1454,22 @@ export default function HotspotClientView({
       setReconnectPhoneError('Enter a valid phone number')
       return
     }
+    const { forTv, mac } = getReconnectTarget()
+    if (forTv && !tvMacVerified) {
+      setReconnectPhoneError('Verify your TV first, then try again')
+      return
+    }
     setReconnectPhoneLoading(true)
     setReconnectPhoneError(null)
     try {
       const result = await phoneReconnect({
         phone_number: normalizePaymentPhone(phone, paymentLocale),
         router_id: routerId,
-        mac_address: getMacAddress(),
+        mac_address: mac,
         tenant: getTenant(),
+        target_device: forTv ? "tv" : "this",
       })
-      applyReconnectResult(result)
+      applyReconnectResult(result, forTv)
     } catch (err: any) {
       setReconnectPhoneError(err.message || 'Could not connect. Please try again.')
     } finally {
@@ -1465,6 +1484,11 @@ export default function HotspotClientView({
       setReconnectPhoneError('Enter your username and password from the SMS')
       return
     }
+    const { forTv, mac } = getReconnectTarget()
+    if (forTv && !tvMacVerified) {
+      setReconnectPhoneError('Verify your TV first, then try again')
+      return
+    }
     setReconnectPhoneLoading(true)
     setReconnectPhoneError(null)
     try {
@@ -1472,10 +1496,11 @@ export default function HotspotClientView({
         username: u,
         password: p,
         router_id: routerId,
-        mac_address: getMacAddress(),
+        mac_address: mac,
         tenant: getTenant(),
+        target_device: forTv ? "tv" : "this",
       })
-      applyReconnectResult(result)
+      applyReconnectResult(result, forTv)
     } catch (err: any) {
       setReconnectPhoneError(err.message || 'Could not connect. Please try again.')
     } finally {
@@ -1925,13 +1950,19 @@ export default function HotspotClientView({
           <button
             type="button"
             onClick={() => {
+              if (targetDevice === "tv" && !tvMacVerified) {
+                setTvMacError("Verify your TV below first, then tap Reconnect")
+                return
+              }
               setShowPhoneModal(true)
               setReconnectPhoneError(null)
               setReconnectPhone('')
             }}
             className={`w-full mb-5 py-2.5 text-sm font-medium border rounded-xl transition-colors ${theme.planBorder} ${theme.mutedText} hover:opacity-70`}
           >
-            Already paid? Reconnect or add a device
+            {targetDevice === "tv"
+              ? "Already paid? Reconnect your TV"
+              : "Already paid? Reconnect or add a device"}
           </button>
 
           {/* Free Ad-Sponsored Access */}
@@ -2419,6 +2450,7 @@ export default function HotspotClientView({
           reconnectPhoneLoading={reconnectPhoneLoading}
           theme={theme}
           locale={paymentLocale}
+          forTv={targetDevice === "tv"}
           onPhoneChange={(value) => {
             setReconnectPhone(value)
             setReconnectPhoneError(null)

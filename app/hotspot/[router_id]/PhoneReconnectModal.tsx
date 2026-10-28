@@ -10,6 +10,7 @@ interface PhoneReconnectModalProps {
   reconnectPhoneLoading: boolean
   theme: any
   locale: PaymentLocale
+  forTv?: boolean            // NEW
   onPhoneChange: (value: string) => void
   onReconnect: () => void
   onCredentialReconnect: (username: string, password: string) => void
@@ -25,6 +26,7 @@ export default function PhoneReconnectModal({
   reconnectPhoneLoading,
   theme,
   locale,
+  forTv = false,             // NEW
   onPhoneChange,
   onReconnect,
   onCredentialReconnect,
@@ -70,11 +72,17 @@ export default function PhoneReconnectModal({
           ✕
         </button>
 
-        <h3 className={`text-lg font-bold mb-1 ${theme.planTitle}`}>Connect This Device</h3>
+        <h3 className={`text-lg font-bold mb-1 ${theme.planTitle}`}>
+          {forTv ? "Reconnect Your TV" : "Connect This Device"}
+        </h3>
         <p className={`text-sm mb-4 ${theme.mutedText}`}>
-          {mode === "phone"
-            ? "Enter the number used to pay. If your plan supports multiple devices, this device will be connected automatically."
-            : "Enter the username and password sent to you by SMS after payment."}
+          {forTv
+            ? mode === "phone"
+              ? "Enter the number used to pay. Your verified TV will reconnect automatically within a few seconds."
+              : "Enter the username and password from the SMS. Your verified TV will reconnect automatically."
+            : mode === "phone"
+              ? "Enter the number used to pay. If your plan supports multiple devices, this device will be connected automatically."
+              : "Enter the username and password sent to you by SMS after payment."}
         </p>
 
         {/* Mode switch */}
@@ -158,7 +166,7 @@ export default function PhoneReconnectModal({
               <Loader2 className="w-5 h-5 animate-spin" /> Checking...
             </span>
           ) : (
-            "Connect Device"
+            forTv ? "Reconnect TV" : "Connect Device"
           )}
         </button>
 
