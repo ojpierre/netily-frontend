@@ -1,241 +1,403 @@
 ﻿"use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import {
-  BarChart3,
-  Search,
-  Download,
-  Eye,
-  Filter,
+  Activity,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ChevronLeft,
+  ChevronRight,
   Clock,
-  HardDrive,
+  Search,
+  TrendingDown,
+  TrendingUp,
   Wifi,
-  Calendar,
-  Loader2,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { RADIUSAccountingSession } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-type AccountingLog = {
-  id: string
-  userId: string
-  userName: string
-  sessionId: string
-  startTime: string
-  endTime: string
-  duration: number // in minutes
-  dataUpload: number // in MB
-  dataDownload: number // in MB
-  ipAddress: string
-  nasId: string
-  terminationCause: string
-  status: "active" | "completed" | "terminated"
+type RangeKey = "24h" | "7d" | "30d"
+
+interface UsageAnalytics {
+  range: RangeKey
+  granularity: "hour" | "day"
+  summary: {
+    total: number
+    download: number
+    upload: number
+    active_sessions: number
+    unique_users: number
+    avg_per_user: number
+    peak_hour: number | null
+    changes: { total: number | null; download: number | null; upload: number | null }
+  }
+  series: { label: string; download: number; upload: number }[]
+  plans: { name: string; bytes: number; percent: number }[]
 }
 
-// Map backend RADIUS accounting session to local AccountingLog type
-// BUG FIX 1 & 2: Handle null/undefined values and use acctsessiontime with live duration calculation
-const mapSessionToLog = (session: RADIUSAccountingSession): AccountingLog => ({
-  id: String(session.id),
-  userId: session.username,
-  userName: session.customer_name || session.username,
-  sessionId: session.acctsessionid,
-  startTime: session.acctstarttime,
-  endTime: session.acctstoptime || "",
-  // BUG FIX 2: Use acctsessiontime instead of session_duration, calculate live duration for active sessions
-  duration: session.acctsessiontime
-    ? Math.floor(session.acctsessiontime / 60)
-    : session.acctstarttime
-      ? Math.floor((Date.now() - new Date(session.acctstarttime).getTime()) / 60000)
-      : 0,
-  // BUG FIX 1: Use null coalescing to handle undefined/null values (prevents NaN)
-  dataUpload: Math.round((session.acctinputoctets || 0) / (1024 * 1024)), // bytes to MB
-  dataDownload: Math.round((session.acctoutputoctets || 0) / (1024 * 1024)), // bytes to MB
-  ipAddress: session.framedipaddress || "",
-  nasId: session.nas_name || session.nasipaddress,
-  terminationCause: session.is_active ? "Active" : (session.acctterminatecause || "Unknown"),
-  status: session.is_active ? "active" : "completed",
-})
+interface Consumer {
+  username: string
+  name: string
+  code: string
+  type: "pppoe" | "hotspot"
+  plan: string
+  download: number
+  upload: number
+  total: number
+  sessions: number
+  online: boolean
+  uptime_seconds: number | null
+  last_seen: string | null
+}
 
+interface ConsumersResponse {
+  count: number
+  page: number
+  page_size: number
+  total_pages: number
+  results: Consumer[]
+}
+
+const RANGES: { key: RangeKey; label: string }[] = [
+  { key: "24h", label: "24 hours" },
+  { key: "7d", label: "7 days" },
+  { key: "30d", label: "30 days" },
+]
+const PAGE_SIZE = 10
+const REFRESH_MS = 60_000
+
+// ───────────── formatting ─────────────
+const UNITS = ["B", "KB", "MB", "GB", "TB", "PB"]
+function fmtParts(bytes: number) {
+  let v = bytes || 0
+  let i = 0
+  while (v >= 1024 && i < UNITS.length - 1) {
+    v /= 1024
+    i++
+  }
+  return { value: i === 0 ? String(Math.round(v)) : v.toFixed(v >= 100 ? 0 : 2), unit: UNITS[i] }
+}
+const fmtBytes = (b: number) => {
+  const p = fmtParts(b)
+  return `${p.value} ${p.unit}`
+}
+function fmtDuration(sec: number | null) {
+  if (!sec || sec < 0) return "—"
+  const d = Math.floor(sec / 86400)
+  const h = Math.floor((sec % 86400) / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  if (d > 0) return `${d}d ${h}h`
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
+}
+const initials = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "?"
+
+// ───────────── small UI pieces ─────────────
+function Change({ value, inverted = false }: { value: number | null | undefined; inverted?: boolean }) {
+  if (value === null || value === undefined) return null
+  const up = value >= 0
+  const Icon = up ? TrendingUp : TrendingDown
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium ${inverted ? "" : up ? "text-success" : "text-destructive"}`}>
+      <Icon className="h-3 w-3" />
+      {Math.abs(value)}%
+      <span className={`font-normal ${inverted ? "opacity-80" : "text-slate-500"}`}>vs last period</span>
+    </span>
+  )
+}
+
+function TrafficChart({
+  series,
+  mode,
+}: {
+  series: UsageAnalytics["series"]
+  mode: "both" | "download" | "upload"
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const W = 800, H = 260, padL = 56, padR = 12, padT = 12, padB = 28
+  const n = series.length
+  const pick = (p: UsageAnalytics["series"][number]) =>
+    mode === "download" ? [p.download] : mode === "upload" ? [p.upload] : [p.download, p.upload]
+  const max = Math.max(1, ...series.flatMap(pick)) * 1.1
+  const innerW = W - padL - padR
+  const innerH = H - padT - padB
+  const x = (i: number) => padL + (n <= 1 ? 0 : (i * innerW) / (n - 1))
+  const y = (v: number) => padT + (1 - v / max) * innerH
+  const line = (key: "download" | "upload") =>
+    series.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ")
+  const area = (key: "download" | "upload") =>
+    `${line(key)} L${x(n - 1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * max)
+  const labelEvery = Math.max(1, Math.ceil(n / 6))
+  const showDl = mode !== "upload"
+  const showUl = mode !== "download"
+
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const vx = ((e.clientX - rect.left) / rect.width) * W
+    const idx = Math.round(((vx - padL) / innerW) * (n - 1))
+    setHover(Math.min(n - 1, Math.max(0, idx)))
+  }
+
+  return (
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-auto"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} className="stroke-slate-200" strokeDasharray="2 4" />
+            <text x={padL - 8} y={y(t) + 3} textAnchor="end" className="fill-slate-500" fontSize="10">
+              {fmtBytes(t)}
+            </text>
+          </g>
+        ))}
+        {series.map((p, i) =>
+          i % labelEvery === 0 ? (
+            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-slate-500" fontSize="10">
+              {p.label}
+            </text>
+          ) : null
+        )}
+        {showDl && (
+          <>
+            <path d={area("download")} className="fill-primary" fillOpacity={0.12} />
+            <path d={line("download")} className="stroke-primary" fill="none" strokeWidth={2} strokeLinejoin="round" />
+          </>
+        )}
+        {showUl && (
+          <path d={line("upload")} className="stroke-success" fill="none" strokeWidth={2} strokeLinejoin="round" />
+        )}
+        {hover !== null && (
+          <>
+            <line x1={x(hover)} x2={x(hover)} y1={padT} y2={y(0)} className="stroke-slate-300" />
+            {showDl && <circle cx={x(hover)} cy={y(series[hover].download)} r={4} className="fill-primary" />}
+            {showUl && <circle cx={x(hover)} cy={y(series[hover].upload)} r={4} className="fill-success" />}
+          </>
+        )}
+      </svg>
+      {hover !== null && (
+        <div
+          className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-md border bg-card px-3 py-2 text-xs shadow-md"
+          style={{ left: `${Math.min(88, Math.max(12, (x(hover) / W) * 100))}%` }}
+        >
+          <p className="font-medium mb-1">{series[hover].label}</p>
+          {showDl && <p className="text-primary">Download: {fmtBytes(series[hover].download)}</p>}
+          {showUl && <p className="text-success">Upload: {fmtBytes(series[hover].upload)}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const PLAN_STROKE = ["stroke-primary", "stroke-success", "stroke-purple-500", "stroke-amber-500", "stroke-slate-400"]
+const PLAN_BG = ["bg-primary", "bg-success", "bg-purple-500", "bg-amber-500", "bg-slate-400"]
+
+function PlanDonut({ plans, total }: { plans: UsageAnalytics["plans"]; total: number }) {
+  const r = 54
+  const C = 2 * Math.PI * r
+  let acc = 0
+  const parts = fmtParts(total)
+  return (
+    <div className="flex flex-col sm:flex-row items-center gap-6">
+      <div className="relative h-[140px] w-[140px] shrink-0">
+        <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+          <circle cx="70" cy="70" r={r} fill="none" strokeWidth="16" className="stroke-slate-100" />
+          {plans.map((p, i) => {
+            const len = (p.percent / 100) * C
+            const el = (
+              <circle
+                key={p.name}
+                cx="70"
+                cy="70"
+                r={r}
+                fill="none"
+                strokeWidth="16"
+                strokeDasharray={`${Math.max(0, len - 1)} ${C - Math.max(0, len - 1)}`}
+                strokeDashoffset={-acc}
+                className={PLAN_STROKE[i % PLAN_STROKE.length]}
+              />
+            )
+            acc += len
+            return el
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-bold leading-none">{parts.value}</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-500 mt-1">{parts.unit} total</span>
+        </div>
+      </div>
+      <ul className="flex-1 w-full space-y-2">
+        {plans.map((p, i) => (
+          <li key={p.name} className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex items-center gap-2 min-w-0">
+              <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${PLAN_BG[i % PLAN_BG.length]}`} />
+              <span className="truncate">{p.name}</span>
+            </span>
+            <span className="text-xs text-slate-500 shrink-0">
+              {fmtBytes(p.bytes)} · {p.percent}%
+            </span>
+          </li>
+        ))}
+        {plans.length === 0 && <li className="text-sm text-slate-500">No traffic in this period</li>}
+      </ul>
+    </div>
+  )
+}
+
+// ───────────── page ─────────────
 export default function UsagePage() {
+  const [range, setRange] = useState<RangeKey>("7d")
+  const [mode, setMode] = useState<"both" | "download" | "upload">("both")
+
+  const [data, setData] = useState<UsageAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [logs, setLogs] = useState<AccountingLog[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [selectedLog, setSelectedLog] = useState<AccountingLog | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 15
 
-  const fetchLogs = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const [sessionsRes, activeRes] = await Promise.allSettled([
-        adminApi.getRADIUSSessions({ page_size: '200' }),
-        adminApi.getRADIUSActiveSessions(),
-      ])
+  const [consumers, setConsumers] = useState<ConsumersResponse | null>(null)
+  const [consLoading, setConsLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
 
-      const sessions: RADIUSAccountingSession[] = []
-      if (sessionsRes.status === 'fulfilled' && sessionsRes.value?.results) {
-        sessions.push(...sessionsRes.value.results)
-      }
-      // Merge active sessions that may not be in accounting yet
-      if (activeRes.status === 'fulfilled' && Array.isArray(activeRes.value)) {
-        const existingIds = new Set(sessions.map(s => s.acctsessionid))
-        for (const s of activeRes.value) {
-          if (!existingIds.has(s.acctsessionid)) {
-            sessions.push(s)
-          }
-        }
-      }
-
-      setLogs(
-        sessions
-          .map(mapSessionToLog)
-          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-      )
-    } catch (err) {
-      setError("Failed to load usage logs. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const aReq = useRef(0)
+  const cReq = useRef(0)
 
   useEffect(() => {
-    fetchLogs()
-  }, [fetchLogs])
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 400)
+    return () => clearTimeout(t)
+  }, [search])
 
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch =
-      log.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.userId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.sessionId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.ipAddress.includes(searchQuery)
-    const matchesStatus = statusFilter === "all" || log.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  useEffect(() => {
+    setPage(1)
+  }, [range, debouncedSearch])
 
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const loadAnalytics = useCallback(
+    async (silent = false) => {
+      const id = ++aReq.current
+      if (!silent) {
+        setLoading(true)
+        setError(null)
+      }
+      try {
+        const res = await adminApi.getRadiusUsageAnalytics<UsageAnalytics>(range)
+        if (id === aReq.current) setData(res)
+      } catch (e: any) {
+        if (!silent && id === aReq.current) setError(e?.message || "Failed to load usage analytics.")
+      } finally {
+        if (!silent && id === aReq.current) setLoading(false)
+      }
+    },
+    [range]
   )
 
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage)
+  const loadConsumers = useCallback(
+    async (silent = false) => {
+      const id = ++cReq.current
+      if (!silent) setConsLoading(true)
+      try {
+        const res = await adminApi.getRadiusUsageConsumers<ConsumersResponse>({
+          range,
+          page,
+          page_size: PAGE_SIZE,
+          q: debouncedSearch || undefined,
+        })
+        if (id === cReq.current) setConsumers(res)
+      } catch {
+        /* keep previous rows; the analytics error banner covers hard failures */
+      } finally {
+        if (!silent && id === cReq.current) setConsLoading(false)
+      }
+    },
+    [range, page, debouncedSearch]
+  )
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return `${hours}h ${mins}m`
-  }
+  useEffect(() => {
+    loadAnalytics()
+  }, [loadAnalytics])
 
-  const formatBytes = (mb: number) => {
-    if (mb >= 1024) {
-      return `${(mb / 1024).toFixed(2)} GB`
-    }
-    return `${mb.toFixed(0)} MB`
-  }
+  useEffect(() => {
+    loadConsumers()
+  }, [loadConsumers])
 
-  const getStatusBadge = (status: AccountingLog["status"]) => {
-    const variants = {
-      active: "bg-success/15 text-success border-success/20",
-      completed: "bg-primary/15 text-primary border-primary/20",
-      terminated: "bg-destructive/15 text-destructive border-destructive/20",
-    }
-    return (
-      <Badge variant="outline" className={variants[status]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    )
-  }
-
-  const handleViewLog = (log: AccountingLog) => {
-    setSelectedLog(log)
-    setDialogOpen(true)
-  }
-
-  // BUG FIX 3: Total time includes active sessions too (don't filter out active sessions)
-  const totalTimeOnline = logs.reduce((sum, l) => sum + l.duration, 0)
-
-  const totalDataUsed = logs.reduce((sum, l) => sum + l.dataDownload + l.dataUpload, 0)
-
-  const activeSessions = logs.filter((l) => l.status === "active").length
+  // Silent auto-refresh (paused while the tab is hidden)
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.hidden) return
+      loadAnalytics(true)
+      loadConsumers(true)
+    }, REFRESH_MS)
+    return () => clearInterval(t)
+  }, [loadAnalytics, loadConsumers])
 
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Usage & Accounting</h1>
+        <h1 className="text-3xl font-bold">Subscriber Usage</h1>
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+        <Button onClick={() => loadAnalytics()}>Retry</Button>
       </div>
     )
   }
 
+  const s = data?.summary
+  const peak = s?.peak_hour
+  const totalPages = consumers?.total_pages ?? 1
+  const subtitleUnit = data?.granularity === "hour" ? "Hourly" : "Daily"
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Usage & Accounting</h1>
-          <p className="text-slate-500 mt-1">Monitor user sessions and data consumption</p>
+          <h1 className="text-3xl font-bold text-foreground">Subscriber Usage</h1>
+          <p className="text-slate-500 mt-1">
+            Monitor bandwidth consumption, active RADIUS sessions, and subscriber patterns across your network.
+          </p>
         </div>
-        <Button>
-          <Download className="w-4 h-4 mr-2" />
-          Export Logs
-        </Button>
+        <div className="inline-flex rounded-lg border bg-card p-1">
+          {RANGES.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => setRange(r.key)}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                range === r.key ? "bg-primary text-primary-foreground" : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      {/* KPI cards */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="bg-primary text-primary-foreground border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-            <Wifi className="h-4 w-4 text-success" />
+            <CardTitle className="text-xs font-medium uppercase tracking-wider opacity-90">Total traffic</CardTitle>
+            <Activity className="h-4 w-4 opacity-90" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
+            {loading || !s ? (
+              <Skeleton className="h-9 w-28 bg-white/30" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-success">{activeSessions}</div>
-                <p className="text-xs text-slate-500 mt-1">Currently online</p>
+                <div className="text-3xl font-bold">{fmtBytes(s.total)}</div>
+                <div className="mt-2">
+                  <Change value={s.changes.total} inverted />
+                </div>
               </>
             )}
           </CardContent>
@@ -243,174 +405,225 @@ export default function UsagePage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-            <BarChart3 className="h-4 w-4 text-primary" />
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-slate-500">Download</CardTitle>
+            <ArrowDownToLine className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
+            {loading || !s ? (
+              <Skeleton className="h-9 w-28" />
             ) : (
-              <div className="text-2xl font-bold">{logs.length}</div>
+              <>
+                <div className="text-3xl font-bold">{fmtBytes(s.download)}</div>
+                <div className="mt-2">
+                  <Change value={s.changes.download} />
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Time Online</CardTitle>
-            <Clock className="h-4 w-4 text-primary" />
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-slate-500">Upload</CardTitle>
+            <ArrowUpFromLine className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
+            {loading || !s ? (
+              <Skeleton className="h-9 w-28" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-primary">
-                  {Math.floor(totalTimeOnline / 60)}h
+                <div className="text-3xl font-bold">{fmtBytes(s.upload)}</div>
+                <div className="mt-2">
+                  <Change value={s.changes.upload} />
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  {formatDuration(totalTimeOnline)}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-slate-500">Active sessions</CardTitle>
+            <Wifi className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            {loading || !s ? (
+              <Skeleton className="h-9 w-20" />
+            ) : (
+              <>
+                <div className="text-3xl font-bold">{s.active_sessions.toLocaleString()}</div>
+                <p className="mt-2 text-xs text-slate-500">
+                  Online now · {s.unique_users.toLocaleString()} active subscribers in period
                 </p>
               </>
             )}
           </CardContent>
         </Card>
+      </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Data Used</CardTitle>
-            <HardDrive className="h-4 w-4 text-purple-500" />
+      {/* Chart + plan split */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>Traffic over time</CardTitle>
+              <CardDescription>{subtitleUnit} bandwidth consumption from RADIUS accounting records</CardDescription>
+            </div>
+            <div className="inline-flex rounded-lg border bg-card p-1 shrink-0">
+              {(["both", "download", "upload"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`px-2.5 py-1 text-xs rounded-md capitalize transition-colors ${
+                    mode === m ? "bg-slate-100 text-foreground font-medium" : "text-slate-500 hover:text-foreground"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
+            {loading || !data ? (
+              <Skeleton className="h-[280px] w-full" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-purple-600">
-                  {formatBytes(totalDataUsed)}
+                <TrafficChart series={data.series} mode={mode} />
+                <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-primary" /> Download
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-success" /> Upload
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Upload + Download</p>
               </>
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search by user, session ID, IP address..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage by plan</CardTitle>
+            <CardDescription>Traffic distribution</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {loading || !data ? (
+              <Skeleton className="h-[160px] w-full" />
+            ) : (
+              <PlanDonut plans={data.plans} total={data.summary.total} />
+            )}
+            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">Avg / user</p>
+                {loading || !s ? (
+                  <Skeleton className="h-7 w-20 mt-1" />
+                ) : (
+                  <p className="text-xl font-bold">{fmtBytes(s.avg_per_user)}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">Peak hour</p>
+                {loading || !s ? (
+                  <Skeleton className="h-7 w-20 mt-1" />
+                ) : (
+                  <p className="text-xl font-bold">
+                    {peak === null || peak === undefined ? "—" : `${String(peak).padStart(2, "0")}:00`}
+                  </p>
+                )}
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="terminated">Terminated</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Accounting Logs Table */}
+      {/* Top consumers */}
       <Card>
-        <CardHeader>
-          <CardTitle>Accounting Logs ({filteredLogs.length})</CardTitle>
-          <CardDescription>
-            Showing {paginatedLogs.length} of {filteredLogs.length} sessions
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              Top consumers
+              <Badge variant="outline" className="bg-success/15 text-success border-success/20 text-[10px]">
+                LIVE
+              </Badge>
+            </CardTitle>
+            <CardDescription>Subscribers ranked by total data consumed in the selected period</CardDescription>
+          </div>
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search name, phone, code, username…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {consLoading && !consumers ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
+                <Skeleton key={i} className="h-14 w-full" />
               ))}
             </div>
-          ) : filteredLogs.length === 0 ? (
+          ) : !consumers || consumers.results.length === 0 ? (
             <div className="text-center py-12">
-              <BarChart3 className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-              <p className="text-slate-600 font-medium">No accounting logs found</p>
-              <p className="text-slate-500 text-sm mt-1">
-                Try adjusting your filters
-              </p>
+              <HardDriveEmpty />
+              <p className="text-slate-600 font-medium">No usage found</p>
+              <p className="text-slate-500 text-sm mt-1">Try a different period or search term</p>
             </div>
           ) : (
             <>
-              <div className="rounded-lg border overflow-x-auto">
+              <div className={`rounded-lg border overflow-x-auto transition-opacity ${consLoading ? "opacity-60" : ""}`}>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Session ID</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Data Upload</TableHead>
-                      <TableHead>Data Download</TableHead>
-                      <TableHead>Total Data</TableHead>
-                      <TableHead>IP Address</TableHead>
+                      <TableHead>Subscriber</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Download</TableHead>
+                      <TableHead>Upload</TableHead>
+                      <TableHead>Total usage</TableHead>
+                      <TableHead>Session</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedLogs.map((log) => (
-                      <TableRow key={log.id}>
+                    {consumers.results.map((c) => (
+                      <TableRow key={c.username}>
                         <TableCell>
-                          <div>
-                            <p className="text-sm font-medium">{log.userName}</p>
-                            <p className="text-xs text-slate-500">{log.userId}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                              {initials(c.name)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{c.name}</p>
+                              <p className="text-[11px] font-mono text-slate-500 truncate">
+                                {c.type === "hotspot" ? `HOTSPOT · ${c.username}` : c.code}
+                              </p>
+                            </div>
                           </div>
                         </TableCell>
+                        <TableCell className="text-sm">{c.plan}</TableCell>
+                        <TableCell className="text-sm font-mono">{fmtBytes(c.download)}</TableCell>
+                        <TableCell className="text-sm font-mono">{fmtBytes(c.upload)}</TableCell>
+                        <TableCell className="text-sm font-mono font-bold text-primary">{fmtBytes(c.total)}</TableCell>
                         <TableCell>
-                          <span className="text-xs font-mono text-slate-600">
-                            {log.sessionId}
+                          <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
+                            <Clock className="h-3 w-3 text-slate-400" />
+                            {c.online ? fmtDuration(c.uptime_seconds) : "—"}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            <span className="text-sm font-medium">
-                              {formatDuration(log.duration)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{formatBytes(log.dataUpload)}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{formatBytes(log.dataDownload)}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-bold">
-                            {formatBytes(log.dataUpload + log.dataDownload)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-mono">{log.ipAddress}</span>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(log.status)}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleViewLog(log)}
+                          <Badge
+                            variant="outline"
+                            className={
+                              c.online
+                                ? "bg-success/15 text-success border-success/20"
+                                : "bg-slate-100 text-slate-500 border-slate-200"
+                            }
                           >
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                            {c.online ? "Online" : "Offline"}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -418,188 +631,37 @@ export default function UsagePage() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-slate-600">
-                    Page {currentPage} of {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-xs text-slate-500">
+                  Showing {(consumers.page - 1) * consumers.page_size + 1}–
+                  {(consumers.page - 1) * consumers.page_size + consumers.results.length} of{" "}
+                  {consumers.count.toLocaleString()} subscribers
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-slate-600">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </CardContent>
       </Card>
-
-      {/* Session Detail Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Session Details</DialogTitle>
-            <DialogDescription>Complete accounting information for this session</DialogDescription>
-          </DialogHeader>
-
-          {selectedLog && (
-            <Tabs defaultValue="overview" className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="technical">Technical</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  {getStatusBadge(selectedLog.status)}
-                  <span className="text-sm text-slate-600">Session {selectedLog.id}</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-slate-600">
-                        User Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div>
-                        <p className="text-xs text-slate-500">Name</p>
-                        <p className="font-medium">{selectedLog.userName}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">User ID</p>
-                        <p className="text-sm">{selectedLog.userId}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-slate-600">
-                        Time Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div>
-                        <p className="text-xs text-slate-500">Duration</p>
-                        <p className="font-bold text-lg text-primary">
-                          {formatDuration(selectedLog.duration)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Start Time</p>
-                        <p className="text-sm">
-                          {new Date(selectedLog.startTime).toLocaleString()}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium text-slate-600">
-                      Data Usage
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-primary/10 rounded-lg">
-                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-primary" />
-                        <p className="text-xs text-slate-600">Upload</p>
-                        <p className="font-bold text-primary">
-                          {formatBytes(selectedLog.dataUpload)}
-                        </p>
-                      </div>
-                      <div className="text-center p-4 bg-success/10 rounded-lg">
-                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-success" />
-                        <p className="text-xs text-slate-600">Download</p>
-                        <p className="font-bold text-success">
-                          {formatBytes(selectedLog.dataDownload)}
-                        </p>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-purple-600" />
-                        <p className="text-xs text-slate-600">Total</p>
-                        <p className="font-bold text-purple-600">
-                          {formatBytes(selectedLog.dataUpload + selectedLog.dataDownload)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="technical" className="space-y-4">
-                <div className="p-4 bg-slate-50 rounded-lg space-y-3 font-mono text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Session ID:</span>
-                    <span className="font-medium">{selectedLog.sessionId}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">IP Address:</span>
-                    <span className="font-medium">{selectedLog.ipAddress}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">NAS ID:</span>
-                    <span className="font-medium">{selectedLog.nasId}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Start Time:</span>
-                    <span className="font-medium">
-                      {new Date(selectedLog.startTime).toISOString()}
-                    </span>
-                  </div>
-                  {selectedLog.endTime && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">End Time:</span>
-                      <span className="font-medium">
-                        {new Date(selectedLog.endTime).toISOString()}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Termination Cause:</span>
-                    <Badge variant="outline">{selectedLog.terminationCause}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Session Duration:</span>
-                    <span className="font-medium">{selectedLog.duration} minutes</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Input Octets:</span>
-                    <span className="font-medium">
-                      {(selectedLog.dataUpload * 1024 * 1024).toLocaleString()} bytes
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Output Octets:</span>
-                    <span className="font-medium">
-                      {(selectedLog.dataDownload * 1024 * 1024).toLocaleString()} bytes
-                    </span>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
+}
+
+function HardDriveEmpty() {
+  return <Activity className="w-12 h-12 mx-auto mb-4 text-slate-400" />
 }

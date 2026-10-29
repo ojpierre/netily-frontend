@@ -4556,6 +4556,27 @@ async activateService(
     return data.usage || {}
   }
 
+  /** Usage analytics (KPIs, time series, plan split) for the Usage page. */
+  async getRadiusUsageAnalytics<T = any>(range: '24h' | '7d' | '30d'): Promise<T> {
+    return this.request<T>(`/radius/usage/analytics/?range=${range}`)
+  }
+
+  /** Paginated, searchable top consumers for the Usage page. */
+  async getRadiusUsageConsumers<T = any>(params: {
+    range: '24h' | '7d' | '30d'
+    page: number
+    page_size: number
+    q?: string
+  }): Promise<T> {
+    const qs = new URLSearchParams({
+      range: params.range,
+      page: String(params.page),
+      page_size: String(params.page_size),
+    })
+    if (params.q) qs.set('q', params.q)
+    return this.request<T>(`/radius/usage/consumers/?${qs.toString()}`)
+  }
+
   // ------------------------------------------
   // RADIUS CUSTOMER CREDENTIALS - /radius/credentials/
   // NEW: Auto-sync customer RADIUS credentials
