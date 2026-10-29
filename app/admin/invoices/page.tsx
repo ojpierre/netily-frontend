@@ -580,20 +580,13 @@ export default function InvoiceManagementPage() {
 
   const handleDownloadPDF = async (invoice: any) => {
     try {
-      const response = await adminApi.rawRequest<Blob>(`/billing/invoices/${invoice.id}/pdf/`, {
-        headers: { 'Accept': 'application/pdf' }
-      })
-      // Handle blob response
-      const blob = response as unknown as Blob
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `invoice-${invoice.invoice_number || invoice.id}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      await adminApi.downloadFile(
+        `/billing/invoices/${invoice.id}/pdf/`,
+        `invoice-${invoice.invoice_number || invoice.id}.pdf`
+      )
       toast.success('PDF downloaded')
-    } catch {
-      toast.error('PDF download failed')
+    } catch (e: any) {
+      toast.error(e.message || 'PDF download failed')
     }
   }
 

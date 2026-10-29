@@ -17,6 +17,7 @@ import {
   Server,
   AlertTriangle,
   Clock,
+  FileDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { adminApi } from "@/lib/admin-api"
+import { toast } from "sonner"
 import {
   AreaChart,
   Area,
@@ -286,6 +288,20 @@ export default function ReportsPage() {
     } catch { /* silent */ }
   }
 
+  const [pdfLoading, setPdfLoading] = useState(false)
+
+  const handleExportPdf = async () => {
+    setPdfLoading(true)
+    try {
+      await adminApi.downloadFile(`/analytics/reports-pdf/?time_range=${timeRange}`, `business-report-${timeRange}.pdf`)
+      toast.success("Report downloaded")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate report")
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
   const handleRouterChange = (routerId: string | number) => {
     setSelectedRouter(routerId)
     fetchRouterRevenue(routerTimeRange, routerId)
@@ -346,6 +362,10 @@ export default function ReportsPage() {
           <Button size="sm" className="bg-primary hover:bg-primary" onClick={handleExport}>
             <Download className="w-4 h-4 mr-1.5" />
             Export
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={pdfLoading}>
+            <FileDown className={`w-4 h-4 mr-1.5 ${pdfLoading ? "animate-pulse" : ""}`} />
+            {pdfLoading ? "Preparing..." : "PDF Report"}
           </Button>
         </div>
       </div>

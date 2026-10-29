@@ -23,6 +23,7 @@ import {
   Undo,
   ChevronLeft,
   ChevronRight,
+  FileDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -198,6 +199,20 @@ export default function PaymentsPage() {
   const [isRefundOpen, setIsRefundOpen] = useState(false)
   const [isReconcileOpen, setIsReconcileOpen] = useState(false)
 
+  // PDF Report states
+  const [isPdfOpen, setIsPdfOpen] = useState(false)
+  const [isPdfLoading, setIsPdfLoading] = useState(false)
+  const [pdfForm, setPdfForm] = useState(() => {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    return {
+      date_from: ymd(new Date(now.getFullYear(), now.getMonth(), 1)),
+      date_to: ymd(now),
+      service_type: "all",
+    }
+  })
+
   // Form states
   const [mpesaForm, setMpesaForm] = useState({
     phone_number: '',
@@ -272,6 +287,29 @@ export default function PaymentsPage() {
     await fetchData()
     setIsRefreshing(false)
     toast.success('Data refreshed')
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!pdfForm.date_from || !pdfForm.date_to) {
+      toast.error('Select a date range')
+      return
+    }
+    setIsPdfLoading(true)
+    try {
+      const qs = new URLSearchParams({ date_from: pdfForm.date_from, date_to: pdfForm.date_to })
+      if (pdfForm.service_type !== 'all') qs.set('service_type', pdfForm.service_type)
+      if (searchQuery) qs.set('search', searchQuery)
+      await adminApi.downloadFile(
+        `/billing/payments/report-pdf/?${qs.toString()}`,
+        `payments-report_${pdfForm.date_from}_${pdfForm.date_to}.pdf`
+      )
+      toast.success('Report downloaded')
+      setIsPdfOpen(false)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate report')
+    } finally {
+      setIsPdfLoading(false)
+    }
   }
 
   // View details
@@ -640,6 +678,10 @@ export default function PaymentsPage() {
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={() => setIsPdfOpen(true)}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Export PDF
           </Button>
           {perms.canAdd && (
             <>
@@ -1094,6 +1136,56 @@ export default function PaymentsPage() {
             <Button variant="destructive" onClick={handleRefund} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Process Refund
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Report Dialog */}
+      <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Payments Report</DialogTitle>
+            <DialogDescription>
+              A branded PDF statement with totals, charts, breakdowns and every transaction in the period.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>From</Label>
+                <Input type="date" value={pdfForm.date_from}
+                  onChange={(e) => setPdfForm({ ...pdfForm, date_from: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>To</Label>
+                <Input type="date" value={pdfForm.date_to}
+                  onChange={(e) => setPdfForm({ ...pdfForm, date_to: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Service</Label>
+              <Select value={pdfForm.service_type}
+                onValueChange={(v) => setPdfForm({ ...pdfForm, service_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All services</SelectItem>
+                  <SelectItem value="HOTSPOT">Hotspot WiFi</SelectItem>
+                  <SelectItem value="PPPOE">Fiber / DSL (PPPoE)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {searchQuery && (
+              <p className="text-xs text-muted-foreground">
+                Your current search &quot;{searchQuery}&quot; will be applied.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPdfOpen(false)}>Cancel</Button>
+            <Button onClick={handleDownloadPdf} disabled={isPdfLoading}>
+              {isPdfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+              Download PDF
             </Button>
           </DialogFooter>
         </DialogContent>

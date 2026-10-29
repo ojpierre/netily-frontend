@@ -656,6 +656,35 @@ class AdminApiService {
     return this.request<T>(endpoint, options)
   }
 
+  /** Authenticated binary download (PDF etc.). Retries once after a token refresh. */
+  async downloadFile(endpoint: string, fallbackName: string): Promise<void> {
+    const send = () => {
+      const token = this.getAdminToken()
+      return fetch(`${this.baseUrl}${endpoint}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+    }
+    let response = await send()
+    if (response.status === 401 && (await this.tryRefreshToken())) {
+      response = await send()
+    }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({} as any))
+      throw new Error(err.detail || err.error || err.message || `Download failed (${response.status})`)
+    }
+    const blob = await response.blob()
+    const match = /filename="?([^";]+)"?/i.exec(response.headers.get('Content-Disposition') || '')
+    const filename = match?.[1] || fallbackName
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+  }
+
   // ------------------------------------------
   // AUTHENTICATION - /core/auth/
   // ------------------------------------------
