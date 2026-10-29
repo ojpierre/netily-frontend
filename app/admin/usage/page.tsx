@@ -364,7 +364,7 @@ export default function UsagePage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Subscriber Usage</h1>
           <p className="text-slate-500 mt-1">
-            Monitor bandwidth consumption, active RADIUS sessions, and subscriber patterns across your network.
+            Monitor bandwidth consumption, active sessions, and subscriber patterns across your network.
           </p>
         </div>
         <div className="inline-flex rounded-lg border bg-card p-1">
@@ -467,7 +467,7 @@ export default function UsagePage() {
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
               <CardTitle>Traffic over time</CardTitle>
-              <CardDescription>{subtitleUnit} bandwidth consumption from RADIUS accounting records</CardDescription>
+              <CardDescription>{subtitleUnit} bandwidth consumption from data usage records</CardDescription>
             </div>
             <div className="inline-flex rounded-lg border bg-card p-1 shrink-0">
               {(["both", "download", "upload"] as const).map((m) => (
