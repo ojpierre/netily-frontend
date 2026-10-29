@@ -87,6 +87,21 @@ export default function AdminNotificationsPage() {
   const [invoiceNotifs, setInvoiceNotifs] = useState<InvoiceNotif[]>([])
   const [loading, setLoading] = useState(true)
   const [markingAll, setMarkingAll] = useState(false)
+  const [freshIds, setFreshIds] = useState<Set<number>>(new Set())
+
+  const isNew = (n: SystemNotification) => !isRead(n) || freshIds.has(n.id)
+
+  const autoMarkAllRead = useCallback(async () => {
+    try {
+      await adminApi.markAllNotificationsRead() // single UPDATE on backend + refreshes header badge
+      const now = new Date().toISOString()
+      setSystemNotifs((prev) =>
+        prev.map((n) => (isRead(n) ? n : { ...n, status: "read", read_at: now }))
+      )
+    } catch {
+      // silent: user can still see items, will retry on next visit/refresh
+    }
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -96,7 +111,15 @@ export default function AdminNotificationsPage() {
         adminApi.getInvoices({ ordering: "-created_at", page_size: 20 } as any),
       ])
 
-      if (sysData.status === "fulfilled") setSystemNotifs(sysData.value?.results ?? [])
+      if (sysData.status === "fulfilled") {
+        const items: SystemNotification[] = sysData.value?.results ?? []
+        setSystemNotifs(items)
+        const unreadIds = items.filter((n) => !isRead(n)).map((n) => n.id)
+        if (unreadIds.length > 0) {
+          setFreshIds((prev) => new Set([...prev, ...unreadIds])) // keep "new" highlight this visit
+          void autoMarkAllRead()
+        }
+      }
 
       if (invoicesData.status === "fulfilled") {
         const results: any[] = invoicesData.value?.results ?? []
@@ -115,7 +138,7 @@ export default function AdminNotificationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [autoMarkAllRead])
 
   useEffect(() => {
     load()
@@ -146,7 +169,7 @@ export default function AdminNotificationsPage() {
     }
   }
 
-  const unreadCount = systemNotifs.filter((n) => !isRead(n)).length
+  const unreadCount = systemNotifs.filter(isNew).length
 
   const allItems = [
     ...systemNotifs.map((n) => ({
@@ -155,8 +178,8 @@ export default function AdminNotificationsPage() {
       title: n.subject || "Notification",
       description: n.message,
       time: timeAgo(n.created_at),
-      read: isRead(n),
-      onRead: !isRead(n) ? () => handleMarkRead(n.id) : undefined,
+      read: !isNew(n),
+      onRead: undefined as (() => void) | undefined,
     })),
     ...invoiceNotifs.slice(0, 10).map((inv) => ({
       id: `inv-${inv.id}`,
@@ -315,7 +338,7 @@ export default function AdminNotificationsPage() {
                 <div
                   key={n.id}
                   className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
-                    isRead(n)
+                    !isNew(n)
                       ? "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
                       : "border-primary/15 dark:border-blue-900 bg-primary/10 dark:bg-blue-950/30"
                   }`}
@@ -327,11 +350,6 @@ export default function AdminNotificationsPage() {
                   </div>
                   <div className="shrink-0 flex items-center gap-2">
                     <span className="text-xs text-slate-400 whitespace-nowrap">{timeAgo(n.created_at)}</span>
-                    {!isRead(n) && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMarkRead(n.id)}>
-                        <CheckCheck className="w-3 h-3" />
-                      </Button>
-                    )}
                   </div>
                 </div>
               ))}
