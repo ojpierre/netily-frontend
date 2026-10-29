@@ -849,7 +849,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", handleStorage)
   }, [user, isPublicPage])
 
-  // Fetch unread notification count
   useEffect(() => {
     if (!mounted || !user) return
     const notificationsRule = getAccessRuleForPath("/admin/notifications")
@@ -860,16 +859,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const fetchCount = async () => {
       try {
         const { adminApi } = await import("@/lib/admin-api")
-        const count = await adminApi.getUnreadNotificationCount()
-        setUnreadNotifCount(count)
+        setUnreadNotifCount(await adminApi.getUnreadNotificationCount())
       } catch {
         // silently ignore
       }
     }
     fetchCount()
     const interval = setInterval(fetchCount, 60_000)
-    return () => clearInterval(interval)
-  }, [mounted, user, accessPolicyVersion])
+    window.addEventListener("netily-notifications-changed", fetchCount)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("netily-notifications-changed", fetchCount)
+    }
+  }, [mounted, user, accessPolicyVersion, pathname])
 
   useEffect(() => {
     if (!mounted || !user || isPublicPage) return
