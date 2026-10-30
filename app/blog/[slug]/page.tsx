@@ -206,10 +206,9 @@ function ContentRenderer({ block }: { block: ContentBlock }) {
       return (
         <div className="my-10 border border-amber-500/30 bg-amber-500 p-8 text-black text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-black/60 mb-3">Ready to automate your ISP?</p>
-          <h3 className="text-2xl font-normal mb-3">Try Internetily Free for 14 Days</h3>
+          <h3 className="text-2xl font-normal mb-3">Start Your 2-Day Internetily Trial</h3>
           <p className="text-black/70 text-sm mb-7 max-w-md mx-auto">
-            M-Pesa STK Push, MikroTik PPPoE provisioning, RADIUS, and customer portal — all set up in under 24 hours. No
-            credit card required.
+            Test the billing, subscriber, MikroTik, RADIUS, and customer workflows with guided onboarding. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <BlogLeadModal
@@ -241,33 +240,50 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
   const related = getRelatedPosts(slug)
   const colors = CATEGORY_COLORS[post.categoryColor] ?? CATEGORY_COLORS.blue
 
-  // JSON-LD BlogPosting schema
-  const schema = {
-    "@context": "https://schema.org",
+  const blogPosting = {
     "@type": "BlogPosting",
+    "@id": `https://netily.co.ke/blog/${post.slug}#article`,
     headline: post.title,
     description: post.metaDescription,
     url: `https://netily.co.ke/blog/${post.slug}`,
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
     author: {
-      "@type": post.author.name === "Netily Editorial Team" ? "Organization" : "Person",
+      "@type": post.author.name.includes("Editorial Team") ? "Organization" : "Person",
       name: post.author.name,
       jobTitle: post.author.role,
-      url: "https://netily.co.ke",
+      url: "https://netily.co.ke/blog",
     },
     publisher: {
       "@type": "Organization",
-      name: "Netily",
+      name: "Internetily",
+      alternateName: "Netily",
       url: "https://netily.co.ke",
-      logo: { "@type": "ImageObject", url: "https://netily.co.ke/logo.png" },
+      logo: { "@type": "ImageObject", url: "https://netily.co.ke/internetily-logo-320.webp" },
     },
     image: { "@type": "ImageObject", url: post.coverImage, width: 1400, height: 933 },
     keywords: post.keywords.join(", "),
     articleSection: post.category,
     spatialCoverage: post.spatialCoverage?.map((name) => ({ "@type": "Place", name })),
+    citation: post.sources?.map((source) => source.url),
+    isAccessibleForFree: true,
     inLanguage: "en-KE",
     mainEntityOfPage: { "@type": "WebPage", "@id": `https://netily.co.ke/blog/${post.slug}` },
+  }
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      blogPosting,
+      ...(post.faqs?.length ? [{
+        "@type": "FAQPage",
+        "@id": `https://netily.co.ke/blog/${post.slug}#faq`,
+        mainEntity: post.faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+        })),
+      }] : []),
+    ],
   }
 
   return (
@@ -275,7 +291,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
       {/* JSON-LD */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }}
       />
 
       <div className="public-site min-h-screen bg-zinc-950 text-white">
@@ -384,6 +400,19 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
               {post.content.map((block, i) => (
                 <ContentRenderer key={i} block={block} />
               ))}
+
+              {post.faqs?.length ? <div className="mb-10 border-y border-zinc-800 divide-y divide-zinc-800">
+                {post.faqs.map((faq) => <details key={faq.question} className="group py-5">
+                  <summary className="cursor-pointer list-none text-base font-medium text-white marker:content-none">{faq.question}</summary>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{faq.answer}</p>
+                </details>)}
+              </div> : null}
+
+              {post.sources?.length ? <section className="mt-12 border-t border-zinc-800 pt-8" aria-labelledby="article-sources">
+                <h2 id="article-sources" className="text-xl font-medium text-white">Official sources</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">Check the linked authority for current requirements, guidance, and publication status.</p>
+                <ul className="mt-5 space-y-3">{post.sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-amber-300 hover:text-white">{source.title}</a><span className="block text-xs text-zinc-600">{source.publisher}</span></li>)}</ul>
+              </section> : null}
 
               {/* Author bio */}
               <div className="mt-14 pt-8 border-t border-zinc-800">

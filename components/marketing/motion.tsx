@@ -7,7 +7,7 @@ import type { ReactNode } from "react"
 import s from "./marketing.module.css"
 
 const revealSelector = [
-  `.${s.heroContent}`,
+  `.${s.heroContent} > *`,
   `.${s.compatibility} .${s.container}`,
   `.${s.sectionHeading}`,
   `.${s.plainItem}`,
@@ -21,6 +21,10 @@ const revealSelector = [
   `.${s.detailPoints} > div`,
   `.${s.calculator}`,
   `.${s.ctaBand} .${s.container}`,
+  `.${s.capabilityItem}`,
+  `.${s.reviewCard}`,
+  `.${s.productProofCopy}`,
+  `.${s.productFrame}`,
 ].join(",")
 
 export function MarketingMotion({ children }: { children: ReactNode }) {

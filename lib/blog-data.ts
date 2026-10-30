@@ -34,6 +34,8 @@ export interface BlogPost {
   metaDescription: string
   keywords: string[]
   spatialCoverage?: string[]
+  sources?: { title: string; url: string; publisher: string }[]
+  faqs?: { question: string; answer: string }[]
   toc: { id: string; text: string }[]
   content: ContentBlock[]
 }
@@ -43,8 +45,10 @@ export interface BlogPost {
 import { operationsGuides } from "./blog-operations-guides"
 import { businessGrowthGuides } from "./blog-business-growth-guides"
 import { networkInfrastructureGuides } from "./blog-network-infrastructure-guides"
+import { currentIndustryGuides } from "./blog-current-industry-guides"
 
 export const blogPosts: BlogPost[] = [
+  ...currentIndustryGuides,
   ...networkInfrastructureGuides,
   ...businessGrowthGuides,
   ...operationsGuides,

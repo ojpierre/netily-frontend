@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, Banknote, Router, ChartNoAxesCombined, Unplug
 import { featurePages, featuredSlugs, marketingHref, solutionPages } from "./content"
 import { DetailCards, Hero, PricingSummary, SectionHeading } from "./sections"
 import { ContactForm } from "./contact-form"
+import { ProductProof } from "./product-preview"
 import s from "./marketing.module.css"
 
 const trustpilotProfileUrl = process.env.NEXT_PUBLIC_TRUSTPILOT_PROFILE_URL || "https://www.trustpilot.com/review/netily.co.ke"
@@ -14,6 +15,7 @@ export default function MarketingHomePage() {
   return <>
     <Hero home label="Internetily" title="Internetily ISP billing system" intro="Automate MikroTik PPPoE, hotspot and WiFi billing, M-Pesa payments, subscriber access, invoices, and renewals in one connected workflow." />
     <section className={s.compatibility}><div className={s.container}><p>Works with the routers you already own.</p><div>{["MikroTik", "Ubiquiti", "TP-Link", "Tenda", "Cambium", "Huawei", "Starlink", "FreeRADIUS"].map((name) => <span key={name}>{name}</span>)}</div><Link href={marketingHref("/integrations")}>Find the right connection for your setup <ArrowRight size={15} /></Link></div></section>
+    <ProductProof variant="overview" />
     <section id="problem" className={s.section}><div className={s.container}><SectionHeading label="Less busywork" title="Every hour on manual billing is an hour not spent growing." /><div className={s.threeColumns}>{[
       { icon: Unplug, title: "Manual reconnections", text: "Someone checks M-Pesa, opens the router, unblocks the user. Three steps that should be zero." },
       { icon: ScanEye, title: "Invisible revenue", text: "Payments come in, but which subscribers are current, overdue, or about to leave? You need answers before month-end." },

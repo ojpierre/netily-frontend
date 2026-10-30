@@ -11,6 +11,18 @@ const home = {
 }
 
 const servedMarkets = ["Kenya", "Uganda", "Tanzania", "South Africa", "United Kingdom", "United States", "Australia", "New Zealand"]
+const metaTitles: Record<string, string> = {
+  "/features/mpesa-billing": "M-Pesa ISP Billing & Auto-Reconnection | Internetily",
+  "/features/mikrotik-provisioning": "MikroTik ISP Provisioning Software | Internetily",
+  "/features/pppoe-billing": "PPPoE Billing and RADIUS Automation | Internetily",
+  "/features/hotspot-billing": "M-Pesa Hotspot Billing Software | Internetily",
+  "/features/subscriber-management": "ISP Subscriber Management Software | Internetily",
+  "/features/revenue-reporting": "ISP Revenue and Collections Reporting | Internetily",
+  "/solutions/fibre-isps": "Billing and Operations Software for Fibre ISPs | Internetily",
+  "/solutions/rural-wisps": "WISP Billing and MikroTik Operations | Internetily",
+  "/solutions/managed-wifi": "Managed Wi-Fi and Hotspot Billing | Internetily",
+  "/countries/kenya": "ISP Billing Software for Kenya | M-Pesa & MikroTik",
+}
 
 function pageFor(path: string) {
   const key = path.replace(/^\//, "")
@@ -20,7 +32,7 @@ function pageFor(path: string) {
 export function marketingMetadata(path = ""): Metadata {
   const page = pageFor(path)
   if (!page) notFound()
-  const title = path ? `${pageName(path)} | Internetily ISP Management` : home.title
+  const title = path ? metaTitles[path] || `${pageName(path)} for ISPs | Internetily` : home.title
   const url = `${siteUrl}${path || "/"}`
   return {
     title: { absolute: title },
@@ -44,6 +56,18 @@ export function MarketingStructuredData({ path = "" }: { path?: string }) {
     { "@type": "WebSite", "@id": `${siteUrl}/#website`, name: "Internetily", alternateName: "Netily", url: siteUrl, publisher: { "@id": `${siteUrl}/#organization` }, inLanguage: "en" },
     { "@type": "SoftwareApplication", "@id": `${siteUrl}/#software`, name: "Internetily", alternateName: "Netily", applicationCategory: "BusinessApplication", applicationSubCategory: "ISP billing and network management software", operatingSystem: "Web", description: home.intro, provider: { "@id": `${siteUrl}/#organization` }, areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })), offers: { "@type": "Offer", priceCurrency: "KES", price: "500", description: "Monthly minimum; usage-based billing applies." } },
     webPage,
+    ...(path.startsWith("/features/") || path.startsWith("/solutions/") ? [{
+      "@type": "Service",
+      "@id": `${url}#service`,
+      name: pageName(path),
+      serviceType: path.startsWith("/features/") ? "ISP operations software feature" : "ISP operations solution",
+      description: page.intro,
+      url,
+      provider: { "@id": `${siteUrl}/#organization` },
+      audience: { "@type": "BusinessAudience", audienceType: "Internet service providers and network operators" },
+      areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })),
+      isRelatedTo: { "@id": `${siteUrl}/#software` },
+    }] : []),
     ...(path ? [{
       "@type": "BreadcrumbList",
       itemListElement: [

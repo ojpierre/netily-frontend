@@ -5,8 +5,14 @@ import { marketingIndexes, detailPages, featurePages, pageName, marketingHref, r
 import { ClosingCTA, DetailCards, Hero, PricingSummary, SectionHeading } from "./sections"
 import { ContactForm } from "./contact-form"
 import { MarketingCalculator } from "./calculator"
+import { ProductProof, type ProductPreviewVariant } from "./product-preview"
 import s from "./marketing.module.css"
 
+function previewForPath(path: string): ProductPreviewVariant {
+  if (/mpesa|payment|invoice|billing|wallet|voucher/.test(path)) return "billing"
+  if (/mikrotik|pppoe|hotspot|router|tr069|ip-mac|fibre|wifi/.test(path)) return "network"
+  return "operations"
+}
 
 
 export default function MarketingContentPage({ path }: { path: string }) {
@@ -19,6 +25,7 @@ export default function MarketingContentPage({ path }: { path: string }) {
     return <>
       <div className={s.container}><nav aria-label="Breadcrumb" className={s.breadcrumb}><Link href={marketingHref()}>Home</Link><span>/</span><Link href={marketingHref(`/${slug[0]}`)}>{pageName(slug[0])}</Link><span>/</span><span aria-current="page">{pageName(detail.path)}</span></nav></div>
       <Hero label={pageName(detail.path)} title={detail.title} intro={detail.intro} image={image} />
+      <ProductProof variant={previewForPath(detail.path)} />
       <section className={s.section}><div className={s.container}>{detail.problem && <SectionHeading label="Sound familiar?" title="Less work between you and your subscribers.">{detail.problem}</SectionHeading>}<div className={s.detailPoints}>{detail.points.map((point) => { const [heading, ...body] = point.split(/\s+-\s+/); return <div key={point}>{body.length > 0 && <h2 style={{ fontSize: 26 }}>{heading}</h2>}<p>{body.length ? body.join(" - ") : heading}</p></div> })}</div></div></section>
       {detail.steps.length > 0 && <section className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="How it works" title="A simpler way through your day." /><ol className={s.threeColumns}>{detail.steps.map((step, index) => <li className={s.plainItem} key={step}><span className={s.stepNumber}>0{index + 1}</span><p>{step}</p></li>)}</ol></div></section>}
       <section className={s.section}><div className={s.container}><SectionHeading label="Keep exploring" title="The rest of your workflow, connected." /><DetailCards pages={related.filter((page) => page.path !== detail.path).slice(0, 3)} /></div></section><ClosingCTA />
