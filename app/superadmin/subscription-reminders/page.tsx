@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { superadminApi, type SubscriptionReminderBalanceSummary, type SubscriptionReminderLogEntry, type SubscriptionReminderManualResult, type SubscriptionReminderRecipient, type SubscriptionReminderTemplate } from "@/lib/superadmin-api"
+import { superadminApi, type SubscriptionInvoiceReminderSettings, type SubscriptionReminderBalanceSummary, type SubscriptionReminderLogEntry, type SubscriptionReminderManualResult, type SubscriptionReminderRecipient, type SubscriptionReminderTemplate } from "@/lib/superadmin-api"
 
 type Channel = "sms" | "email" | "in_app"
 type PageTab = "manual" | "automation" | "templates" | "history"
@@ -61,7 +61,9 @@ function renderPreview(content: string, recipient?: SubscriptionReminderRecipien
     company_name: recipient?.company_name || "Example Network", plan_name: recipient?.plan_name || "Starter",
     days_left: String(Math.max(recipient?.days_left ?? 3, 0)),
     expiry_date: recipient?.expiry ? new Date(recipient.expiry).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" }) : "30 Oct 2026",
-    amount_due: "", admin_name: recipient?.recipient_name?.split(" ")[0] || "James", invoice_number: "",
+    amount_due: recipient?.amount_due ? Number(recipient.amount_due).toLocaleString("en-KE", { maximumFractionDigits: 2 }) : "",
+    admin_name: recipient?.recipient_name?.split(" ")[0] || "James",
+    invoice_number: recipient?.invoice_number || "",
   }
   return Object.entries(values).reduce((message, [key, value]) => message.replaceAll(`{${key}}`, value), content)
 }
@@ -72,6 +74,7 @@ export default function SubscriptionRemindersPage() {
   const [savedContent, setSavedContent] = useState("")
   const [manualContent, setManualContent] = useState("")
   const [balance, setBalance] = useState<SubscriptionReminderBalanceSummary | null>(null)
+  const [automation, setAutomation] = useState<SubscriptionInvoiceReminderSettings | null>(null)
   const [recipients, setRecipients] = useState<SubscriptionReminderRecipient[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [channels, setChannels] = useState<Channel[]>(["sms"])
@@ -85,6 +88,7 @@ export default function SubscriptionRemindersPage() {
   const [logChannel, setLogChannel] = useState("all")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingAutomation, setSavingAutomation] = useState(false)
   const [sending, setSending] = useState(false)
   const [sweeping, setSweeping] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -108,6 +112,8 @@ export default function SubscriptionRemindersPage() {
       return filterMatch && searchMatch
     })
   }, [filter, recipients, search])
+  const eligibleVisible = useMemo(() => filtered.filter((row) => row.can_send), [filtered])
+  const allEligibleVisibleSelected = eligibleVisible.length > 0 && eligibleVisible.every((row) => selectedIds.includes(row.tenant_id))
   const providerValue = useMemo(() => {
     if (!balance?.success) return "Unavailable"
     const raw = balance.raw as { remaining_balance?: string } | undefined
@@ -146,6 +152,11 @@ export default function SubscriptionRemindersPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    superadminApi.getSubscriptionInvoiceReminderSettings()
+      .then(setAutomation)
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Could not load reminder automation settings"))
+  }, [])
   useEffect(() => { if (tab === "history") loadLogs(1).catch((error) => toast.error(error.message || "Could not load reminder history")) }, [loadLogs, tab])
   useEffect(() => {
     const node = sentinel.current
@@ -161,6 +172,13 @@ export default function SubscriptionRemindersPage() {
   function toggleRecipient(row: SubscriptionReminderRecipient) {
     if (!row.can_send) return
     setSelectedIds((current) => current.includes(row.tenant_id) ? current.filter((id) => id !== row.tenant_id) : [...current, row.tenant_id]); setResults([])
+  }
+  function toggleVisibleRecipients() {
+    const visibleIds = eligibleVisible.map((row) => row.tenant_id)
+    setSelectedIds((current) => allEligibleVisibleSelected
+      ? current.filter((id) => !visibleIds.includes(id))
+      : Array.from(new Set([...current, ...visibleIds])))
+    setResults([])
   }
   function toggleChannel(channel: Channel) {
     setChannels((current) => current.includes(channel) ? current.filter((item) => item !== channel) : [...current, channel]); setResults([])
@@ -201,6 +219,37 @@ export default function SubscriptionRemindersPage() {
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not queue reminder sweep") }
     finally { setSweeping(false) }
   }
+  function toggleAutomationChannel(channel: Channel) {
+    setAutomation((current) => current ? {
+      ...current,
+      channels: current.channels.includes(channel)
+        ? current.channels.filter((item) => item !== channel)
+        : [...current.channels, channel],
+    } : current)
+  }
+  function toggleAutomationDay(day: number) {
+    setAutomation((current) => current ? {
+      ...current,
+      days_before: current.days_before.includes(day)
+        ? current.days_before.filter((item) => item !== day)
+        : [...current.days_before, day].sort((a, b) => b - a),
+    } : current)
+  }
+  async function saveAutomation() {
+    if (!automation) return
+    if (!automation.days_before.length) return toast.error("Choose at least one reminder day.")
+    if (!automation.channels.length) return toast.error("Choose at least one automatic delivery channel.")
+    setSavingAutomation(true)
+    try {
+      const updated = await superadminApi.updateSubscriptionInvoiceReminderSettings(automation)
+      setAutomation(updated)
+      toast.success("Automatic reminder schedule saved")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save reminder automation")
+    } finally {
+      setSavingAutomation(false)
+    }
+  }
 
   if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-violet-400" /></div>
   const tabs: Array<{ id: PageTab; label: string; icon: typeof Send }> = [
@@ -209,7 +258,7 @@ export default function SubscriptionRemindersPage() {
   ]
 
   return <div className="space-y-5">
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><h1 className="flex items-center gap-2 text-2xl font-bold text-white"><MessageSquareText className="h-6 w-6 text-violet-400" />Subscription reminders</h1><p className="mt-1 text-sm text-slate-400">Manage renewal communication without contacting tenant staff or platform superadmins.</p></div><div className="flex items-center gap-2 text-xs text-slate-400"><span className="h-2 w-2 rounded-full bg-emerald-400" />Automatic schedule enabled</div></div>
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><h1 className="flex items-center gap-2 text-2xl font-bold text-white"><MessageSquareText className="h-6 w-6 text-violet-400" />Subscription reminders</h1><p className="mt-1 text-sm text-slate-400">Manage renewal communication without contacting tenant staff or platform superadmins.</p></div><div className="flex items-center gap-2 text-xs text-slate-400"><span className={`h-2 w-2 rounded-full ${automation?.enabled ? "bg-emerald-400" : "bg-slate-600"}`} />{automation?.enabled ? "Automatic schedule enabled" : "Automatic schedule paused"}</div></div>
 
     <div className="grid gap-3 md:grid-cols-3">{[
       { title: "Bytewave master", value: providerValue, meta: balance?.provider || "Platform provider", icon: Wallet, color: "text-emerald-400" },
@@ -222,10 +271,10 @@ export default function SubscriptionRemindersPage() {
     {tab === "manual" && <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)]">
       <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-base text-white">1. Choose subscribers</CardTitle><CardDescription>Select one tenant or a small, intentional group.</CardDescription></CardHeader><CardContent className="space-y-3">
         <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, admin, email or phone" className="border-slate-700 bg-slate-950 pl-9 text-white" /></div>
-        <div className="flex gap-2 overflow-x-auto pb-1">{FILTERS.map((item) => <button key={item.id} onClick={() => setFilter(item.id)} className={`shrink-0 rounded-md border px-3 py-1.5 text-xs ${filter === item.id ? "border-violet-500 bg-violet-500/15 text-violet-200" : "border-slate-700 text-slate-400"}`}>{item.label} <span className="ml-1 opacity-60">{counts[item.id]}</span></button>)}</div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">{FILTERS.map((item) => <button key={item.id} onClick={() => setFilter(item.id)} className={`shrink-0 rounded-md border px-3 py-1.5 text-xs ${filter === item.id ? "border-violet-500 bg-violet-500/15 text-violet-200" : "border-slate-700 text-slate-400"}`}>{item.label} <span className="ml-1 opacity-60">{counts[item.id]}</span></button>)}<span className="ml-auto flex shrink-0 gap-2"><button type="button" onClick={toggleVisibleRecipients} disabled={!eligibleVisible.length} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 disabled:opacity-40">{allEligibleVisibleSelected ? "Deselect view" : "Select eligible"}</button>{selectedIds.length > 0 && <button type="button" onClick={() => { setSelectedIds([]); setResults([]) }} className="rounded-md px-2 py-1.5 text-xs text-slate-500 hover:text-slate-300">Clear</button>}</span></div>
         <div className="max-h-[520px] overflow-y-auto rounded-md border border-slate-800">{filtered.length ? filtered.map((row) => {
           const checked = selectedIds.includes(row.tenant_id)
-          return <button key={row.tenant_id} type="button" disabled={!row.can_send} onClick={() => toggleRecipient(row)} className={`flex w-full items-start gap-3 border-b border-slate-800 p-3 text-left last:border-0 ${checked ? "bg-violet-500/10" : "hover:bg-slate-800/40"} ${!row.can_send ? "opacity-50" : ""}`}><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${checked ? "border-violet-400 bg-violet-500 text-white" : "border-slate-600"}`}>{checked && <Check className="h-3.5 w-3.5" />}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-white">{row.company_name}</span><span className="block truncate text-xs text-slate-500">{row.recipient_name} · {row.recipient_email || row.recipient_phone || "Contact missing"}</span><span className="mt-1.5 flex items-center gap-1 text-xs text-slate-400"><Clock3 className="h-3 w-3" />{timing(row)}</span></span><Badge className={row.reminder_status === "expired" ? "bg-red-500/15 text-red-300" : row.reminder_status === "due_soon" ? "bg-amber-500/15 text-amber-300" : "bg-slate-700 text-slate-300"}>{statusLabel(row.reminder_status)}</Badge></button>
+          return <button key={row.tenant_id} type="button" disabled={!row.can_send} onClick={() => toggleRecipient(row)} className={`flex w-full items-start gap-3 border-b border-slate-800 p-3 text-left last:border-0 ${checked ? "bg-violet-500/10" : "hover:bg-slate-800/40"} ${!row.can_send ? "opacity-50" : ""}`}><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${checked ? "border-violet-400 bg-violet-500 text-white" : "border-slate-600"}`}>{checked && <Check className="h-3.5 w-3.5" />}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-white">{row.company_name}</span><span className="block truncate text-xs text-slate-500">{row.recipient_name} · {row.recipient_email || row.recipient_phone || "Contact missing"}</span><span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400"><span className="flex items-center gap-1"><Clock3 className="h-3 w-3" />{timing(row)}</span>{row.invoice_number && <span>{row.invoice_number}</span>}{Number(row.amount_due || 0) > 0 && <span>KES {Number(row.amount_due).toLocaleString("en-KE")}</span>}</span>{row.recipient_error && <span className="mt-1 block text-[11px] text-amber-400">{row.recipient_error}</span>}</span><Badge className={row.reminder_status === "expired" ? "bg-red-500/15 text-red-300" : row.reminder_status === "due_soon" ? "bg-amber-500/15 text-amber-300" : "bg-slate-700 text-slate-300"}>{statusLabel(row.reminder_status)}</Badge></button>
         }) : <div className="p-10 text-center text-sm text-slate-500">No subscribers match this view.</div>}</div><p className="text-xs text-slate-500">{selected.length} selected · each reminder goes only to the resolved tenant account admin.</p>
       </CardContent></Card>
 
@@ -237,7 +286,7 @@ export default function SubscriptionRemindersPage() {
         <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-base text-white">3. Review the message</CardTitle><CardDescription>This edit applies only to this send. It does not change automation.</CardDescription></CardHeader><CardContent className="space-y-3">
           <div className="flex gap-2 overflow-x-auto">{PRESETS.map((preset) => <button key={preset.name} type="button" onClick={() => setManualContent(preset.content)} className="shrink-0 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-violet-500">{preset.name}</button>)}</div>
           <Textarea value={manualContent} onChange={(event) => setManualContent(event.target.value)} rows={6} maxLength={1200} className="border-slate-700 bg-slate-950 text-white" />
-          <div className="rounded-md border border-slate-800 bg-slate-950 p-3"><p className="text-[11px] font-medium uppercase text-slate-500">Preview {primary ? `for ${primary.company_name}` : ""}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{renderPreview(manualContent, primary)}</p></div>
+          <div className="rounded-md border border-slate-800 bg-slate-950 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[11px] font-medium uppercase text-slate-500">Preview {primary ? `for ${primary.company_name}` : ""}</p>{primary && <p className="text-[11px] text-slate-600">{primary.invoice_number || "Current billing cycle"}{Number(primary.amount_due || 0) > 0 ? ` · KES ${Number(primary.amount_due).toLocaleString("en-KE")}` : ""}</p>}</div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{renderPreview(manualContent, primary)}</p></div>
           <div className="flex items-center justify-between text-xs text-slate-500"><span>{manualContent.length}/1,200 characters</span><span>{channels.length} channel{channels.length === 1 ? "" : "s"}</span></div>
           <Button onClick={sendManual} disabled={sending || !selected.length || !channels.length || !manualContent.trim()} className="h-11 w-full">{sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{sending ? `Sending ${results.length + 1} of ${selected.length}` : `Review and send to ${selected.length || 0} tenant${selected.length === 1 ? "" : "s"}`}</Button>
         </CardContent></Card>
@@ -246,7 +295,7 @@ export default function SubscriptionRemindersPage() {
     </div>}
 
     {tab === "automation" && <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-      <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-white">Automatic renewal schedule</CardTitle><CardDescription>Each milestone is deduplicated per billing cycle. Paid or renewed subscriptions are skipped.</CardDescription></CardHeader><CardContent className="space-y-2">{[["5 days before", "A calm early reminder with time to prepare payment"], ["3 days before", "A practical follow-up before the due date"], ["1 day before", "A final reminder before access may be affected"], ["Once expired", "One overdue notice, when expired notices are enabled"]].map(([title, copy], index) => <div key={title} className="flex items-center gap-4 rounded-md border border-slate-800 bg-slate-950 p-4"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/15 text-xs font-semibold text-violet-300">{index + 1}</span><div className="flex-1"><p className="text-sm font-medium text-white">{title}</p><p className="text-xs text-slate-500">{copy}</p></div><Badge className="bg-emerald-500/15 text-emerald-300">Enabled</Badge></div>)}</CardContent></Card>
+      <Card className="border-slate-800 bg-slate-900"><CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between"><div><CardTitle className="text-white">Automatic renewal schedule</CardTitle><CardDescription>Uses the same eligibility, recipient, channel, wallet, and delivery-log pipeline as manual reminders.</CardDescription></div>{automation && <label className="flex shrink-0 items-center gap-2 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-300"><input type="checkbox" checked={automation.enabled} onChange={(event) => setAutomation({ ...automation, enabled: event.target.checked })} />Schedule enabled</label>}</CardHeader><CardContent className="space-y-5">{automation ? <><div><p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Send before renewal</p><div className="flex flex-wrap gap-2">{[30, 14, 7, 5, 3, 1].map((day) => <button key={day} type="button" onClick={() => toggleAutomationDay(day)} className={`rounded-md border px-3 py-2 text-xs ${automation.days_before.includes(day) ? "border-violet-500 bg-violet-500/15 text-violet-200" : "border-slate-700 text-slate-400"}`}>{day} day{day === 1 ? "" : "s"}</button>)}</div></div><div><p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Automatic channels</p><div className="grid gap-2 sm:grid-cols-3">{CHANNELS.map((item) => { const active = automation.channels.includes(item.id); return <button key={item.id} type="button" onClick={() => toggleAutomationChannel(item.id)} className={`flex items-center gap-3 rounded-md border p-3 text-left ${active ? "border-violet-500 bg-violet-500/10" : "border-slate-800 bg-slate-950"}`}><item.icon className={`h-4 w-4 ${active ? "text-violet-300" : "text-slate-500"}`} /><span><span className="block text-sm text-white">{item.label}</span><span className="text-[11px] text-slate-500">{item.description}</span></span></button> })}</div></div><label className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950 p-4"><span><span className="block text-sm font-medium text-white">Send one expired notice</span><span className="text-xs text-slate-500">Deduplicated for the same invoice and billing cycle.</span></span><input type="checkbox" checked={automation.send_expired_notice !== false} onChange={(event) => setAutomation({ ...automation, send_expired_notice: event.target.checked })} /></label><Button onClick={saveAutomation} disabled={savingAutomation} className="w-full sm:w-auto">{savingAutomation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save automation</Button></> : <div className="flex items-center justify-center py-12 text-sm text-slate-500"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading schedule</div>}</CardContent></Card>
       <Card className="border-slate-800 bg-slate-900"><CardHeader><CardTitle className="text-white">Run a sweep</CardTitle><CardDescription>Queue the same eligibility checks used by the daily schedule.</CardDescription></CardHeader><CardContent><div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400"><p className="font-medium text-white">Before anything sends</p><ul className="mt-2 space-y-2 text-xs"><li>Checks the current billing cycle</li><li>Skips paid and renewed tenants</li><li>Contacts one tenant account admin</li><li>Prevents a duplicate milestone delivery</li></ul></div><Button onClick={runSweep} disabled={sweeping} className="mt-4 h-11 w-full">{sweeping ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}Run sweep now</Button></CardContent></Card>
     </div>}
 

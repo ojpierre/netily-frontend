@@ -1112,19 +1112,45 @@ export interface SubscriptionReminderLogEntry {
 
 export interface SubscriptionReminderRecipient {
   tenant_id: string
+  cycle_id?: string
   company_name: string
   subdomain: string
   plan_name: string
   subscription_status: string
   reminder_status: "expired" | "due_soon" | "active" | "trial" | "cancelled" | string
   expiry: string | null
+  due_date?: string | null
   days_left: number | null
+  invoice_number?: string
+  amount_due?: string
+  is_settled?: boolean
   recipient_name: string
   recipient_email: string
   recipient_phone: string
   available_channels: Record<"email" | "sms" | "in_app", boolean>
   recipient_error: string
   can_send: boolean
+}
+
+export interface ShopSettings {
+  store_name: string
+  announcement_text: string
+  hero_eyebrow: string
+  hero_title: string
+  hero_description: string
+  hero_image: string
+  hero_primary_label: string
+  hero_primary_href: string
+  hero_secondary_label: string
+  hero_secondary_href: string
+  support_email: string
+  support_phone: string
+  whatsapp_number: string
+  default_shipping_fee: string | number
+  free_shipping_threshold: string | number | null
+  allow_checkout: boolean
+  checkout_notice: string
+  updated_at?: string
 }
 
 export interface SubscriptionReminderManualResult {
@@ -2087,6 +2113,12 @@ class SuperadminApiService {
   }
 
   // ── Shop ──
+  async getShopSettings(): Promise<ShopSettings> {
+    return this.request("/shop/admin/settings/")
+  }
+  async updateShopSettings(data: Partial<ShopSettings>): Promise<ShopSettings> {
+    return this.request("/shop/admin/settings/", { method: "PATCH", body: JSON.stringify(data) })
+  }
   async getShopStats(): Promise<Record<string, number | string>> {
     return this.request("/shop/admin/orders/stats/")
   }

@@ -1,4 +1,5 @@
 import { normalizeProduct, type Product } from "./products"
+import { featuredCatalog } from "./featured-catalog"
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL || "/api/v1").replace(/\/+$/, "")
 
@@ -46,6 +47,26 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export interface ShopCategory { name: string; slug: string }
 
+export interface PublicShopSettings {
+  store_name: string
+  announcement_text: string
+  hero_eyebrow: string
+  hero_title: string
+  hero_description: string
+  hero_image: string
+  hero_primary_label: string
+  hero_primary_href: string
+  hero_secondary_label: string
+  hero_secondary_href: string
+  support_email: string
+  support_phone: string
+  whatsapp_number: string
+  default_shipping_fee: number
+  free_shipping_threshold: number | null
+  allow_checkout: boolean
+  checkout_notice: string
+}
+
 export interface CheckoutPayload {
   first_name: string; last_name: string; company?: string; email: string; phone: string
   address: string; apartment?: string; city: string; state?: string; zip_code?: string
@@ -89,6 +110,9 @@ export interface OrderStatus {
 }
 
 export const shopApi = {
+  async getSettings() {
+    return request<PublicShopSettings>("/shop/settings/")
+  },
   async getProducts(params: Record<string, string> = {}) {
     const qs = new URLSearchParams(params).toString()
     const r = await request<{ count: number; page: number; page_size: number; results: unknown[] }>(
@@ -104,7 +128,9 @@ export const shopApi = {
     try {
       return normalizeProduct(await request<unknown>(`/shop/products/${encodeURIComponent(slug)}/`))
     } catch (e) {
-      if (e instanceof ShopApiError && e.status === 404) return null
+      const fallback = featuredCatalog.find((product) => product.id === slug) || null
+      if (e instanceof ShopApiError && e.status === 404) return fallback
+      if (fallback) return fallback
       throw e
     }
   },

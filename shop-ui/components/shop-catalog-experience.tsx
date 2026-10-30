@@ -124,7 +124,7 @@ export function ShopCatalogExperience() {
               <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-[#1b5eff]">Shop catalog</p>
-                  <h2 className="mt-1 text-3xl font-semibold">ISP hardware, ready for deployment</h2>
+                  <h2 className="mt-1 text-3xl font-semibold">Deployment-ready hardware, phones & laptops</h2>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredProducts.length} of {products.length} items
@@ -157,8 +157,15 @@ export function ShopCatalogExperience() {
                           sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                           className="object-cover transition duration-700 group-hover:scale-105"
                         />
-                        <div className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase text-[#1b5eff]">
-                          {product.brand || "Netily"}
+                        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase text-[#1b5eff]">
+                            {product.brand || "Netily"}
+                          </span>
+                          {product.isFeatured && (
+                            <span className="rounded-full bg-[#1b5eff] px-2.5 py-1 text-[10px] font-semibold uppercase text-white">
+                              Popular
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-3 px-1 py-4">

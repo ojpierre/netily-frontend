@@ -9,7 +9,7 @@ import { Input } from "@/shop-ui/components/ui/input"
 import { Label } from "@/shop-ui/components/ui/label"
 import { useCart } from "@/shop-ui/lib/cart-context"
 import { toast } from "sonner"
-import { shopApi, ShopApiError } from "@/shop-ui/lib/shop-api"
+import { shopApi, ShopApiError, type PublicShopSettings } from "@/shop-ui/lib/shop-api"
 import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 type Step = "shipping" | "payment" | "success"
@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [order, setOrder] = useState<{ reference: string; token: string; amountKes: number } | null>(null)
   const [payState, setPayState] = useState<PayState>("idle")
   const [payMessage, setPayMessage] = useState("")
+  const [shopSettings, setShopSettings] = useState<PublicShopSettings | null>(null)
 
   const [form, setForm] = useState<ShippingForm>({
     firstName: "",
@@ -56,12 +57,18 @@ export default function CheckoutPage() {
     country: "Kenya",
   })
 
-  const shipping = 0
+  const shippingBase = Number(shopSettings?.default_shipping_fee || 0)
+  const freeShippingFrom = shopSettings?.free_shipping_threshold
+  const shipping = freeShippingFrom != null && total >= freeShippingFrom ? 0 : shippingBase
   const orderTotal = total + shipping
 
   const errMsg = (e: unknown) => (e instanceof ShopApiError || e instanceof Error ? e.message : "Something went wrong.")
 
   // Restore an in-flight order after a refresh
+  useEffect(() => {
+    shopApi.getSettings().then(setShopSettings).catch(() => {})
+  }, [])
+
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(PENDING_KEY)
@@ -121,11 +128,19 @@ export default function CheckoutPage() {
 
   function handleShippingSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (shopSettings?.allow_checkout === false) {
+      toast.error(shopSettings.checkout_notice || "Checkout is temporarily unavailable.")
+      return
+    }
     setStep("payment")
   }
 
   async function handleCompletePayment() {
     if (isProcessing || items.length === 0) return
+    if (shopSettings?.allow_checkout === false) {
+      toast.error(shopSettings.checkout_notice || "Checkout is temporarily unavailable.")
+      return
+    }
     setIsProcessing(true)
     setPayMessage("")
     try {
@@ -229,6 +244,8 @@ export default function CheckoutPage() {
           </div>
         </div>
       </header>
+
+      {shopSettings?.allow_checkout === false && step !== "success" && <div className="border-b border-amber-300 bg-amber-50 px-6 py-3 text-center text-sm text-amber-900">{shopSettings.checkout_notice || "Checkout is temporarily unavailable. Please contact shop support."}</div>}
 
       {/* Success State */}
       {step === "success" && (
@@ -461,6 +478,7 @@ export default function CheckoutPage() {
 
                   <button
                     type="submit"
+                    disabled={shopSettings?.allow_checkout === false}
                     className="w-full py-5 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90"
                   >
                     Continue to Payment
@@ -535,7 +553,7 @@ export default function CheckoutPage() {
 
                   <button
                     onClick={order ? handleRetryPayment : handleCompletePayment}
-                    disabled={isProcessing || payState === "delayed"}
+                    disabled={isProcessing || payState === "delayed" || shopSettings?.allow_checkout === false}
                     className="w-full py-5 text-xs tracking-[0.2em] uppercase bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
                   >
                     {isProcessing
@@ -607,7 +625,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery and handling</span>
-                    <span className="text-emerald-700 dark:text-emerald-400 uppercase text-xs tracking-wider">Free</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 uppercase text-xs tracking-wider">{shipping === 0 ? "Free" : formatShopMoney(shipping)}</span>
                   </div>
                   <div className="flex justify-between text-base font-medium pt-3 border-t border-border">
                     <span>Total</span>
