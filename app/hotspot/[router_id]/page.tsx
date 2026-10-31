@@ -55,6 +55,7 @@ export default async function HotspotPage({
       initialPortalConfig={initialData?.portal_config ?? null}
       initialBranding={initialData?.branding ?? null}
       initialRouterError={sp.error || null}
+      initialSuspended={initialData?.status === "suspended"}
       initialLoginUrl={initialLoginUrl}
     />
   )

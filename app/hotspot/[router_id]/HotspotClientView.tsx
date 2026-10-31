@@ -90,6 +90,7 @@ export interface BrandingConfig {
 // ==========================================
 export interface CaptivePortalResponse {
   status: string
+  suspended?: boolean
   portal_config: PortalConfig
   branding: BrandingConfig | null
   plans: HotspotPlan[]
@@ -418,7 +419,7 @@ async function phoneReconnect(data: {
   router_id: string
   mac_address: string
   tenant: string
-  target_device?: "this" | "tv"      // NEW
+  target_device?: "this" | "tv"       // NEW
 }): Promise<{
   status: string
   message: string
@@ -457,7 +458,7 @@ async function credentialReconnect(data: {
   router_id: string
   mac_address: string
   tenant: string
-  target_device?: "this" | "tv"      // NEW
+  target_device?: "this" | "tv"       // NEW
 }): Promise<ReconnectResult> {
   const response = await fetchWithRetry(
     `${getApiBase()}/hotspot/credentials-reconnect/`,
@@ -585,30 +586,6 @@ async function redeemHotspotLoyaltyPoints(data: {
   return json
 }
 
-/**
- * The way we hand credentials back to MikroTik: a plain top-level GET
- * navigation to the hotspot's link-login-only URL, NOT a <form method="POST">
- * submission.
- *
- * We switched away from POST because a <form> submitting from this HTTPS
- * portal page to the router's HTTP gateway (http://172.x.x.x/login) triggers
- * Chrome/Edge's "insecure form" mixed-content warning on laptops and TVs
- * (desktop browsers enforce this; phone OS captive-portal webviews do not,
- * which is why the warning only ever showed up on laptops/TVs). A plain
- * navigation to the same HTTP URL is never flagged by that check — only
- * form submissions are.
- *
- * GET-based login against RouterOS's hotspot login handler (http-pap) is
- * the same mechanism RouterOS itself uses for "auto-login" links, so this
- * is a supported, not a workaround, path.
- *
- * dst is intentionally left empty: RouterOS then redirects the client
- * to whatever URL it originally requested (e.g. Android/iOS's own
- * connectivity-check URL) instead of bouncing the browser back into
- * this captive portal app. That's what lets the OS correctly detect
- * "internet is up" and dismiss the sign-in notification, instead of
- * reloading straight back into the plan-selection screen.
- */
 function submitRouterLogin(loginUrl: string, username: string, password: string) {
   if (!loginUrl) {
     console.error("[hotspot] Missing login_url — cannot authenticate with MikroTik")
@@ -618,16 +595,9 @@ function submitRouterLogin(loginUrl: string, username: string, password: string)
     const url = new URL(loginUrl)
     url.searchParams.set("username", username)
     url.searchParams.set("password", password)
-    // Leave dst empty so RouterOS redirects to the client's originally
-    // requested URL (Android/iOS connectivity-check target) instead of
-    // bouncing back into this portal — same reasoning as before.
     url.searchParams.set("dst", "")
     url.searchParams.set("popup", "true")
 
-    // Plain top-level navigation — NOT a <form> POST. Chrome/Edge only
-    // show the "insecure form" warning for form submissions from an
-    // HTTPS page to an HTTP action; a normal navigation is never flagged,
-    // which is what eliminates the warning on laptops/TVs.
     window.location.replace(url.toString())
     return true
   } catch (e) {
@@ -649,9 +619,6 @@ async function submitRouterLoginConfirmed(
   // First attempt
   submitRouterLogin(loginUrl, username, password)
 
-  // FIX: two staggered confirmation checks instead of one — covers the
-  // extra latency the CoA pre-clear round-trip now adds before the NAS
-  // is actually ready to accept the new login.
   const attempts = [2500, 5000]
   for (const delay of attempts) {
     await new Promise((r) => setTimeout(r, delay))
@@ -763,6 +730,7 @@ interface HotspotClientViewProps {
   initialBranding: BrandingConfig | null
   initialRouterError: string | null
   initialLoginUrl: string
+  initialSuspended?: boolean
 }
 
 // ==========================================
@@ -776,6 +744,7 @@ export default function HotspotClientView({
   initialBranding,
   initialRouterError,
   initialLoginUrl,
+  initialSuspended = false,
 }: HotspotClientViewProps) {
 
   // ==========================================
@@ -787,6 +756,7 @@ export default function HotspotClientView({
   const [branding, setBranding] = useState<BrandingConfig | null>(initialBranding)
   const [loading, setLoading] = useState(initialPlans.length === 0)
   const [error, setError] = useState<string | null>(initialRouterError)
+  const [suspended, setSuspended] = useState(initialSuspended)
 
   // ============================================================
   // FIX 2: Progressive reassurance - never let spinner look stuck
@@ -814,9 +784,6 @@ export default function HotspotClientView({
   const [phoneError, setPhoneError] = useState<string | null>(null)
 
   // Cloud Controller
-  // ==========================================
-  // CHANGED: loginUrl seeded from initialLoginUrl prop
-  // ==========================================
   const [loginUrl, setLoginUrl] = useState<string>(initialLoginUrl)
   const [autoLoginChecked, setAutoLoginChecked] = useState(false)
   const [returningToRouter, setReturningToRouter] = useState(false)
@@ -880,7 +847,6 @@ export default function HotspotClientView({
   useEffect(() => {
     if (!availableAd?.media_url || availableAd.media_type !== 'VIDEO') return
 
-    // Create a hidden video element to force browser to buffer the file
     const video = document.createElement('video')
     video.preload = 'auto'
     video.muted = true
@@ -898,10 +864,8 @@ export default function HotspotClientView({
   }, [availableAd?.media_url])
 
   // === TV MODE STATES (MAC-based system - phone only) ===
-  // MAC-based TV payment (no TV-side detection or polling needed)
   const [tvMacInput, setTvMacInput] = useState("")
   const [tvMacLastDigits, setTvMacLastDigits] = useState("")
-  // Updated to include mac_masked field
   const [tvScannedDevices, setTvScannedDevices] = useState<{ip: string; mac: string; mac_masked: string; label: string}[]>([])
   const [tvScanLoading, setTvScanLoading] = useState(false)
   const [tvSelectedDevice, setTvSelectedDevice] = useState<{ip: string; mac: string; mac_masked: string; label: string} | null>(null)
@@ -912,11 +876,6 @@ export default function HotspotClientView({
   // Phone paying for TV
   const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
 
-  // ==========================================
-
-  // FIX #2: Theme derived from portal_config — handle encoded template_id
-  // IDs 101-200: list layout override (101 = template 1 with list layout, etc.)
-  // IDs 201-300: grid layout override (201 = template 1 with grid layout, etc.)
   const rawTemplateId = portalConfig?.template_id ?? 1
   const isListOverride = rawTemplateId > 100 && rawTemplateId <= 200
   const isGridOverride = rawTemplateId > 200
@@ -938,7 +897,6 @@ export default function HotspotClientView({
   const announcement = portalConfig?.announcement_text || ""
   const portalFontFamily = getPortalFontFamily(portalConfig?.portal_font)
 
-  // Fix logo URL resolution - check both branding logo and portal_config router_logo_url as fallback
   const apiBaseUrl = getApiBase().replace('/api/v1', '')
   const logoUrl = (() => {
     const raw = branding?.logo_url || portalConfig?.router_logo_url || null
@@ -951,7 +909,6 @@ export default function HotspotClientView({
     setLogoError(false)
   }, [logoUrl])
 
-  // Branding-derived inline style overrides (hex colours from admin panel)
   const brandingHeaderStyle: React.CSSProperties | undefined = branding?.primary_color
     ? { backgroundColor: branding.primary_color }
     : undefined
@@ -965,23 +922,12 @@ export default function HotspotClientView({
     ? { color: branding.primary_color }
     : undefined
 
-  // ==========================================
-  // CHANGED: Simplified MikroTik query-param effect
-  // Router error is already resolved server-side via initialRouterError.
-  // This just picks up login_url / mac appended by MikroTik post-navigation.
-  // ==========================================
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const url = params.get("login_url")
     if (url && url !== loginUrl) setLoginUrl(url)
   }, [routerId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Claude's fix: Backfill loginUrl from gateway_ip when MikroTik didn't supply it ──
-  // rlogin.html (fast version) intentionally omits $(link-login-only) because
-  // RouterOS variable substitution for it triggers a slow DNS-ish lookup.
-  // $(link-login-only) always resolves to http://<hotspot-gateway-ip>/login
-  // by RouterOS convention (dns_name is deliberately left blank), so we can
-  // reconstruct the exact same URL client-side with zero substitution cost.
   useEffect(() => {
     if (loginUrl || !portalConfig?.gateway_ip) return
     const gw = portalConfig.gateway_ip.trim()
@@ -989,9 +935,6 @@ export default function HotspotClientView({
     setLoginUrl(`http://${gw}/login`)
   }, [portalConfig, loginUrl])
 
-  // ── Auto-login check (no TV detection) ──
-  // BUG 2 FIX: Only fetch + store credentials here; submission is handled
-  // by a separate effect below so arrival order of (creds, loginUrl) doesn't matter.
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get("error")) return
@@ -1003,7 +946,7 @@ export default function HotspotClientView({
       .then((result) => {
         if (result.has_session && result.credentials) {
           setCanonicalUsername(result.credentials.username)
-          setAutoLoginCreds(result.credentials)   // don't submit here — see effect below
+          setAutoLoginCreds(result.credentials)
         }
         setAutoLoginChecked(true)
       })
@@ -1013,8 +956,6 @@ export default function HotspotClientView({
       })
   }, [routerId, autoLoginChecked])
 
-  // BUG 2 FIX: NEW effect — fires the moment BOTH credentials AND loginUrl
-  // are ready, regardless of which arrived first.
   useEffect(() => {
     if (!autoLoginCreds) return
     const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
@@ -1023,19 +964,19 @@ export default function HotspotClientView({
     submitRouterLoginConfirmed(routerId, effectiveLoginUrl, autoLoginCreds.username, autoLoginCreds.password)
   }, [autoLoginCreds, loginUrl, portalConfig, routerId])
 
-  // ==========================================
-  // CHANGED: REPLACED entire plan-fetch useEffect with lighter version
-  // Server already delivered plans in initial HTML — this only
-  // silently refreshes in the background, never re-shows the spinner.
-  // ==========================================
   useEffect(() => {
     const tenant = initialTenant || getTenant()
     if (!tenant) return
 
-    // Server already delivered plans in the initial HTML — this only
-    // silently refreshes in the background, it never re-shows the spinner.
     fetchCaptivePortal(routerId)
       .then((data) => {
+        if ((data as any).status === "suspended") {
+          setSuspended(true)
+          setPortalConfig(data.portal_config || null)
+          setLoading(false)
+          return
+        }
+        setSuspended(false)
         setPlans(data.plans)
         setPortalConfig(data.portal_config || null)
         setBranding(data.branding || null)
@@ -1046,16 +987,10 @@ export default function HotspotClientView({
           setError(err.message || "Failed to load plans")
           setLoading(false)
         }
-        // Otherwise keep showing the server-rendered plans silently
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routerId])
 
-  // ==========================================
-  // ADDED: Dead-man timer — if server genuinely had nothing
-  // (cold cache, tenant not yet resolvable), never hang past
-  // fetchWithRetry's own ~13.8s ceiling.
-  // ==========================================
   useEffect(() => {
     if (plans.length > 0) return
     const deadman = setTimeout(() => {
@@ -1067,14 +1002,12 @@ export default function HotspotClientView({
     return () => clearTimeout(deadman)
   }, [plans.length])
 
-  // 🔥 FIX 2: D. Defer ads/loyalty fetch out of the captive-context critical path
   useEffect(() => {
     const tenant = getTenant()
     if (!tenant) return
 
     const runSecondaryFetches = () => {
       fetchServableAd(routerId, tenant, getMacAddress()).then(({ ad }) => setAvailableAd(ad))
-      // ...loyalty fetch unchanged
 
       const mac = getMacAddress()
       if (mac !== '00:00:00:00:00:00') {
@@ -1085,18 +1018,13 @@ export default function HotspotClientView({
     }
 
     if (isCaptivePortalContext()) {
-      // Inside the sandboxed WebView, let the plans fetch/render win the race
-      // for bandwidth and JS thread time — defer non-critical calls slightly.
       const t = setTimeout(runSecondaryFetches, 600)
       return () => clearTimeout(t)
     }
 
-    // Normal browser: no contention concerns, fire immediately as before.
     runSecondaryFetches()
   }, [routerId, canonicalUsername])
 
-  // 🔥 FIX 3: Warm modal chunks in the background right after plans render
-  // This eliminates cold-start chunk latency when user taps a plan
   useEffect(() => {
     if (loading) return
     const warm = () => {
@@ -1104,7 +1032,7 @@ export default function HotspotClientView({
       import("./AdVideoModal")
       import("./LoyaltyRedeemModal")
       import("./PhoneReconnectModal")
-      import("./PaymentWaitingPrinter")   // ← add
+      import("./PaymentWaitingPrinter")
     }
     if ("requestIdleCallback" in window) {
       ;(window as any).requestIdleCallback(warm, { timeout: 2000 })
@@ -1113,7 +1041,6 @@ export default function HotspotClientView({
     }
   }, [loading])
 
-  // ── Poll payment status — ADAPTIVE POLLING (1.2s first 10 attempts, then 3s) ──
   useEffect(() => {
     if (paymentStatus !== "waiting" || !sessionId) return
 
@@ -1130,8 +1057,6 @@ export default function HotspotClientView({
           setExpiresAt(result.expires_at || null)
           if (result.access_code) setCanonicalUsername(result.access_code)
           
-          // 🔥 FIX: Use confirmed version for payment success
-          // BUG 2 FIX: Use getEffectiveLoginUrl fallback
           const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
           if (effectiveLoginUrl && result.access_code && targetDevice !== "tv") {
             setReturningToRouter(true)
@@ -1150,8 +1075,6 @@ export default function HotspotClientView({
       }
 
       attempt++
-      // Tight polling for the first ~15s (M-Pesa confirmations usually land
-      // within a couple seconds of PIN entry), then back off to save requests.
       timer = setTimeout(tick, attempt < 10 ? 1200 : 3000)
     }
 
@@ -1159,7 +1082,6 @@ export default function HotspotClientView({
     return () => clearTimeout(timer)
   }, [paymentStatus, sessionId, loginUrl, portalConfig, targetDevice, routerId])
 
-  // ── Countdown for phone payment ──
   useEffect(() => {
     if (paymentStatus !== "waiting") return
     const timer = setInterval(() => {
@@ -1174,13 +1096,11 @@ export default function HotspotClientView({
     return () => clearInterval(timer)
   }, [paymentStatus])
 
-  // Phone validation
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value)
     setPhoneError(value && !isValidPaymentPhone(value, paymentLocale) ? "Enter a valid phone number" : null)
   }
 
-  // ── TV MAC verification handlers ──
   const handleScanDevices = async () => {
     setTvScanLoading(true)
     setTvMacError(null)
@@ -1199,13 +1119,11 @@ export default function HotspotClientView({
     setTvMacError(null)
   }
 
-  // ── NEW: normalize a manually-typed MAC into canonical AA:BB:CC:DD:EE:FF ──
   const normalizeMac = (raw: string): string | null => {
     const s = raw.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
     return s.length === 12 ? s.match(/.{2}/g)!.join(":") : null
   }
 
-  // ── NEW: manual mode — the user typed the full MAC, so no digit check needed ──
   const handleConfirmManualMac = () => {
     const mac = normalizeMac(tvMacInput)
     if (!mac) {
@@ -1217,7 +1135,6 @@ export default function HotspotClientView({
     setTvMacError(null)
   }
 
-  // ── Scan mode: verify the last digits against the selected device's MAC ──
   const handleVerifyMacDigits = () => {
     if (!tvSelectedDevice) {
       setTvMacError("Please select a device first")
@@ -1237,7 +1154,6 @@ export default function HotspotClientView({
     setTvMacError(null)
   }
 
-  // ── FREE TRIAL HANDLER ──
   const handleClaimFreeTrial = async (plan: HotspotPlan) => {
     setFreeTrialClaiming(true)
     setFreeTrialError(null)
@@ -1268,8 +1184,6 @@ export default function HotspotClientView({
       setSelectedPlan(plan)
       setPaymentStatus('success')
       
-      // 🔥 FIX: Use confirmed version for free trial
-      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
       const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
       if (effectiveLoginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
@@ -1285,9 +1199,7 @@ export default function HotspotClientView({
     }
   }
 
-  // ── Select plan and open payment modal ──
   const selectPlanAndPay = (plan: HotspotPlan) => {
-    // If it's a free trial plan, claim it directly without opening payment modal
     if (plan.is_free_trial) {
       handleClaimFreeTrial(plan)
       return
@@ -1298,7 +1210,6 @@ export default function HotspotClientView({
     setError(null)
   }
 
-  // ── Initiate payment ──
   const handlePay = async () => {
     if (!selectedPlan) return
     if (!phoneNumber) { setPhoneError("Phone number is required"); return }
@@ -1310,13 +1221,11 @@ export default function HotspotClientView({
     setError(null)
     setCountdown(120)
 
-    // IMPORTANT: Use the TV's MAC if verified, else use current device
     let finalMac = getMacAddress()
     let finalRouter = routerId
 
     if (targetDevice === "tv" && tvMacVerified) {
       const rawMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput.trim()
-      // Normalize to AA:BB:CC:DD:EE:FF format
       const stripped = rawMac.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
       if (stripped.length === 12) {
         finalMac = stripped.match(/.{2}/g)!.join(':')
@@ -1333,7 +1242,7 @@ export default function HotspotClientView({
         mac_address: finalMac,
         tenant: getTenant(),
         tv_code: undefined,
-        target_device: targetDevice,     // NEW
+        target_device: targetDevice,
       })
       setSessionId(result.session_id)
       setPaymentStatus("waiting")
@@ -1350,7 +1259,6 @@ export default function HotspotClientView({
     setCountdown(120)
   }
 
-  // ── Redeem voucher ──
   const handleVoucherRedeem = async () => {
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
@@ -1375,7 +1283,6 @@ export default function HotspotClientView({
       finalMac = stripped.length === 12 ? stripped.match(/.{2}/g)!.join(':') : rawMac.toUpperCase()
     }
 
-    // If voucher redemption succeeds, we treat it as a successful "payment"
     setShowPaymentModal(false)
 
     try {
@@ -1384,15 +1291,13 @@ export default function HotspotClientView({
         router_id: finalRouter,
         mac_address: finalMac,
         tenant: getTenant(),
-        target_device: targetDevice,     // NEW
+        target_device: targetDevice,
       })
 
       setAccessCode(result.access_code)
       setExpiresAt(result.expires_at)
       setPaymentStatus("success")
 
-      // 🔥 FIX: Use confirmed version for voucher redemption
-      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
       const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
       if (effectiveLoginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
@@ -1405,7 +1310,6 @@ export default function HotspotClientView({
     }
   }
 
-  // Single source of truth for "which device are we acting on"
   const getReconnectTarget = () => {
     if (targetDevice !== "tv") return { forTv: false, mac: getMacAddress() }
     const raw = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput.trim()
@@ -1413,7 +1317,6 @@ export default function HotspotClientView({
     return { forTv: true, mac: hex.length === 12 ? hex.match(/.{2}/g)!.join(":") : raw.toUpperCase() }
   }
 
-  // ── Shared success path for phone + credential reconnect ──
   const applyReconnectResult = (result: ReconnectResult, forTv: boolean) => {
     setAccessCode(result.access_code)
     setExpiresAt(result.expires_at)
@@ -1437,7 +1340,6 @@ export default function HotspotClientView({
     setShowPhoneModal(false)
     setPaymentStatus('success')
 
-    // TV: the server pushes the login to the router. The phone must NOT log itself in.
     if (forTv) return
 
     const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
@@ -1508,7 +1410,6 @@ export default function HotspotClientView({
     }
   }
 
-  // ── Ad video handlers ──
   const handleAdVideoTimeUpdate = () => {
     if (!videoRef.current) return
     const remaining = Math.ceil(videoRef.current.duration - videoRef.current.currentTime)
@@ -1552,10 +1453,8 @@ export default function HotspotClientView({
         data_limit_display: 'Unlimited',
       })
       setShowAdModal(false)
-      setAvailableAd(null)          // add: button disappears after reward
+      setAvailableAd(null)
       setPaymentStatus('success')
-      // 🔥 FIX: Use confirmed version for ad grant
-      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
       const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
       if (effectiveLoginUrl && result.access_code) {
         setReturningToRouter(true)
@@ -1564,7 +1463,7 @@ export default function HotspotClientView({
     } catch (err: any) {
       if (/already claimed/i.test(err.message || '')) {
         setShowAdModal(false)
-        setAvailableAd(null)        // add: remove the button for this device
+        setAvailableAd(null)
       }
       setAdError(err.message || 'Could not grant access. Please try again.')
       setAdGranting(false)
@@ -1572,7 +1471,6 @@ export default function HotspotClientView({
     }
   }
 
-  // ── Loyalty redeem handler ──
   const handleLoyaltyRedeem = async (reward: LoyaltyRewardItem) => {
     setRedeemLoading(true)
     setRedeemError(null)
@@ -1607,7 +1505,6 @@ export default function HotspotClientView({
         data_limit_display: 'Unlimited',
       })
       setPaymentStatus('success')
-      // Update local points display
       setLoyaltyData(prev => prev ? {
         ...prev,
         current_points: result.points_remaining,
@@ -1615,8 +1512,6 @@ export default function HotspotClientView({
           r => r.points_cost <= result.points_remaining
         ),
       } : null)
-      // 🔥 FIX: Use confirmed version for loyalty redeem
-      // BUG 2 FIX: Use getEffectiveLoginUrl fallback
       const effectiveLoginUrl = getEffectiveLoginUrl(loginUrl, portalConfig)
       if (effectiveLoginUrl && result.access_code) {
         setReturningToRouter(true)
@@ -1630,6 +1525,36 @@ export default function HotspotClientView({
   }
 
   // ==========================================
+  // RENDER: Suspended
+  // ==========================================
+  if (suspended) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center p-4" style={{ fontFamily: portalFontFamily }}>
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-amber-600" />
+          </div>
+          <h1 className="text-lg font-bold text-gray-900 mb-2">Service Temporarily Unavailable</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Internet purchases are currently unavailable. Please contact your internet provider for assistance.
+          </p>
+          {supportPhone ? (
+            <a
+              href={`tel:${supportPhone}`}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            >
+              <Phone className="w-4 h-4" />
+              Call {supportPhone}
+            </a>
+          ) : (
+            <p className="text-xs text-gray-400">Please contact the hotspot owner.</p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
   // RENDER: Loading
   // ==========================================
   if (loading) {
@@ -1638,7 +1563,6 @@ export default function HotspotClientView({
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading hotspot plans...</p>
-          {/* FIX 2: Progressive reassurance - show slow network message after 2s */}
           {slowNetwork && (
             <p className="text-gray-400 text-sm mt-2">
               Your connection looks slow — still trying, hang tight…
@@ -1691,7 +1615,6 @@ export default function HotspotClientView({
             </div>
           )}
 
-          {/* NEW: reassure TV buyers the TV will join automatically */}
           {targetDevice === "tv" && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <span className="text-sm text-blue-700">
@@ -1804,12 +1727,9 @@ export default function HotspotClientView({
   // RENDER: Main Plan Selection
   // ==========================================
 
-  // Get free trial plans separately for display
   const freeTrialPlans = plans.filter(p => p.is_free_trial)
   const nonTrialPlans = plans.filter(p => !p.is_free_trial)
 
-  // Split by device target: TV mode only shows TV-marked plans,
-  // normal mode hides TV-only plans from the regular list.
   const paidPlans = targetDevice === 'tv'
     ? nonTrialPlans.filter(p => p.is_tv_plan)
     : nonTrialPlans.filter(p => !p.is_tv_plan)
@@ -1826,7 +1746,6 @@ export default function HotspotClientView({
           } ${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"}`}
           style={brandingHeaderStyle}
         >
-          {/* FIX #1: Logo with error handling using state */}
           {logoUrl && !logoError ? (
             <div className={`flex ${theme.headerStyle === "left-aligned" ? "justify-start" : "justify-center"} mb-3`}>
               <img
@@ -1946,7 +1865,7 @@ export default function HotspotClientView({
             )}
           </div>
 
-          {/* ── Phone reconnect button (MOVED HERE, just below voucher) ── */}
+          {/* ── Phone reconnect button ── */}
           <button
             type="button"
             onClick={() => {
@@ -1994,7 +1913,6 @@ export default function HotspotClientView({
             <div className="mb-5">
               {freeTrialPlans.map(plan => (
                 <div key={plan.id} className="relative overflow-hidden rounded-2xl border-2 border-dashed border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 p-5 mb-3">
-                  {/* Shimmer badge */}
                   <div className="absolute top-3 right-3">
                     <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">
                       FREE
@@ -2127,7 +2045,6 @@ export default function HotspotClientView({
                     </div>
                   )}
 
-                  {/* SCAN MODE ONLY: confirm the hidden MAC characters */}
                   {tvPayMode === "scan" && tvSelectedDevice && (
                     <div className="mt-3">
                       <label className="block text-xs text-gray-600 mb-1 font-medium">
@@ -2153,7 +2070,6 @@ export default function HotspotClientView({
                     </div>
                   )}
 
-                  {/* MANUAL MODE: no digit check, just validate the format */}
                   {tvPayMode === "manual" && (
                     <button
                       onClick={handleConfirmManualMac}
@@ -2200,7 +2116,6 @@ export default function HotspotClientView({
               ? "flex flex-wrap gap-2"
               : "space-y-3"
           }`}>
-            {/* Featured layout: show popular plan first and larger */}
             {theme.layoutType === "featured" && paidPlans.some(p => p.is_popular) && (
               <div className="mb-3">
                 {paidPlans.filter(p => p.is_popular).map((plan) => (
@@ -2247,7 +2162,6 @@ export default function HotspotClientView({
                 ))}
               </div>
             )}
-            {/* Regular plans (or all plans for non-featured layouts) */}
             {(theme.layoutType === "featured" ? paidPlans.filter(p => !p.is_popular) : paidPlans).map((plan) => (
               <button
                 key={plan.id}
@@ -2266,7 +2180,6 @@ export default function HotspotClientView({
                 }`}
                 style={selectedPlan?.id === plan.id ? brandingSelectedBorderStyle : undefined}
               >
-                {/* Grid layout: vertical card design */}
                 {theme.layoutType === "grid" ? (
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between mb-2">
@@ -2291,7 +2204,6 @@ export default function HotspotClientView({
                     </div>
                   </div>
                 ) : theme.layoutType === "compact" ? (
-                  /* Compact layout: minimal info */
                   <div className="text-center">
                     <span className={`font-semibold text-sm block ${theme.planTitle}`}>{plan.name}</span>
                     <span className={`text-xs ${theme.planSub}`}>{plan.duration_display}</span>
@@ -2301,7 +2213,6 @@ export default function HotspotClientView({
                     {selectedPlan?.id === plan.id && <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto mt-1" />}
                   </div>
                 ) : (
-                  /* List/Featured layout: horizontal design */
                   <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -2318,13 +2229,11 @@ export default function HotspotClientView({
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       )}
                     </div>
-                    {/* Duration + Speed row */}
                     <div className={`flex flex-wrap items-center gap-3 mt-2 text-sm ${theme.planSub}`}>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
                         {plan.duration_display}
                       </span>
-                      {/* Show detailed speeds if available, otherwise fallback to speed_display */}
                       {!portalConfig?.hide_plan_speed && (
                         plan.download_speed || plan.upload_speed ? (
                           <>
@@ -2345,7 +2254,6 @@ export default function HotspotClientView({
                         ) : null
                       )}
                     </div>
-                    {/* Data limit + device limit row */}
                     <div className={`flex flex-wrap items-center gap-3 mt-1 text-xs ${theme.planSub}`}>
                       {plan.limitation_type !== "UNLIMITED" && plan.data_limit_value ? (
                         <span className="flex items-center gap-1">
