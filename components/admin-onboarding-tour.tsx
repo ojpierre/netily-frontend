@@ -9,12 +9,14 @@ import {
   ChevronRight,
   MessageSquare,
   Package,
+  PlayCircle,
   Router,
   Sparkles,
   X,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { adminApi } from "@/lib/admin-api"
 
 type AdminOnboardingUser = {
   id?: string | number | null
@@ -24,6 +26,11 @@ type AdminOnboardingUser = {
   access_level?: string | null
   is_staff?: boolean | null
   is_superuser?: boolean | null
+  account_created_at?: string | null
+  onboarding_tour_started_at?: string | null
+  onboarding_tour_dismissed_at?: string | null
+  onboarding_tour_completed_at?: string | null
+  onboarding_video_viewed_at?: string | null
 }
 
 type TourStep = {
@@ -43,6 +50,7 @@ type TourStep = {
 const STORAGE_PREFIX = "netily-admin-setup-tour"
 const SESSION_PREFIX = "netily-admin-setup-session"
 const MAX_LOGIN_SHOWS = 3
+const SETUP_VIDEO_URL = "https://www.youtube-nocookie.com/embed/cGfHPU1tJWM?rel=0"
 
 const steps: TourStep[] = [
   {
@@ -53,7 +61,7 @@ const steps: TourStep[] = [
     body: "We will walk through the first router, your service plans, one payment method, and SMS. It is short, practical, and you can leave anytime.",
     hint: "Best done with your MikroTik details, package prices, M-Pesa credentials, and SMS preference nearby.",
     primary: "Start setup",
-    secondary: "Skip for now",
+    secondary: "No thanks",
   },
   {
     id: "routers-page",
@@ -192,6 +200,7 @@ export function AdminOnboardingTour({
   const [index, setIndex] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [targetMissing, setTargetMissing] = useState(false)
+  const [videoOpen, setVideoOpen] = useState(false)
 
   const tourSteps = useMemo(() => country === "UG" ? steps.map((step) => {
     if (step.id === "welcome") return { ...step, hint: "Have your router details, plan prices, iotec wallet details, and SMS preference nearby." }
@@ -213,6 +222,8 @@ export function AdminOnboardingTour({
   useEffect(() => {
     if (disabled || !isPrincipalAdmin(user) || typeof window === "undefined") return
 
+    if (user?.onboarding_tour_completed_at || user?.onboarding_tour_dismissed_at) return
+
     const completeKey = scopedKey(user, "complete")
     if (window.localStorage.getItem(completeKey) === "1") return
 
@@ -227,7 +238,10 @@ export function AdminOnboardingTour({
 
     const savedIndex = Number(window.localStorage.getItem(scopedKey(user, "step")) || "0")
     setIndex(Number.isFinite(savedIndex) ? Math.min(Math.max(savedIndex, 0), tourSteps.length - 1) : 0)
-    const timer = window.setTimeout(() => setActive(true), 700)
+    const timer = window.setTimeout(() => {
+      setActive(true)
+      void adminApi.recordOnboardingEvent("started").catch(() => undefined)
+    }, 700)
     return () => window.clearTimeout(timer)
   }, [disabled, user])
 
@@ -287,7 +301,15 @@ export function AdminOnboardingTour({
       if (complete) window.localStorage.setItem(scopedKey(user, "complete"), "1")
       window.localStorage.setItem(scopedKey(user, "step"), String(index))
     }
+    void adminApi.recordOnboardingEvent(complete ? "completed" : "dismissed").catch(() => undefined)
     setActive(false)
+  }
+
+  const toggleVideo = () => {
+    setVideoOpen((open) => !open)
+    if (!videoOpen && !user?.onboarding_video_viewed_at) {
+      void adminApi.recordOnboardingEvent("video_viewed").catch(() => undefined)
+    }
   }
 
   const goPrevious = () => setIndex((current) => Math.max(current - 1, 0))
@@ -320,7 +342,7 @@ export function AdminOnboardingTour({
         />
       )}
       <div
-        className="pointer-events-auto absolute w-[calc(100vw-2rem)] max-w-[390px] rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl"
+        className="pointer-events-auto absolute max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[430px] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl"
         style={cardStyle}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -333,7 +355,7 @@ export function AdminOnboardingTour({
               <h2 className="text-lg font-bold leading-tight">{step.title}</h2>
             </div>
           </div>
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => close(false)}>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => close(false)} aria-label="Dismiss setup guide">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -342,6 +364,30 @@ export function AdminOnboardingTour({
           <p className="mt-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-xs leading-5 text-foreground">
             {step.hint}
           </p>
+        )}
+        {step.id === "welcome" && (
+          <div className="mt-3">
+            {user?.account_created_at && (
+              <p className="mb-3 text-xs text-muted-foreground">
+                Workspace created {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(user.account_created_at))}
+              </p>
+            )}
+            <Button type="button" variant="outline" size="sm" className="w-full justify-center" onClick={toggleVideo}>
+              <PlayCircle className="mr-2 h-4 w-4" />
+              {videoOpen ? "Hide setup video" : "Watch the setup video"}
+            </Button>
+            {videoOpen && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-border bg-black">
+                <iframe
+                  className="aspect-video w-full"
+                  src={SETUP_VIDEO_URL}
+                  title="Netily new tenant setup walkthrough"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
         )}
         {targetMissing && pathname === step.route && (
           <p className="mt-3 text-xs text-amber-600 dark:text-amber-300">

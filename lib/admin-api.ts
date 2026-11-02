@@ -824,6 +824,13 @@ class AdminApiService {
     return this.getCurrentAdmin()
   }
 
+  async recordOnboardingEvent(event: 'started' | 'dismissed' | 'completed' | 'video_viewed'): Promise<AdminUser> {
+    return this.request<AdminUser>('/core/users/onboarding/', {
+      method: 'POST',
+      body: JSON.stringify({ event }),
+    })
+  }
+
   async updateProfile(data: { first_name?: string; last_name?: string; email?: string; phone_number?: string }): Promise<AdminUser> {
     return this.request<AdminUser>('/core/users/me/', {
       method: 'PATCH',

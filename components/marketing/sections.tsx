@@ -15,8 +15,7 @@ export function Hero({ label, title, intro, image = "/academy/wisp-backhaul.webp
     <div className={s.heroShade} />
     <div className={`${s.container} ${s.heroContent}`}>
       <p className={s.eyebrow}>{label}</p>
-      <h1>{title}</h1>
-      {home && <p className={s.heroStatement}>Paid subscribers stay online.<br /><span>Automatically.</span></p>}
+      <h1 className={home ? s.heroStatement : undefined}>{title}</h1>
       <p className={s.heroIntro}>{intro}</p>
       <div className={s.actions}><Link className={s.button} href={marketingHref("/contact")}>Book a demo <ArrowRight size={18} /></Link><a className={s.heroSecondary} href="https://demo.netily.co.ke/admin/login">Explore the demo <ArrowUpRight size={18} /></a></div>
       <p className={s.heroNote}>Your network. Your subscribers. One connected workflow.</p>

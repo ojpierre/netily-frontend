@@ -13,7 +13,7 @@ const googleReviewUrl = process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "https://g.
 
 export default function MarketingHomePage() {
   return <>
-    <Hero home label="Internetily" title="Internetily ISP billing system" intro="Automate MikroTik PPPoE, hotspot and WiFi billing, M-Pesa payments, subscriber access, invoices, and renewals in one connected workflow." />
+    <Hero home label="Internetily ISP billing system" title="Paid subscribers stay online. Automatically." intro="Automate MikroTik PPPoE, hotspot and WiFi billing, M-Pesa payments, subscriber access, invoices, and renewals in one connected workflow." />
     <section className={s.compatibility}><div className={s.container}><p>Works with the routers you already own.</p><div>{["MikroTik", "Ubiquiti", "TP-Link", "Tenda", "Cambium", "Huawei", "Starlink", "FreeRADIUS"].map((name) => <span key={name}>{name}</span>)}</div><Link href={marketingHref("/integrations")}>Find the right connection for your setup <ArrowRight size={15} /></Link></div></section>
     <ProductProof variant="overview" />
     <section id="problem" className={s.section}><div className={s.container}><SectionHeading label="Less busywork" title="Every hour on manual billing is an hour not spent growing." /><div className={s.threeColumns}>{[

@@ -62,9 +62,7 @@
 .heroShade { position: absolute; inset: 0; z-index: -2; background: linear-gradient(90deg, #071b20ed 0%, #071b20d4 43%, #071b2030 100%); }
 .heroContent { padding-block: 60px; }
 .heroContent h1 { font-size: 48px; max-width: 800px; margin-bottom: 24px; }
-.homeHero h1 { font-size: 22px; margin-bottom: 14px; color: #a9dbff; }
-.heroStatement { font-family: var(--font-outfit), sans-serif; font-size: 58px; line-height: 1.08; color: white !important; margin: 0 0 24px; }
-.heroStatement span { color: #8cdfbf; }
+.homeHero h1.heroStatement { font-family: var(--font-outfit), sans-serif; font-size: 58px; line-height: 1.08; color: white; margin: 0 0 24px; max-width: 760px; }
 .hero .eyebrow { color: #9bd0fa !important; }
 .heroIntro { color: #e1ebee !important; max-width: 600px; font-size: 17px; margin-bottom: 26px; }
 .actions { display: flex; gap: 14px; flex-wrap: wrap; }
@@ -324,8 +322,7 @@
   .hero, .homeHero { min-height: 520px; }
   .heroContent { padding-block: 44px; }
   .heroContent h1 { font-size: 36px; }
-  .homeHero h1 { font-size: 20px; }
-  .heroStatement { font-size: 40px; }
+  .homeHero h1.heroStatement { font-size: 40px; }
   .heroIntro { font-size: 15px; }
   .heroShade { background: #071b20c9; }
   .heroImage { object-position: 65% center; }

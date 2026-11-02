@@ -11,7 +11,7 @@ import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 function ProductTile({ product }: { product: Product }) {
   return (
-    <Link href={`/shop/product/${product.id}`} className="group min-w-0 overflow-hidden rounded-lg border border-border bg-white transition duration-300 hover:-translate-y-1 hover:border-[#1b5eff]/50 hover:shadow-[0_18px_45px_rgba(17,45,96,0.12)]">
+    <Link href={`/shop/product/${product.id}`} className="group min-w-0 overflow-hidden rounded-lg border border-border bg-white text-[#0b1f33] transition duration-300 hover:-translate-y-1 hover:border-[#1b5eff]/50 hover:shadow-[0_18px_45px_rgba(17,45,96,0.12)]">
       <div className="relative aspect-[4/3] overflow-hidden bg-[#f2f5f9]">
         <Image src={product.image || "/placeholder.svg"} alt={product.name} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-contain p-4 transition duration-500 group-hover:scale-[1.06]" />
         {product.inStock === false ? <span className="absolute left-3 top-3 rounded-md bg-white px-2.5 py-1 text-[10px] font-semibold text-red-600 shadow-sm">Out of stock</span> : <span className="absolute left-3 top-3 rounded-md bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 shadow-sm">Ready to order</span>}

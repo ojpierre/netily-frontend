@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Compact network gateway</title><desc id="desc">A compact white multi-port network gateway on a clean studio background.</desc>
+  <defs><linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dce5ee"/></linearGradient><filter id="s"><feDropShadow dy="30" stdDeviation="25" flood-color="#152f56" flood-opacity=".25"/></filter></defs>
+  <rect width="1200" height="900" fill="#f2f6fb"/><ellipse cx="600" cy="700" rx="350" ry="65" fill="#17345e" opacity=".12"/>
+  <g filter="url(#s)"><path d="M255 330 465 220h480l-205 112z" fill="url(#top)" stroke="#bdc9d5" stroke-width="7"/><path d="M255 330h485v300H255z" fill="#e8eef4" stroke="#aebdcb" stroke-width="7"/><path d="m740 330 205-110v300L740 630z" fill="#c8d4df" stroke="#aebdcb" stroke-width="7"/>
+  <g fill="#18345f"><rect x="315" y="430" width="66" height="54" rx="5"/><rect x="400" y="430" width="66" height="54" rx="5"/><rect x="485" y="430" width="66" height="54" rx="5"/><rect x="570" y="430" width="66" height="54" rx="5"/></g><circle cx="680" cy="455" r="11" fill="#28b977"/></g>
+</svg>

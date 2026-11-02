@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Ceiling wireless access point</title>
+  <desc id="desc">A clean product illustration of a round ceiling-mounted wireless access point.</desc>
+  <defs>
+    <radialGradient id="body" cx="42%" cy="32%" r="70%"><stop offset="0" stop-color="#fff"/><stop offset=".72" stop-color="#edf2f7"/><stop offset="1" stop-color="#c7d1dd"/></radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="30" stdDeviation="28" flood-color="#17325c" flood-opacity=".22"/></filter>
+  </defs>
+  <rect width="1200" height="900" fill="#f2f6fb"/>
+  <ellipse cx="600" cy="688" rx="310" ry="60" fill="#18345f" opacity=".12"/>
+  <g filter="url(#shadow)">
+    <ellipse cx="600" cy="425" rx="350" ry="282" fill="url(#body)" stroke="#b8c5d3" stroke-width="8"/>
+    <ellipse cx="600" cy="420" rx="315" ry="248" fill="none" stroke="#dbe4ec" stroke-width="5"/>
+    <circle cx="600" cy="420" r="38" fill="#1b5eff" opacity=".1"/>
+    <circle cx="600" cy="420" r="13" fill="#1b5eff"/>
+    <path d="M470 546c75 45 185 54 267 9" fill="none" stroke="#cbd6e1" stroke-linecap="round" stroke-width="8"/>
+  </g>
+  <path d="M470 158c35-36 80-58 130-58s95 22 130 58M520 210c22-22 49-34 80-34s58 12 80 34" fill="none" stroke="#1b5eff" stroke-linecap="round" stroke-width="12" opacity=".55"/>
+</svg>

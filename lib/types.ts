@@ -32,6 +32,11 @@ export interface User {
   is_verified?: boolean
   date_joined?: string
   last_login?: string
+  account_created_at?: string
+  onboarding_tour_started_at?: string | null
+  onboarding_tour_dismissed_at?: string | null
+  onboarding_tour_completed_at?: string | null
+  onboarding_video_viewed_at?: string | null
   company?: Company
   /** Null inherits the shared role policy; an array is this user's override. */
   custom_allowed_paths?: string[] | null
