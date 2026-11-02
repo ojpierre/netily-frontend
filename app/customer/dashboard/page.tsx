@@ -72,6 +72,11 @@ export default function CustomerDashboardPage() {
     fetchDashboard()
   }, [router])
 
+  useEffect(() => {
+    if (!dashboardData?.current_plan) return
+    if (new URLSearchParams(window.location.search).get("renew") === "1") setShowPaymentModal(true)
+  }, [dashboardData])
+
   // Loading state
   if (isLoading) {
     return (
@@ -106,6 +111,7 @@ export default function CustomerDashboardPage() {
 
   const data = dashboardData
   const daysRemaining = data.current_plan?.days_remaining ?? 0
+  const isExpired = !!data.current_plan?.expiry_date && new Date(data.current_plan.expiry_date) <= new Date()
 
   return (
     <div className="space-y-6">
@@ -212,7 +218,7 @@ export default function CustomerDashboardPage() {
         )}
 
         {/* Expiry Warning */}
-        {data.current_plan && daysRemaining <= 5 && daysRemaining >= 0 && (
+        {data.current_plan && (isExpired || daysRemaining <= 5) && (
           <Card className="p-5 bg-warning/10 dark:bg-orange-950/30 border-warning/20 dark:border-orange-800">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 bg-warning/15 dark:bg-orange-950 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -220,11 +226,11 @@ export default function CustomerDashboardPage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-orange-900 dark:text-orange-300">
-                  {daysRemaining === 0 ? "Service Expired!" : "Expiring Soon!"}
+                  {isExpired ? "Service Expired!" : "Expiring Soon!"}
                 </h3>
                 <p className="text-sm text-orange-800 dark:text-warning mb-3">
-                  {daysRemaining === 0 
-                    ? "Your subscription has expired. Renew now to restore service."
+                  {isExpired
+                    ? "Your subscription has expired. Pay now and your internet is restored automatically."
                     : `Your service expires in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}. Renew now.`}
                 </p>
                 <Button 

@@ -28,10 +28,15 @@ export default function CustomerLoginPage() {
   const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [expiredNotice, setExpiredNotice] = useState(false)
   const { locale, ready } = useCustomerPaymentLocale()
 
   const [mouse, setMouse] = useState({ x: 0, y: 0 })
   const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setExpiredNotice(new URLSearchParams(window.location.search).get("expired") === "1")
+  }, [])
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -81,7 +86,7 @@ export default function CustomerLoginPage() {
         const storage = rememberMe ? localStorage : sessionStorage
         storage.setItem("customerToken", response.access)
         if (response.refresh) storage.setItem("customerRefreshToken", response.refresh)
-        router.push("/customer/dashboard")
+        router.push(`/customer/dashboard${expiredNotice ? "?renew=1" : ""}`)
       }
     } catch (err: any) {
       setError(err.message || "Invalid credentials. Please try again.")
@@ -129,6 +134,15 @@ export default function CustomerLoginPage() {
 
         <CardContent className="relative z-10 pt-4">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {expiredNotice && (
+              <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                <AlertCircle className="w-4 h-4" />
+                <AlertDescription>
+                  Your subscription has expired. Sign in to renew and restore your internet instantly.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {error && (
               <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700">
                 <AlertCircle className="w-4 h-4" />
