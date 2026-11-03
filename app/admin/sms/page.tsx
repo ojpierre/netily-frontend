@@ -501,8 +501,8 @@ export default function SMSPage() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [recipientType, setRecipientType] = useState<'pppoe'|'hotspot'|'all'>('pppoe')
 
-  // FIX: Campaign bulk state - UPDATED TYPE to include pppoe_active and pppoe_expired
-  const [bulkGroup, setBulkGroup] = useState<'pppoe'|'pppoe_active'|'pppoe_expired'|'hotspot'|'all'>('pppoe')
+  // FIX: Campaign bulk state - UPDATED TYPE to include pppoe_active, pppoe_expired, and hotspot_active
+  const [bulkGroup, setBulkGroup] = useState<'pppoe'|'pppoe_active'|'pppoe_expired'|'hotspot'|'hotspot_active'|'all'>('pppoe')
   const [bulkName, setBulkName] = useState('')
   const [bulkMessage, setBulkMessage] = useState('')
   const [bulkSending, setBulkSending] = useState(false)
@@ -1009,14 +1009,14 @@ export default function SMSPage() {
             </Card>
           </TabsContent>
 
-          {/* -- CAMPAIGNS (UPDATED with PPPoE Active/Expired) ----------------- */}
+          {/* -- CAMPAIGNS (UPDATED with PPPoE Active/Expired and Hotspot Active) -- */}
           <TabsContent value="campaigns" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
               {/* Send bulk card */}
               <Card>
                 <CardHeader>
                   <CardTitle>Send Bulk SMS</CardTitle>
-                  <CardDescription>Send to PPPoE (active/expired/all), Hotspot, or every customer at once</CardDescription>
+                  <CardDescription>Send to PPPoE (active/expired/all), Hotspot (all/active), or every customer at once</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5">
@@ -1027,7 +1027,8 @@ export default function SMSPage() {
                         <SelectItem value="pppoe">PPPoE / Static — All</SelectItem>
                         <SelectItem value="pppoe_active">PPPoE / Static — Active only</SelectItem>
                         <SelectItem value="pppoe_expired">PPPoE / Static — Expired only</SelectItem>
-                        <SelectItem value="hotspot">Hotspot users</SelectItem>
+                        <SelectItem value="hotspot">Hotspot users — All (incl. expired)</SelectItem>
+                        <SelectItem value="hotspot_active">Hotspot users — Active only</SelectItem>
                         <SelectItem value="all">All (PPPoE + Hotspot)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1053,7 +1054,8 @@ export default function SMSPage() {
                       bulkGroup === 'pppoe' ? 'All PPPoE Customers' :
                       bulkGroup === 'pppoe_active' ? 'Active PPPoE Customers' :
                       bulkGroup === 'pppoe_expired' ? 'Expired PPPoE Customers' :
-                      'Hotspot Users'}
+                      bulkGroup === 'hotspot_active' ? 'Active Hotspot Users' :
+                      'All Hotspot Users'}
                   </Button>
                 </CardContent>
               </Card>
