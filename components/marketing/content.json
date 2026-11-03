@@ -35,19 +35,20 @@
   },
   {
     "path": "/features/pppoe-billing",
-    "title": "Paid means online.",
-    "intro": "Subscribers stay connected while they're paid up. No manual disconnects, no missed renewals.",
-    "problem": "Subscribers disconnect. They call in. Someone checks M-Pesa manually, then unblocks them in the router. Three steps. Every time.",
+    "title": "Expired PPPoE customers get a clear route back to payment.",
+    "intro": "When access expires, the subscriber is redirected to a reachable renewal page. After payment, Internetily restores the PPPoE service automatically.",
+    "problem": "An expired PPPoE customer often loses internet access and also loses the easiest way to pay. They call support, switch to mobile data, or wait for someone to reconnect them manually.",
     "points": [
-      "No manual disconnects  -  When a subscription expires, the system disconnects the session. When payment arrives, it reconnects. Automatically.",
+      "A payment path after expiry  -  RADIUS and MikroTik move expired PPPoE sessions into a restricted network that can still reach the Internetily renewal page and required payment services.",
+      "No manual disconnects  -  When a subscription expires, Internetily changes the subscriber's network state. When payment arrives, it restores normal access automatically.",
       "Instant reconnection  -  M-Pesa payment confirms, RADIUS re-authenticates, the subscriber is back online. Under 30 seconds.",
       "The right speed profile  -  Each plan maps to a bandwidth queue. Upgrades and downgrades apply to the active session without a router login.",
       "Collections you can close  -  Every PPPoE subscriber has a billing record: plan, payment history, expiry, and current status."
     ],
     "steps": [
-      "Set up the subscriber with a plan and PPPoE credentials",
-      "M-Pesa confirms payment",
-      "The router applies the access profile automatically"
+      "The PPPoE subscription expires and the router places the session in the renewal-only network",
+      "The subscriber is redirected to the payment page and completes the renewal",
+      "Internetily confirms payment, restores the normal RADIUS profile, and reconnects the service"
     ]
   },
   {

@@ -1552,7 +1552,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent
+                align="end"
+                side="bottom"
+                position="popper"
+                sticky="always"
+                updatePositionStrategy="always"
+                sideOffset={8}
+                collisionPadding={16}
+                className="z-[100] w-64 shadow-lg"
+              >
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
 

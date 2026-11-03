@@ -17,8 +17,6 @@ import {
   CreditCard,
   Clock,
   Activity,
-  TrendingUp,
-  Gift,
   Ban,
   CheckCircle,
   XCircle,
@@ -35,7 +33,6 @@ import {
   X,
   Eye,
   EyeOff,
-  DollarSign,
   Shield,
   Users,
   Router as RouterIcon,
@@ -104,19 +101,19 @@ const containerVariants = {
   hidden: {},
   show: {
     transition: {
-      staggerChildren: 0.06,
+      staggerChildren: 0.02,
     },
   },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.15 } },
 }
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 18, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.15 } },
 }
 
 // Local types for the detail view
@@ -263,11 +260,12 @@ function mapSession(s: RADIUSAccountingSession): SessionEntry {
 }
 
 function mapPayment(p: Payment): PaymentEntry {
+  const method = String(p.payment_method || "")
   return {
     id: String(p.id),
     date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '',
     amount: Number(p.amount) || 0,
-    method: p.payment_method === 'mpesa' ? 'M-Pesa' : p.payment_method?.charAt(0).toUpperCase() + p.payment_method?.slice(1),
+    method: method.toLowerCase() === 'mpesa' ? 'M-Pesa' : method ? method.charAt(0).toUpperCase() + method.slice(1) : 'Unknown',
     reference: p.reference_number || p.mpesa_receipt || p.transaction_id || '',
     status: p.status,
   }
@@ -746,59 +744,36 @@ export default function UserDetailPage() {
 
   return (
     <motion.div
-      className="admin-theme-route admin-user-detail-route p-6 space-y-6"
+      className="admin-theme-route admin-user-detail-route space-y-6"
       variants={containerVariants}
       initial="hidden"
       animate="show"
     >
       {/* ══════════════ Header ══════════════ */}
       <motion.div variants={cardVariants}>
-        <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400" />
-          <CardContent className="pt-6">
+        <Card className="rounded-lg border-border bg-card shadow-none">
+          <CardContent className="p-5 sm:p-6">
             <div className="flex items-center gap-4 flex-wrap">
-              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => router.back()}>
+              <Button variant="outline" size="sm" onClick={() => router.back()}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
 
-              <div className="relative w-16 h-16 shrink-0">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 0.5 }}
-                  transition={{ duration: 0.5 }}
-                  className={`absolute inset-0 rounded-2xl blur-lg ${
-                    user.connectionStatus === "online" ? "bg-emerald-400" : "bg-slate-400"
-                  }`}
-                />
-                <div className={`relative w-16 h-16 rounded-2xl ring-1 ring-white/20 shadow-lg flex items-center justify-center text-white font-black text-xl ${
-                  user.connectionStatus === "online"
-                    ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-500/25"
-                    : "bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 shadow-violet-500/25"
-                }`}>
+              <div className="relative h-14 w-14 shrink-0">
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-lg font-bold text-primary">
                   {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
-                {user.connectionStatus === "online" && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
-                  </span>
-                )}
+                {user.connectionStatus === "online" && <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-card bg-success" aria-label="Online" />}
               </div>
 
               <div className="flex-1 min-w-[220px]">
-                <p className="text-[11px] uppercase tracking-widest text-slate-400 dark:text-slate-500 font-semibold">
-                  Customers / Subscribers / #{user.id}
-                </p>
+                <p className="text-xs font-medium text-muted-foreground">Subscriber #{user.id}</p>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight mt-0.5">{user.fullName}</h1>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <Badge variant="outline" className="font-mono text-xs rounded-lg bg-slate-50 dark:bg-slate-800">@{user.pppoeUsername || user.id}</Badge>
+                  <Badge variant="outline" className="font-mono text-xs">@{user.pppoeUsername || user.id}</Badge>
                   {user.connectionStatus === 'online' ? (
                     <Badge variant="outline" className="bg-success/15 text-success border-success/30 rounded-lg">
-                      <span className="relative flex h-1.5 w-1.5 mr-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                      </span>
+                      <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-success" />
                       Online
                     </Badge>
                   ) : (
@@ -831,17 +806,17 @@ export default function UserDetailPage() {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={handleRefresh}>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
                 </Button>
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setShowSmsDialog(true)}>
+                <Button variant="outline" size="sm" onClick={() => setShowSmsDialog(true)}>
                   <Send className="w-4 h-4 mr-2" />
                   SMS
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="rounded-xl">
+                    <Button variant="outline" size="sm" aria-label="More subscriber actions">
                       <MoreVertical className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -862,68 +837,44 @@ export default function UserDetailPage() {
       </motion.div>
 
       {/* ══════════════ Stat cards ══════════════ */}
-      <motion.div variants={containerVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div variants={containerVariants} className="grid grid-cols-2 divide-x divide-y divide-border rounded-lg border border-border bg-card md:grid-cols-4 md:divide-y-0">
         {[
           {
             label: "Balance",
             value: `KES ${user.balance.toLocaleString()}`,
             sub: "Current balance",
-            icon: DollarSign,
-            grad: "from-emerald-400 to-teal-500",
-            glow: "rgba(16,185,129,0.18)",
-            bar: "from-emerald-400 via-teal-400 to-cyan-400",
             valueClass: "text-emerald-600 dark:text-emerald-400",
           },
           {
             label: "Total Paid",
             value: `KES ${user.totalPayments.toLocaleString()}`,
             sub: "Lifetime payments",
-            icon: TrendingUp,
-            grad: "from-blue-400 to-indigo-500",
-            glow: "rgba(59,130,246,0.15)",
-            bar: "from-blue-400 via-indigo-400 to-violet-400",
             valueClass: "text-foreground",
           },
           {
             label: "Sessions",
             value: String(user.totalSessions),
             sub: "Total connections",
-            icon: Activity,
-            grad: "from-purple-400 to-violet-500",
-            glow: "rgba(139,92,246,0.15)",
-            bar: "from-purple-400 via-violet-400 to-fuchsia-400",
             valueClass: "text-foreground",
           },
           {
             label: "Loyalty Points",
             value: String(user.loyaltyPoints),
             sub: "Rewards balance",
-            icon: Gift,
-            grad: "from-amber-400 to-orange-500",
-            glow: "rgba(245,158,11,0.15)",
-            bar: "from-amber-400 via-orange-400 to-yellow-400",
             valueClass: "text-foreground",
           },
         ].map((stat) => (
           <motion.div
             key={stat.label}
             variants={itemVariants}
-            whileHover={{ y: -3 }}
-            className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition-shadow duration-300 hover:shadow-xl"
+            className="min-w-0 p-4 sm:p-5"
           >
-            <div className="absolute inset-0 opacity-40" style={{ background: `radial-gradient(circle at 80% -20%, ${stat.glow}, transparent 60%)` }} />
-            <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${stat.bar} opacity-80`} />
-            <div className="relative flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
-                <p className={`text-2xl font-extrabold leading-none font-mono tabular-nums ${stat.valueClass}`}>
+            <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">{stat.label}</p>
+                <p className={`font-mono text-xl font-bold leading-none tabular-nums sm:text-2xl ${stat.valueClass}`}>
                   {stat.value}
                 </p>
-                <p className="text-xs text-slate-400 mt-1.5">{stat.sub}</p>
-              </div>
-              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.grad} shadow-lg`}>
-                <stat.icon className="w-5 h-5 text-white" />
-              </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">{stat.sub}</p>
             </div>
           </motion.div>
         ))}
@@ -932,7 +883,7 @@ export default function UserDetailPage() {
       {/* ══════════════ Tabs ══════════════ */}
       <motion.div variants={cardVariants}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex flex-wrap gap-1 h-auto p-1 rounded-xl">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg p-1 sm:w-auto">
             <TabsTrigger value="overview" className="gap-2 rounded-lg">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -963,8 +914,7 @@ export default function UserDetailPage() {
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid md:grid-cols-3 gap-4">
               {/* Identity Card */}
               <motion.div variants={cardVariants}>
-                <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0 h-full">
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+                <Card className="h-full rounded-lg border-border bg-card shadow-none">
                   <CardHeader className="pb-3 pt-5">
                     <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                       <User className="w-4 h-4" />
@@ -982,8 +932,7 @@ export default function UserDetailPage() {
 
               {/* Connection Card */}
               <motion.div variants={cardVariants} className="md:col-span-2">
-                <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0 h-full">
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+                <Card className="h-full rounded-lg border-border bg-card shadow-none">
                   <CardHeader className="pb-3 pt-5">
                     <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center justify-between">
                       <span className="flex items-center gap-2">
@@ -1079,8 +1028,7 @@ export default function UserDetailPage() {
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid md:grid-cols-2 gap-4">
               {/* Subscription Card */}
               <motion.div variants={cardVariants}>
-                <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0 h-full">
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 opacity-80" />
+                <Card className="h-full rounded-lg border-border bg-card shadow-none">
                   <CardHeader className="pb-3 pt-5">
                     <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                       <Package className="w-4 h-4" />
@@ -1088,7 +1036,7 @@ export default function UserDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-5 pb-5">
-                    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-5">
+                    <div className="rounded-lg border border-primary/15 bg-primary/5 p-5">
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-bold text-foreground">{user.package.name}</p>
@@ -1191,8 +1139,7 @@ export default function UserDetailPage() {
 
               {/* Network Credentials Card */}
               <motion.div variants={cardVariants}>
-                <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0 h-full">
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 opacity-80" />
+                <Card className="h-full rounded-lg border-border bg-card shadow-none">
                   <CardHeader className="pb-3 pt-5">
                     <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                       <Wifi className="w-4 h-4" />
@@ -1273,8 +1220,7 @@ export default function UserDetailPage() {
 
             {/* Lifecycle timeline */}
             <motion.div variants={cardVariants} initial="hidden" animate="show">
-              <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 opacity-60" />
+              <Card className="rounded-lg border-border bg-card shadow-none">
                 <CardHeader className="pb-3 pt-5">
                   <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                     <Clock className="w-4 h-4" />
@@ -1317,8 +1263,7 @@ export default function UserDetailPage() {
             {/* Live Bandwidth Graph */}
             {user.connectionStatus === 'online' && user.pppoeUsername && (
               <motion.div variants={cardVariants} initial="hidden" animate="show">
-                <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+                <Card className="rounded-lg border-border bg-card shadow-none">
                   <CardHeader className="pb-2 pt-5">
                     <CardTitle className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                       <Activity className="w-4 h-4 text-emerald-500" />
@@ -1340,8 +1285,7 @@ export default function UserDetailPage() {
           {/* ══════════════ SESSIONS ══════════════ */}
           <TabsContent value="sessions" className="mt-6">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-              <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+              <Card className="rounded-lg border-border bg-card shadow-none">
                 <CardHeader className="pt-5">
                   <CardTitle className="flex items-center gap-2">
                     Session History
@@ -1398,8 +1342,7 @@ export default function UserDetailPage() {
           {/* ══════════════ PAYMENTS ══════════════ */}
           <TabsContent value="payments" className="mt-6">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-              <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+              <Card className="rounded-lg border-border bg-card shadow-none">
                 <CardHeader className="pt-5">
                   <CardTitle>Payment History</CardTitle>
                   <CardDescription>All transactions for this user</CardDescription>
@@ -1448,8 +1391,7 @@ export default function UserDetailPage() {
           {/* ══════════════ TICKETS ══════════════ */}
           <TabsContent value="tickets" className="mt-6">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-              <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 opacity-80" />
+              <Card className="rounded-lg border-border bg-card shadow-none">
                 <CardHeader className="pt-5">
                   <CardTitle>Support Tickets</CardTitle>
                   <CardDescription>Tickets raised by this user</CardDescription>
@@ -1500,8 +1442,7 @@ export default function UserDetailPage() {
           {/* ══════════════ SMS HISTORY (with full-view eye button) ══════════════ */}
           <TabsContent value="sms" className="mt-6">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-              <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+              <Card className="rounded-lg border-border bg-card shadow-none">
                 <CardHeader className="pt-5">
                   <CardTitle>SMS History</CardTitle>
                   <CardDescription>All messages sent to this user — automated and manually sent</CardDescription>

@@ -47,4 +47,4 @@ export const resources = [
   { title: "Network equipment", href: "/shop", text: "Explore equipment for your next installation." },
 ]
 
-export const featuredSlugs = ["mpesa-billing", "mikrotik-provisioning", "subscriber-portal", "hotspot-billing", "revenue-reporting", "staff-roles"]
+export const featuredSlugs = ["mpesa-billing", "mikrotik-provisioning", "pppoe-billing", "subscriber-portal", "hotspot-billing", "revenue-reporting"]

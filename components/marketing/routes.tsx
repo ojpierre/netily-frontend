@@ -14,7 +14,7 @@ const servedMarkets = ["Kenya", "Uganda", "Tanzania", "South Africa", "United Ki
 const metaTitles: Record<string, string> = {
   "/features/mpesa-billing": "M-Pesa ISP Billing & Auto-Reconnection | Internetily",
   "/features/mikrotik-provisioning": "MikroTik ISP Provisioning Software | Internetily",
-  "/features/pppoe-billing": "PPPoE Billing and RADIUS Automation | Internetily",
+  "/features/pppoe-billing": "Expired PPPoE Payment Redirect & RADIUS Billing | Internetily",
   "/features/hotspot-billing": "M-Pesa Hotspot Billing Software | Internetily",
   "/features/subscriber-management": "ISP Subscriber Management Software | Internetily",
   "/features/revenue-reporting": "ISP Revenue and Collections Reporting | Internetily",
@@ -37,7 +37,7 @@ export function marketingMetadata(path = ""): Metadata {
   return {
     title: { absolute: title },
     description: page.intro,
-    keywords: ["Internetily", "Netily", "ISP billing system", "MikroTik billing", "M-Pesa billing", "PPPoE billing", "hotspot management", ...(path ? [pageName(path)] : [])],
+    keywords: ["Internetily", "Netily", "ISP billing system", "MikroTik billing", "M-Pesa billing", "PPPoE billing", "hotspot management", ...(path === "/features/pppoe-billing" ? ["expired PPPoE payment redirect", "MikroTik renewal portal", "RADIUS walled garden", "automatic PPPoE reconnection"] : []), ...(path ? [pageName(path)] : [])],
     alternates: { canonical: url },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
     openGraph: { title, description: page.intro, url, siteName: "Internetily", type: "website", images: [{ url: `${siteUrl}/academy/wisp-backhaul.webp`, alt: "Internetily ISP billing and network management" }] },
@@ -67,6 +67,14 @@ export function MarketingStructuredData({ path = "" }: { path?: string }) {
       audience: { "@type": "BusinessAudience", audienceType: "Internet service providers and network operators" },
       areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })),
       isRelatedTo: { "@id": `${siteUrl}/#software` },
+    }] : []),
+    ...(path === "/features/pppoe-billing" ? [{
+      "@type": "FAQPage",
+      "@id": `${url}#faq`,
+      mainEntity: [
+        { "@type": "Question", name: "How can an expired PPPoE customer reach the payment page without internet access?", acceptedAnswer: { "@type": "Answer", text: "Internetily uses RADIUS and MikroTik rules to place the expired PPPoE session in a restricted renewal-only network. That network can reach the Internetily payment page and required payment services while normal internet access remains unavailable." } },
+        { "@type": "Question", name: "What happens after the expired PPPoE customer pays?", acceptedAnswer: { "@type": "Answer", text: "After the payment is confirmed, Internetily restores the subscriber's normal RADIUS profile and reconnects the PPPoE service automatically." } },
+      ],
     }] : []),
     ...(path ? [{
       "@type": "BreadcrumbList",

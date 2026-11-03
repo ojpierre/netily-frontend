@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, ArrowUpRight, Banknote, Router, ChartNoAxesCombined, Unplug, Layers, ScanEye, Globe2, RefreshCcw, Tv, MessageSquareText, CreditCard, Star } from "lucide-react"
+import { ArrowRight, ArrowUpRight, Banknote, Router, ChartNoAxesCombined, Unplug, Layers, ScanEye, Globe2, RefreshCcw, Tv, MessageSquareText, CreditCard, Star, Route } from "lucide-react"
 import { featurePages, featuredSlugs, marketingHref, solutionPages } from "./content"
 import { DetailCards, Hero, PricingSummary, SectionHeading } from "./sections"
 import { ContactForm } from "./contact-form"
@@ -30,6 +30,7 @@ export default function MarketingHomePage() {
     <section className={`${s.section} ${s.operationsBand}`}><div className={s.container}><SectionHeading label="Ready for real networks" title="Local payment habits. One connected operating flow.">Internetily adapts the payment and network experience to the market you serve, while keeping the daily work familiar for your team.</SectionHeading><div className={s.capabilityGrid}>{[
       { icon: Globe2, title: "Payments across more markets", text: "Support Kenya, Uganda, Tanzania, and other enabled markets through regional options including M-Pesa, MTN MoMo, and Flutterwave-backed flows." },
       { icon: RefreshCcw, title: "Paid hotspot users reconnect", text: "When access is still valid, returning hotspot customers can restore their connection instead of being sent through payment again." },
+      { icon: Route, title: "Expired PPPoE customers reach payment", text: "A restricted RADIUS and MikroTik path redirects expired PPPoE sessions to the renewal page, then restores normal access after payment." },
       { icon: Tv, title: "Pay for another screen", text: "Customers can pay for supported TV access from the captive portal using the same guided payment experience." },
       { icon: ChartNoAxesCombined, title: "Revenue by router", text: "See what a specific router contributes across hotspot and PPPoE activity, then compare locations with clearer context." },
       { icon: MessageSquareText, title: "SMS without separate credentials", text: "Use Internetily's inbuilt SMS option for reminders and service communication when you do not run your own gateway." },
