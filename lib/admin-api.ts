@@ -193,6 +193,9 @@ import type {
   // IP Binding types
   IPBinding,
   KnownHost,
+  // Expenses & Inventory types
+  Expense,
+  ExpenseSummary,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2608,6 +2611,32 @@ async activateService(
   // Stock Report
   async getStockReport(): Promise<Record<string, unknown>> {
     return this.request<Record<string, unknown>>('/inventory/stock-report/')
+  }
+
+  // Expenses & Budget
+  async getExpenses(params?: Record<string, string>): Promise<PaginatedResponse<Expense>> {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Expense>>(`/inventory/expenses/${qs}`)
+  }
+
+  async createExpense(data: Partial<Expense>): Promise<Expense> {
+    return this.request<Expense>('/inventory/expenses/', { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async updateExpense(id: number, data: Partial<Expense>): Promise<Expense> {
+    return this.request<Expense>(`/inventory/expenses/${id}/`, { method: 'PATCH', body: JSON.stringify(data) })
+  }
+
+  async deleteExpense(id: number): Promise<void> {
+    await this.request(`/inventory/expenses/${id}/`, { method: 'DELETE' })
+  }
+
+  async getExpenseSummary(months = 6): Promise<ExpenseSummary> {
+    return this.request<ExpenseSummary>(`/inventory/expenses/summary/?months=${months}`)
+  }
+
+  async setExpenseBudget(amount: number): Promise<{ month: string; amount: number }> {
+    return this.request('/inventory/expenses/budget/', { method: 'POST', body: JSON.stringify({ amount }) })
   }
 
   // Equipment Report

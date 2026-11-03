@@ -243,7 +243,7 @@ const navigationSections: NavigationSection[] = [
     allowedRoles: OPERATIONS_ROLES,
     items: [
       { name: "Dispatch", href: "/admin/dispatch", icon: Truck },
-      { name: "Inventory", href: "/admin/inventory", icon: Warehouse },
+      { name: "Expenses & Inventory", href: "/admin/inventory", icon: Warehouse },
     ],
   },
   {

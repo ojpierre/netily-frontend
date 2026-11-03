@@ -2,5 +2,5 @@
 import { PageLoading } from "@/components/ui/page-loading"
 
 export default function InventoryLoading() {
-  return <PageLoading label="Loading inventory..." />
+  return <PageLoading label="Loading expenses & inventory..." />
 }

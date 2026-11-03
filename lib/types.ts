@@ -3812,3 +3812,40 @@ pppoe_welcome: [
     { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
   ],
 }
+
+// ==========================================
+// EXPENSES & INVENTORY (Backend Aligned)
+// ==========================================
+
+export type ExpenseCategory = 'equipment' | 'operations' | 'maintenance' | 'transport' | 'utilities' | 'salaries' | 'marketing' | 'other'
+
+export interface Expense {
+  id: number
+  reference: string
+  title: string
+  amount: string
+  category: ExpenseCategory
+  expense_date: string
+  vendor: string
+  payment_status: 'paid' | 'pending'
+  notes: string
+  created_by_name?: string | null
+  created_at: string
+}
+
+export interface ExpenseSummary {
+  month: string
+  spent: number
+  prev_spent: number
+  budget: number
+  remaining: number
+  budget_used_pct: number
+  pending_total: number
+  pending_count: number
+  equipment_value: number
+  equipment_count: number
+  equipment_added_this_month: number
+  series: { month: string; label: string; spent: number; budget: number }[]
+  categories: { category: string; total: number }[]
+  inventory: { total: number; available: number; assigned: number; in_use: number; maintenance: number; faulty: number }
+}
