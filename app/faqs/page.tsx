@@ -4,7 +4,7 @@ import { faqItems } from "@/lib/faq-data"
 import { FaqClient } from "./faq-client"
 
 export const metadata: Metadata = {
-  title: "ISP Billing, MikroTik & Hotspot FAQs | Internetily",
+  title: "ISP Billing, MikroTik & Hotspot FAQs",
   description: "Practical answers about Internetily ISP billing, MikroTik remote access, Hotspot plans, M-Pesa renewals, PPPoE reconnection, customer support and loyalty.",
   alternates: { canonical: "https://netily.co.ke/faqs" },
   keywords: ["ISP billing FAQ", "MikroTik FAQ", "Hotspot billing questions", "PPPoE renewal", "Internetily help", "Netily answers"],
