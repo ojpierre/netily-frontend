@@ -60,6 +60,8 @@ export interface TenantCompany {
   subscription_plan: string
   subscription_expiry: string | null
   is_active: boolean
+  is_selfie_activation_plan?: boolean
+  activation_fee?: string
   created_at: string
   updated_at: string
   total_customers: number
@@ -739,6 +741,8 @@ export interface NetilyPlan {
   max_staff: number
   features: Record<string, unknown>
   is_active: boolean
+  is_selfie_activation_plan?: boolean
+  activation_fee?: string
   sort_order: number
   subscriber_count?: number
   // NEW METERED FIELDS

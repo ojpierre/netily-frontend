@@ -1445,7 +1445,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Top navigation bar */}
-        <header className="sticky top-0 z-30 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:mx-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25">
+        <header className={`fixed inset-x-0 top-0 z-40 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:right-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25 ${sidebarCollapsed ? "lg:left-24" : "lg:left-72"}`}>
           {/* Mobile menu button */}
           <Button
             variant="ghost"
@@ -1555,9 +1555,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent
                 align="end"
                 side="bottom"
-                position="popper"
-                sticky="always"
-                updatePositionStrategy="always"
                 sideOffset={8}
                 collisionPadding={16}
                 className="z-[100] w-64 shadow-lg"
@@ -1603,7 +1600,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="min-w-0 overflow-x-hidden p-3 sm:p-4 lg:p-6 lg:pt-10">
+        <main className="min-w-0 overflow-x-hidden px-3 pb-3 pt-17 sm:px-4 sm:pb-4 sm:pt-20 lg:px-6 lg:pb-6 lg:pt-28">
           {isDemoMode && (
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">

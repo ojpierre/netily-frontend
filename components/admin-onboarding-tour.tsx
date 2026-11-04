@@ -45,6 +45,7 @@ type TourStep = {
   hint?: string
   primary: string
   secondary?: string
+  requiresAction?: boolean
 }
 
 const STORAGE_PREFIX = "netily-admin-setup-tour"
@@ -84,6 +85,7 @@ const steps: TourStep[] = [
     body: "Use a name your team will recognise, choose the router type, and add the location. After saving, you can open the router page and complete connection details or scripts.",
     hint: "Example: Main Gateway, MikroTik, Nairobi CBD POP.",
     primary: "Open router form",
+    requiresAction: true,
   },
   {
     id: "plans-page",
@@ -105,6 +107,7 @@ const steps: TourStep[] = [
     title: "Choose the first plan type.",
     body: "Pick PPPoE for monthly subscriber accounts or Hotspot for captive portal packages. The guide will use PPPoE first because it covers the core billing fields.",
     primary: "Choose plan type",
+    requiresAction: true,
   },
   {
     id: "plan-form",
@@ -117,6 +120,7 @@ const steps: TourStep[] = [
     body: "Keep the first plan simple. Use a clear customer-facing name, confirm the IP pool range, choose same-day monthly or a fixed duration, then set the speeds and price.",
     hint: "Example: Home 10Mbps, monthly, KES 1,500.",
     primary: "Open PPPoE form",
+    requiresAction: true,
   },
   {
     id: "payment-methods",
@@ -139,6 +143,7 @@ const steps: TourStep[] = [
     body: "Enter the shortcode, consumer key, consumer secret, passkey, and callback-ready settings. Test first, then activate it as the primary gateway.",
     hint: "Keep keys server-side. Never paste live credentials into chats or public docs.",
     primary: "Open M-Pesa setup",
+    requiresAction: true,
   },
   {
     id: "sms-gateway",
@@ -174,7 +179,6 @@ function isPrincipalAdmin(user: AdminOnboardingUser | null | undefined) {
   const role = String(user?.role || "").toLowerCase()
   const accessLevel = String(user?.access_level || "").toLowerCase()
   if (!user) return false
-  if (user.is_superuser) return false
   if (role.includes("super")) return false
   if (accessLevel.includes("super")) return false
   return role === "admin" || accessLevel === "admin" || (!role && !!user.is_staff)
@@ -182,7 +186,8 @@ function isPrincipalAdmin(user: AdminOnboardingUser | null | undefined) {
 
 function findTarget(selector?: string) {
   if (!selector || typeof document === "undefined") return null
-  return document.querySelector<HTMLElement>(selector)
+  const targets = Array.from(document.querySelectorAll<HTMLElement>(selector))
+  return targets.filter((target) => target.getClientRects().length > 0).at(-1) || null
 }
 
 export function AdminOnboardingTour({
@@ -201,11 +206,13 @@ export function AdminOnboardingTour({
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [targetMissing, setTargetMissing] = useState(false)
   const [videoOpen, setVideoOpen] = useState(false)
+  const [actionOpened, setActionOpened] = useState(false)
 
   useEffect(() => {
     const start = () => {
       setIndex(0)
       setVideoOpen(false)
+      setActionOpened(false)
       setActive(true)
       void adminApi.recordOnboardingEvent("started").catch(() => undefined)
     }
@@ -292,7 +299,16 @@ export function AdminOnboardingTour({
       window.removeEventListener("resize", syncRect)
       window.removeEventListener("scroll", syncRect, true)
     }
-  }, [active, step])
+  }, [active, step, actionOpened])
+
+  useEffect(() => {
+    if (!active || !step?.target) return
+    const target = findTarget(step.target)
+    if (!target) return
+    const layer = target.closest<HTMLElement>("[role=dialog]") || target
+    layer.classList.add("relative", "z-[130]", "ring-2", "ring-primary", "ring-offset-4", "ring-offset-background")
+    return () => layer.classList.remove("relative", "z-[130]", "ring-2", "ring-primary", "ring-offset-4", "ring-offset-background")
+  }, [active, step, actionOpened])
 
   const cardStyle = useMemo<React.CSSProperties>(() => {
     if (typeof window === "undefined") return {}
@@ -314,6 +330,7 @@ export function AdminOnboardingTour({
     }
     void adminApi.recordOnboardingEvent(complete ? "completed" : "dismissed").catch(() => undefined)
     setActive(false)
+    setActionOpened(false)
   }
 
   const toggleVideo = () => {
@@ -326,24 +343,27 @@ export function AdminOnboardingTour({
   const goPrevious = () => setIndex((current) => Math.max(current - 1, 0))
 
   const goNext = () => {
-    if (step.event && typeof window !== "undefined" && (!step.route || pathname === step.route)) {
+    if (step.requiresAction && !actionOpened && step.event && typeof window !== "undefined" && (!step.route || pathname === step.route)) {
       window.dispatchEvent(new CustomEvent(step.event))
+      setActionOpened(true)
+      return
     }
     if (index >= tourSteps.length - 1) {
       close(true)
       return
     }
     setIndex((current) => current + 1)
+    setActionOpened(false)
   }
 
   if (!active || disabled || !step) return null
 
   return (
     <div className="fixed inset-0 z-[120] pointer-events-none">
-      <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-[6px]" />
+      <div className="absolute inset-0 bg-slate-950/55" />
       {rect && (
         <div
-          className="absolute rounded-2xl border-2 border-primary bg-background/10 shadow-[0_0_0_9999px_rgba(15,23,42,0.35),0_18px_60px_rgba(0,0,0,0.35)] transition-all duration-200"
+          className="absolute rounded-2xl border-2 border-primary bg-transparent shadow-[0_0_0_9999px_rgba(15,23,42,0.35),0_0_0_6px_rgba(37,99,235,0.20),0_0_28px_rgba(37,99,235,0.75)] transition-all duration-200 motion-safe:animate-pulse"
           style={{
             left: Math.max(rect.left - 8, 8),
             top: Math.max(rect.top - 8, 8),
@@ -371,6 +391,7 @@ export function AdminOnboardingTour({
           </Button>
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{step.body}</p>
+        {step.requiresAction && actionOpened && <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-xs leading-5 text-foreground">The highlighted control is ready. Complete that action, then choose Continue when you are ready for the next step.</p>}
         {step.hint && (
           <p className="mt-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-xs leading-5 text-foreground">
             {step.hint}
@@ -420,7 +441,7 @@ export function AdminOnboardingTour({
               </Button>
             )}
             <Button type="button" size="sm" onClick={goNext}>
-              {step.primary}
+              {step.requiresAction && actionOpened ? "Continue" : step.primary}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>

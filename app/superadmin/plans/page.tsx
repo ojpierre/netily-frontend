@@ -10,7 +10,8 @@ import {
   Users,
   Wifi,
   DollarSign,
-  Activity
+  Activity,
+  Check
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,6 +47,8 @@ const emptyPlan: Partial<NetilyPlan> = {
   pppoe_unit_price: "25.00",
   pppoe_min_clients: 20,
   hotspot_revenue_share_pct: "3.00",
+  activation_fee: "500.00",
+  is_selfie_activation_plan: false,
 }
 
 export default function PlansPage() {
@@ -195,6 +198,7 @@ export default function PlansPage() {
                     <Users className="w-4 h-4 text-violet-400" />
                     {plan.max_subscribers === 0 ? "Unlimited" : plan.max_subscribers.toLocaleString()} subscribers
                   </div>
+                  {plan.is_selfie_activation_plan && <div className="flex items-center gap-2 text-sky-300"><Check className="w-4 h-4" />Selfie-2 activation plan · {kes(plan.activation_fee || 0)}</div>}
                   <div className="flex items-center gap-2 text-slate-300">
                     <Wifi className="w-4 h-4 text-violet-400" />
                     {plan.max_routers === 0 ? "Unlimited" : plan.max_routers} routers
@@ -391,6 +395,11 @@ export default function PlansPage() {
                   placeholder="0 = Unlimited"
                 />
               </div>
+            </div>
+
+            <div className="grid gap-3 rounded-lg border border-sky-500/25 bg-sky-500/5 p-4 sm:grid-cols-[1fr_180px] sm:items-end">
+              <div><Label className="text-base text-sky-100">Selfie-2 registration package</Label><p className="mt-1 text-sm text-slate-400">Exactly one active plan can power the Selfie-2 test/activation flow.</p><div className="mt-3 flex items-center gap-3"><Switch checked={editing.is_selfie_activation_plan === true} onCheckedChange={(v) => setEditing({ ...editing, is_selfie_activation_plan: v })} /><Label className="text-slate-300">Use this plan for Selfie-2</Label></div></div>
+              <div><Label className="text-slate-300">Selfie activation amount (KES)</Label><Input type="number" min="1" step="1" value={editing.activation_fee || "500"} onChange={(e) => setEditing({ ...editing, activation_fee: e.target.value })} className="mt-2 bg-slate-800 border-slate-700 text-white" /></div>
             </div>
 
             <div className="flex items-center gap-3 mt-2">
