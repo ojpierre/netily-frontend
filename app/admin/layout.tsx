@@ -1584,6 +1584,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("netily:onboarding:start"))}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Setup guide &amp; video
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/customer/login")}>
                   <Globe className="w-4 h-4 mr-2" />
                   Customer Portal

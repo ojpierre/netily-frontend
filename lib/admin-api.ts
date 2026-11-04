@@ -236,6 +236,7 @@ export interface PaymentMethodPinStatus {
   locked_seconds: number
   unlock_seconds: number
   updated_at?: string | null
+  unlock_token?: string | null
 }
 
 export interface AdminStats extends DashboardStats {}
@@ -351,6 +352,10 @@ class AdminApiService {
     const token = this.getAdminToken()
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
+    }
+    if (typeof window !== 'undefined') {
+      const unlock = sessionStorage.getItem(this.hostScopedKey('paymentMethodsUnlock'))
+      if (unlock) headers['X-Payment-Methods-Unlock'] = unlock
     }
     
     return headers
@@ -792,24 +797,30 @@ class AdminApiService {
   }
 
   async setupPaymentMethodPin(pin: string, pinConfirm: string): Promise<PaymentMethodPinStatus> {
-    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/setup/', {
+    const status = await this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/setup/', {
       method: 'POST',
       body: JSON.stringify({ pin, pin_confirm: pinConfirm }),
     })
+    if (status.unlock_token) sessionStorage.setItem(this.hostScopedKey('paymentMethodsUnlock'), status.unlock_token)
+    return status
   }
 
   async verifyPaymentMethodPin(pin: string): Promise<PaymentMethodPinStatus> {
-    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/verify/', {
+    const status = await this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/verify/', {
       method: 'POST',
       body: JSON.stringify({ pin }),
     })
+    if (status.unlock_token) sessionStorage.setItem(this.hostScopedKey('paymentMethodsUnlock'), status.unlock_token)
+    return status
   }
 
   async changePaymentMethodPin(currentPin: string, pin: string, pinConfirm: string): Promise<PaymentMethodPinStatus> {
-    return this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/change/', {
+    const status = await this.request<PaymentMethodPinStatus>('/core/auth/payment-method-pin/change/', {
       method: 'POST',
       body: JSON.stringify({ current_pin: currentPin, pin, pin_confirm: pinConfirm }),
     })
+    if (status.unlock_token) sessionStorage.setItem(this.hostScopedKey('paymentMethodsUnlock'), status.unlock_token)
+    return status
   }
 
   async logout(): Promise<void> {

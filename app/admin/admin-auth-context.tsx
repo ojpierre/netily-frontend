@@ -40,6 +40,11 @@ interface AdminUser {
   department?: string | null
   department_name?: string | null
   last_login?: string | null
+  account_created_at?: string | null
+  onboarding_tour_started_at?: string | null
+  onboarding_tour_dismissed_at?: string | null
+  onboarding_tour_completed_at?: string | null
+  onboarding_video_viewed_at?: string | null
 }
 
 interface AdminAuthContextType {
@@ -92,6 +97,11 @@ const normalizeAdminUser = (user: any): AdminUser => ({
   department: user?.department ? String(user.department).toLowerCase() : null,
   department_name: user?.department_name || user?.department || null,
   last_login: user?.last_login || null,
+  account_created_at: user?.account_created_at || user?.created_at || null,
+  onboarding_tour_started_at: user?.onboarding_tour_started_at || null,
+  onboarding_tour_dismissed_at: user?.onboarding_tour_dismissed_at || null,
+  onboarding_tour_completed_at: user?.onboarding_tour_completed_at || null,
+  onboarding_video_viewed_at: user?.onboarding_video_viewed_at || null,
 })
 
 const isAllowedAdminUser = (user: any): boolean => {

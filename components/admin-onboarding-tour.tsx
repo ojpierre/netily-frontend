@@ -202,6 +202,17 @@ export function AdminOnboardingTour({
   const [targetMissing, setTargetMissing] = useState(false)
   const [videoOpen, setVideoOpen] = useState(false)
 
+  useEffect(() => {
+    const start = () => {
+      setIndex(0)
+      setVideoOpen(false)
+      setActive(true)
+      void adminApi.recordOnboardingEvent("started").catch(() => undefined)
+    }
+    window.addEventListener("netily:onboarding:start", start)
+    return () => window.removeEventListener("netily:onboarding:start", start)
+  }, [])
+
   const tourSteps = useMemo(() => country === "UG" ? steps.map((step) => {
     if (step.id === "welcome") return { ...step, hint: "Have your router details, plan prices, iotec wallet details, and SMS preference nearby." }
     if (step.id === "plan-form") return { ...step, hint: "Choose prices in UGX. Hotspot plans need at least UGX 500 for Mobile Money payments." }

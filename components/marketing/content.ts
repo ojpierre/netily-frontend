@@ -43,6 +43,7 @@ export const resources = [
   { title: "ISP guides", href: "/blog", text: "Practical answers for billing, networking, and growing your ISP." },
   { title: "Internetily Academy", href: "/academy", text: "Hands-on courses for you and your team." },
   { title: "Documentation", href: "/docs", text: "Get connected, set up billing, and find your way around." },
+  { title: "Frequently asked questions", href: "/faqs", text: "Direct answers for common MikroTik, Hotspot, payment, and support tasks." },
   { title: "Affiliate program", href: "/affiliate", text: "Refer an ISP and track your referrals in one place." },
   { title: "Network equipment", href: "/shop", text: "Explore equipment for your next installation." },
 ]

@@ -1,6 +1,7 @@
 import { readFile } from "fs/promises"
 import path from "path"
 import { NextResponse, type NextRequest } from "next/server"
+import { faqMarkdown } from "@/lib/faq-data"
 
 type DocsSection = {
   title: string
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
     }
 
     const docsPath = path.join(process.cwd(), "public", "netily-docs.md")
-    const markdown = await readFile(docsPath, "utf8")
+    const markdown = `${await readFile(docsPath, "utf8")}\n\n${faqMarkdown()}`
     const contextSections = selectContext(markdown, question)
     const context = contextSections
       .map((section) => `## ${section.title}\n${section.text.slice(0, 3500)}`)
