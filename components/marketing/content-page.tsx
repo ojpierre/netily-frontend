@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowRight } from "lucide-react"
-import { marketingIndexes, detailPages, featurePages, pageName, marketingHref, resources, solutionPages } from "./content"
+import { answerEngineContent, marketingIndexes, detailPages, featurePages, pageName, marketingHref, resources, solutionPages } from "./content"
 import { ClosingCTA, DetailCards, Hero, PricingSummary, SectionHeading } from "./sections"
 import { ContactForm } from "./contact-form"
 import { MarketingCalculator } from "./calculator"
@@ -21,17 +21,16 @@ export default function MarketingContentPage({ path }: { path: string }) {
 
   if (detail) {
     const related = detail.path.startsWith("/features/") ? featurePages : solutionPages
+    const answerEngine = answerEngineContent[detail.path]
     const image = detail.path.includes("hotspot") || detail.path.includes("portal") || detail.path.includes("wifi") ? "/academy/hotspot-wifi.webp" : detail.path.includes("fibre") ? "/academy/fiber-olt.webp" : "/academy/mikrotik-pppoe.webp"
     return <>
       <div className={s.container}><nav aria-label="Breadcrumb" className={s.breadcrumb}><Link href={marketingHref()}>Home</Link><span>/</span><Link href={marketingHref(`/${slug[0]}`)}>{pageName(slug[0])}</Link><span>/</span><span aria-current="page">{pageName(detail.path)}</span></nav></div>
       <Hero label={pageName(detail.path)} title={detail.title} intro={detail.intro} image={image} />
       <ProductProof variant={previewForPath(detail.path)} />
+      {answerEngine && <section className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="Quick answer" title={detail.title}>{answerEngine.answer}</SectionHeading></div></section>}
       <section className={s.section}><div className={s.container}>{detail.problem && <SectionHeading label="Sound familiar?" title="Less work between you and your subscribers.">{detail.problem}</SectionHeading>}<div className={s.detailPoints}>{detail.points.map((point) => { const [heading, ...body] = point.split(/\s+-\s+/); return <div key={point}>{body.length > 0 && <h2 style={{ fontSize: 26 }}>{heading}</h2>}<p>{body.length ? body.join(" - ") : heading}</p></div> })}</div></div></section>
       {detail.steps.length > 0 && <section className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="How it works" title="A simpler way through your day." /><ol className={s.threeColumns}>{detail.steps.map((step, index) => <li className={s.plainItem} key={step}><span className={s.stepNumber}>0{index + 1}</span><p>{step}</p></li>)}</ol></div></section>}
-      {detail.path === "/features/pppoe-billing" && <section className={s.section}><div className={`${s.container} ${s.faq}`}><SectionHeading label="PPPoE renewal redirect" title="What happens when access expires?" />{[
-        ["How can an expired PPPoE customer reach the payment page without internet access?", "Internetily uses RADIUS and MikroTik rules to place the expired PPPoE session in a restricted renewal-only network. That network can reach the Internetily payment page and required payment services while normal internet access remains unavailable."],
-        ["What happens after the expired PPPoE customer pays?", "After the payment is confirmed, Internetily restores the subscriber's normal RADIUS profile and reconnects the PPPoE service automatically."],
-      ].map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>}
+      {answerEngine && <section className={s.section}><div className={`${s.container} ${s.faq}`}><SectionHeading label="Common questions" title={`About ${pageName(detail.path)}.`} />{answerEngine.questions.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>}
       <section className={s.section}><div className={s.container}><SectionHeading label="Keep exploring" title="The rest of your workflow, connected." /><DetailCards pages={related.filter((page) => page.path !== detail.path).slice(0, 3)} /></div></section><ClosingCTA />
     </>
   }

@@ -49,3 +49,39 @@ export const resources = [
 ]
 
 export const featuredSlugs = ["mpesa-billing", "mikrotik-provisioning", "pppoe-billing", "subscriber-portal", "hotspot-billing", "revenue-reporting"]
+
+type AnswerEngineContent = {
+  answer: string
+  questions: Array<[string, string]>
+}
+
+export const answerEngineContent: Record<string, AnswerEngineContent> = {
+  "/features/mpesa-billing": {
+    answer: "Internetily connects M-Pesa payments to an ISP subscriber record, then records the receipt and triggers the normal access workflow. It is built for operators who need payment matching, renewal visibility, and a consistent path from a confirmed payment to restored service without checking statements and routers manually.",
+    questions: [
+      ["How does Internetily match an M-Pesa payment?", "Internetily uses the available account references and payment details to match a receipt to the intended subscriber, then records the result in the billing workflow."],
+      ["Does a payment automatically reconnect a subscriber?", "After a payment is confirmed and matched, Internetily requests the subscriber's normal access workflow. The exact restoration depends on the connected router and subscriber service configuration."],
+    ],
+  },
+  "/features/mikrotik-provisioning": {
+    answer: "Internetily helps ISP teams connect a MikroTik once, then manage subscriber access, PPPoE profiles, queues, and router-linked operations from the billing workspace. It is designed to reduce repeated RouterOS changes while preserving the operator's control over router credentials, connection status, and provisioning scripts.",
+    questions: [
+      ["Do I need a public IP address for MikroTik provisioning?", "Not necessarily. Internetily supports a secure router connection path; the exact setup depends on your router, network reachability, and Cloud Controller configuration."],
+      ["Can I still use Winbox after connecting a router?", "Yes. The router remains yours to manage. Internetily adds an operational connection for billing and provisioning workflows rather than replacing normal router administration."],
+    ],
+  },
+  "/features/pppoe-billing": {
+    answer: "When a PPPoE subscription expires, Internetily can place the session in a restricted renewal network that still reaches the payment page. Once payment is confirmed, the subscriber's normal RADIUS profile and internet access are restored automatically, reducing support calls and manual reconnection work.",
+    questions: [
+      ["How can an expired PPPoE customer reach the payment page without internet access?", "Internetily uses RADIUS and MikroTik rules to place the expired PPPoE session in a restricted renewal-only network. That network can reach the Internetily payment page and required payment services while normal internet access remains unavailable."],
+      ["What happens after the expired PPPoE customer pays?", "After the payment is confirmed, Internetily restores the subscriber's normal RADIUS profile and reconnects the PPPoE service automatically."],
+    ],
+  },
+  "/features/hotspot-billing": {
+    answer: "Internetily gives hotspot customers a payment-first path from a branded captive portal to an active Wi-Fi session. Operators can publish packages, take supported payments, see session and revenue activity, and support customer devices such as TVs through the same operational workflow.",
+    questions: [
+      ["Can a Smart TV buy a hotspot plan?", "A TV plan lets a customer pay from a phone while the TV connects using its MAC address, provided the TV is already on the Wi-Fi network and the operator has configured a TV plan."],
+      ["Can operators reply to messages from the hotspot login page?", "Yes. Operators can open Tickets, choose Hotspot Chats, and reply to the customer conversation from the admin workspace."],
+    ],
+  },
+}

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import MarketingContentPage from "./content-page"
 import MarketingLayout from "./layout"
-import { detailPages, marketingIndexes, pageName } from "./content"
+import { answerEngineContent, detailPages, marketingIndexes, pageName } from "./content"
 
 const siteUrl = "https://netily.co.ke"
 const home = {
@@ -51,6 +51,7 @@ export function MarketingStructuredData({ path = "" }: { path?: string }) {
   if (!page) return null
   const organization = { "@type": "Organization", "@id": `${siteUrl}/#organization`, name: "Internetily", alternateName: "Netily", url: siteUrl, logo: `${siteUrl}/internetily-logo-320.webp`, email: "sales@netily.co.ke", contactPoint: { "@type": "ContactPoint", contactType: "sales", telephone: "+254100034307", availableLanguage: ["English", "Swahili"] } }
   const webPage = { "@type": "WebPage", "@id": `${url}#webpage`, url, name: path ? pageName(path) : home.title, description: page.intro, isPartOf: { "@id": `${siteUrl}/#website` }, about: { "@id": `${siteUrl}/#software` } }
+  const answerEngine = answerEngineContent[path]
   const graph = [
     organization,
     { "@type": "WebSite", "@id": `${siteUrl}/#website`, name: "Internetily", alternateName: "Netily", url: siteUrl, publisher: { "@id": `${siteUrl}/#organization` }, inLanguage: "en" },
@@ -68,13 +69,10 @@ export function MarketingStructuredData({ path = "" }: { path?: string }) {
       areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })),
       isRelatedTo: { "@id": `${siteUrl}/#software` },
     }] : []),
-    ...(path === "/features/pppoe-billing" ? [{
+    ...(answerEngine ? [{
       "@type": "FAQPage",
       "@id": `${url}#faq`,
-      mainEntity: [
-        { "@type": "Question", name: "How can an expired PPPoE customer reach the payment page without internet access?", acceptedAnswer: { "@type": "Answer", text: "Internetily uses RADIUS and MikroTik rules to place the expired PPPoE session in a restricted renewal-only network. That network can reach the Internetily payment page and required payment services while normal internet access remains unavailable." } },
-        { "@type": "Question", name: "What happens after the expired PPPoE customer pays?", acceptedAnswer: { "@type": "Answer", text: "After the payment is confirmed, Internetily restores the subscriber's normal RADIUS profile and reconnects the PPPoE service automatically." } },
-      ],
+      mainEntity: answerEngine.questions.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
     }] : []),
     ...(path ? [{
       "@type": "BreadcrumbList",
