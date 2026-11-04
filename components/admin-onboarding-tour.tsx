@@ -50,7 +50,7 @@ type TourStep = {
 
 const STORAGE_PREFIX = "netily-admin-setup-tour"
 const SESSION_PREFIX = "netily-admin-setup-session"
-const MAX_LOGIN_SHOWS = 3
+const NEW_ACCOUNT_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
 const SETUP_VIDEO_URL = "https://www.youtube-nocookie.com/embed/cGfHPU1tJWM?rel=0"
 
 const steps: TourStep[] = [
@@ -184,6 +184,14 @@ function isPrincipalAdmin(user: AdminOnboardingUser | null | undefined) {
   return role === "admin" || accessLevel === "admin" || (!role && !!user.is_staff)
 }
 
+function isNewAccount(user: AdminOnboardingUser | null | undefined) {
+  if (!user?.account_created_at) return false
+  const createdAt = new Date(user.account_created_at).getTime()
+  if (!Number.isFinite(createdAt)) return false
+  const age = Date.now() - createdAt
+  return age >= -5 * 60 * 1000 && age <= NEW_ACCOUNT_WINDOW_MS
+}
+
 function findTarget(selector?: string) {
   if (!selector || typeof document === "undefined") return null
   const targets = Array.from(document.querySelectorAll<HTMLElement>(selector))
@@ -240,19 +248,15 @@ export function AdminOnboardingTour({
   useEffect(() => {
     if (disabled || !isPrincipalAdmin(user) || typeof window === "undefined") return
 
-    if (user?.onboarding_tour_completed_at || user?.onboarding_tour_dismissed_at) return
+    if (!isNewAccount(user)) return
+    if (user?.onboarding_tour_started_at || user?.onboarding_tour_completed_at || user?.onboarding_tour_dismissed_at) return
 
     const completeKey = scopedKey(user, "complete")
     if (window.localStorage.getItem(completeKey) === "1") return
 
-    const sessionKey = scopedKey(user, "session")
-    const countKey = scopedKey(user, "shows")
-    if (!window.sessionStorage.getItem(sessionKey)) {
-      const shows = Number(window.localStorage.getItem(countKey) || "0")
-      if (shows >= MAX_LOGIN_SHOWS) return
-      window.localStorage.setItem(countKey, String(shows + 1))
-      window.sessionStorage.setItem(sessionKey, "1")
-    }
+    const autoShownKey = scopedKey(user, "auto-shown")
+    if (window.localStorage.getItem(autoShownKey) === "1") return
+    window.localStorage.setItem(autoShownKey, "1")
 
     const savedIndex = Number(window.localStorage.getItem(scopedKey(user, "step")) || "0")
     setIndex(Number.isFinite(savedIndex) ? Math.min(Math.max(savedIndex, 0), tourSteps.length - 1) : 0)
