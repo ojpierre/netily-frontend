@@ -101,7 +101,7 @@ async function readResult<T>(response: Response): Promise<T> {
 
 async function requestRegistration<T>(
   path: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   payload?: object,
 ): Promise<T> {
   const session = getSession()
@@ -130,6 +130,13 @@ async function requestRegistration<T>(
       detail: "Could not reach the registration service. Check your connection and try again.",
     })
   }
+}
+
+export function cancelTenantActivation(paymentId: string): Promise<TenantActivationPayment> {
+  return requestRegistration<TenantActivationPayment>(
+    `${REGISTRATION_PATH}activation/${paymentId}/`,
+    "DELETE",
+  )
 }
 
 export function registerTenant<T>(data: object): Promise<T> {

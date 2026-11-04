@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import {
-  finishTenantActivation, getTenantActivation, RegistrationError,
+  cancelTenantActivation, finishTenantActivation, getTenantActivation, RegistrationError,
   startTenantActivation, type TenantActivationPayment,
 } from "@/lib/platform-registration"
 
@@ -136,6 +136,22 @@ export default function SelfieTwoPage() {
     }
   }
 
+  async function cancelPayment() {
+    if (!payment || !window.confirm("Cancel this pending prompt and start again with the latest Selfie-2 package? Do not approve the old M-Pesa prompt after cancelling.")) return
+    setBusy(true)
+    try {
+      await cancelTenantActivation(payment.id)
+      sessionStorage.removeItem("netily-selfie-2-payment")
+      setPayment(null)
+      setStep("details")
+      toast.success("The old request was cancelled. Submit the form again to use the latest Selfie-2 package and amount.")
+    } catch (error) {
+      toast.error(`Could not cancel this request. ${messageFrom(error)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function createAccount(event: FormEvent) {
     event.preventDefault()
     if (!passwordChecks.every(Boolean) || password !== confirm) {
@@ -216,7 +232,7 @@ export default function SelfieTwoPage() {
           {step === "payment" && payment && <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="grid h-14 w-14 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Smartphone className="h-7 w-7" /></div><h2 className="mt-6 font-[var(--font-outfit)] text-3xl font-semibold">Approve the M-Pesa prompt.</h2><p className="mt-3 text-slate-600">We sent a KSh {Number(payment.amount).toLocaleString("en-KE")} activation request to <strong>{payment.phone_number}</strong>. Enter the M-Pesa PIN on that phone. This screen updates automatically.</p>
             <div className="my-7 flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-5"><div><p className="text-xs font-semibold uppercase text-slate-500">Activation fee</p><p className="mt-1 text-2xl font-bold">KSh {Number(payment.amount).toLocaleString("en-KE")}</p></div>{payment.status === "failed" || payment.status === "expired" ? <div className="text-right text-sm font-semibold text-red-700">Payment not completed</div> : <div className="flex items-center gap-2 text-sm font-semibold text-amber-700"><Loader2 className="h-4 w-4 animate-spin" /> Waiting for confirmation</div>}</div>
-            {payment.status === "failed" || payment.status === "expired" ? <button type="button" onClick={() => { sessionStorage.removeItem("netily-selfie-2-payment"); setPayment(null); setStep("details") }} className="inline-flex min-h-12 w-full items-center justify-center rounded-md bg-sky-700 px-5 font-bold text-white">Start a new payment request</button> : <button type="button" onClick={checkPayment} disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-5 font-bold text-slate-900 hover:border-sky-600">{busy && <Loader2 className="h-4 w-4 animate-spin" />} I have approved the payment</button>}
+            {payment.status === "failed" || payment.status === "expired" ? <button type="button" onClick={() => { sessionStorage.removeItem("netily-selfie-2-payment"); setPayment(null); setStep("details") }} className="inline-flex min-h-12 w-full items-center justify-center rounded-md bg-sky-700 px-5 font-bold text-white">Start a new payment request</button> : <><button type="button" onClick={checkPayment} disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-5 font-bold text-slate-900 hover:border-sky-600">{busy && <Loader2 className="h-4 w-4 animate-spin" />} I have approved the payment</button><button type="button" onClick={cancelPayment} disabled={busy} className="mt-3 inline-flex min-h-11 w-full items-center justify-center text-sm font-semibold text-slate-600 underline-offset-4 hover:text-red-700 hover:underline">Cancel this request and use the latest package</button></>}
             <p className="mt-5 text-sm leading-6 text-slate-500">Do not send another prompt while this one is processing. If the callback is delayed, the status check also reconciles directly with the payment gateway.</p>
           </div>}
 
