@@ -63,7 +63,7 @@ export function PaymentMethodPinGuard({ children }: { children: ReactNode }) {
         if (!active) return
         setStatus(next)
         setLockedSeconds(next.locked_seconds || 0)
-        setError("")
+        setError(supplied && !next.unlocked && !next.bypass ? "The PIN was updated. Enter it to continue." : "")
       } catch (requestError) {
         if (active) setError(errorMessage(requestError))
       }
@@ -100,9 +100,10 @@ export function PaymentMethodPinGuard({ children }: { children: ReactNode }) {
     setBusy(true)
     setError("")
     try {
-      const next = status?.configured
-        ? await adminApi.verifyPaymentMethodPin(pin)
-        : await adminApi.setupPaymentMethodPin(pin, confirmation)
+      // First-time setup on this page opens it straight away: the admin just
+      // typed the PIN twice, so verify it immediately after saving.
+      if (!status?.configured) await adminApi.setupPaymentMethodPin(pin, confirmation)
+      const next = await adminApi.verifyPaymentMethodPin(pin)
       setStatus(next)
       setLockedSeconds(next.locked_seconds || 0)
       setPin("")

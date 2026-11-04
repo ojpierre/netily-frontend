@@ -46,7 +46,11 @@ export function PaymentMethodPinSettingsCard() {
       setPin("")
       setConfirmation("")
       window.dispatchEvent(new CustomEvent("netily-payment-pin-status-changed", { detail: next }))
-      toast.success(status?.configured ? "Payment Methods PIN changed." : "Payment Methods PIN is now active.")
+      toast.success(
+        `${status?.configured ? "PIN changed. Payment Methods is locked again." : "PIN saved. Payment Methods is now locked."} ${
+          next.bypass ? "Your platform access skips the PIN." : "Enter the PIN when you open it."
+        }`,
+      )
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the PIN.")
     } finally {
@@ -64,7 +68,7 @@ export function PaymentMethodPinSettingsCard() {
     <form onSubmit={save}>
       <CardContent className="space-y-5">
         {loading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading PIN status...</div> : <>
-          <Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>{status?.configured ? "PIN protection is active. A successful check unlocks payment settings for 15 minutes in that signed-in session." : "No PIN is set yet. The principal tenant administrator will be prompted to create one before opening Payment Methods."}</AlertDescription></Alert>
+          <Alert><ShieldCheck className="h-4 w-4" /><AlertDescription>{status?.configured ? "Payment Methods is locked. Anyone opening it must enter this PIN, and it stays open for 15 minutes. Changing the PIN locks it again for everyone." : "No PIN yet. Set one here, or you will be asked to create it the first time you open Payment Methods."}</AlertDescription></Alert>
           {status?.can_setup ? <div className="grid gap-4 sm:grid-cols-2">
             {status.configured && !status.bypass && <div className="sm:col-span-2"><SecurePinField id="current-payment-pin" label="Current PIN" value={currentPin} onChange={setCurrentPin} /></div>}
             <SecurePinField id="new-payment-pin" label={status.configured ? "New PIN" : "Create PIN"} value={pin} onChange={setPin} />

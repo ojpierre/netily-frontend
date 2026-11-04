@@ -801,8 +801,14 @@ class AdminApiService {
       method: 'POST',
       body: JSON.stringify({ pin, pin_confirm: pinConfirm }),
     })
-    if (status.unlock_token) sessionStorage.setItem(this.hostScopedKey('paymentMethodsUnlock'), status.unlock_token)
+    // Saving a PIN never unlocks Payment Methods; the page asks for it.
+    this.clearPaymentMethodsUnlock()
     return status
+  }
+
+  clearPaymentMethodsUnlock(): void {
+    if (typeof window === 'undefined') return
+    sessionStorage.removeItem(this.hostScopedKey('paymentMethodsUnlock'))
   }
 
   async verifyPaymentMethodPin(pin: string): Promise<PaymentMethodPinStatus> {
@@ -819,7 +825,8 @@ class AdminApiService {
       method: 'POST',
       body: JSON.stringify({ current_pin: currentPin, pin, pin_confirm: pinConfirm }),
     })
-    if (status.unlock_token) sessionStorage.setItem(this.hostScopedKey('paymentMethodsUnlock'), status.unlock_token)
+    // The new PIN invalidates every earlier unlock, including this session's.
+    this.clearPaymentMethodsUnlock()
     return status
   }
 

@@ -2569,7 +2569,8 @@ export default function UsersPage() {
                 }
               }}>
                 <DialogTrigger asChild>
-                  <Button 
+                  <Button
+                    data-onboarding="users-add-button"
                     className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                     disabled={plansLoading}
                     onClick={() => {
