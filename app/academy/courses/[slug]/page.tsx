@@ -25,7 +25,7 @@ export async function generateMetadata({
   const course = getAcademyCourse(slug)
   if (!course) return {}
   return {
-    title: course.seoTitle,
+    title: { absolute: course.seoTitle },
     description: course.seoDescription,
     keywords: course.keywords,
     alternates: {

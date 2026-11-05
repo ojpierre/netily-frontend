@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react"
 import { caseStudies } from "@/lib/case-studies"
 
 export const metadata: Metadata = {
-  title: "ISP Billing Case Studies | Internetily",
+  title: "ISP Billing Case Studies",
   description:
     "Explore Internetily case studies for ISP billing, hotspot renewals, altnet support, revenue visibility, customer growth, and broadband operations.",
   alternates: { canonical: "https://netily.co.ke/case-studies" },

@@ -3,7 +3,7 @@ import { AcademyFooter, AcademyHeader } from "../academy-components"
 import { CourseCatalog } from "../course-catalog"
 
 export const metadata: Metadata = {
-  title: "Networking Courses for ISP Teams | Internetily Academy",
+  title: { absolute: "Networking Courses for ISP Teams | Internetily Academy" },
   description:
     "Explore practical networking, WISP backhaul, ISP billing and business courses. Find training for your level and learn at your own pace.",
   alternates: { canonical: "https://netily.co.ke/academy/courses" }

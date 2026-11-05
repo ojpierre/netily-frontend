@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import type React from "react"
 
 export const metadata: Metadata = {
-  title: "Affiliate Signup | Internetily",
+  title: "Affiliate Signup",
   description:
     "Create an Internetily affiliate account to refer ISPs, WISPs, MikroTik consultants, hotspot operators, and broadband teams.",
   alternates: {

@@ -3,7 +3,7 @@ import { AcademyFooter, AcademyHeader } from "../academy-components"
 import { AcademyCheckout } from "../checkout-content"
 
 export const metadata: Metadata = {
-  title: "Course Checkout | Internetily Academy",
+  title: { absolute: "Course Checkout | Internetily Academy" },
   robots: { index: false, follow: true }
 }
 export default function CheckoutPage() {

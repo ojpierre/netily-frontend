@@ -217,19 +217,19 @@
   },
   {
     "path": "/features/tr069-device-management",
-    "title": "Manage every customer router. Without leaving your desk.",
-    "intro": "Configure, monitor, and troubleshoot customer CPE devices remotely. No site visit. No WhatsApp back-and-forth with the technician.",
+    "title": "TR-069 device management for ISPs. Fix customer routers without a site visit.",
+    "intro": "A hosted TR-069 ACS for your customer CPE: see every router and ONT, change Wi-Fi, reboot or reset, and keep each device linked to its subscriber in Internetily (Netily).",
     "problem": "A subscriber calls. Their router is showing a fault. Someone has to drive out, plug in, and figure it out on-site. Half a day gone. One subscriber fixed. Twelve more waiting.",
     "points": [
-      "Remote configuration  -  Update firmware, change settings, reboot, and push configs to customer routers from your dashboard. Works while you're in the office or at home.",
-      "Full device visibility  -  See every CPE device on your network: model, firmware version, connection status, uptime, and signal quality. Without calling the customer.",
-      "Fault diagnosis before the truck rolls  -  Check the device log, test connectivity, and identify the fault remotely. If you do need a site visit, you arrive knowing exactly what's wrong.",
-      "Bulk updates  -  Push firmware updates or config changes to a whole group of routers at once. Keep your fleet current without individual logins."
+      "Hosted ACS  -  Customer routers and ONTs report to Internetily's TR-069 (CWMP) auto-configuration server. There is no ACS for you to install or maintain.",
+      "Device visibility  -  See each CPE's model, firmware version, last contact and status next to the subscriber it serves, without calling the customer.",
+      "Remote actions  -  Change the Wi-Fi name and password, refresh device data, reboot, or factory reset from the dashboard, with a task history for every action.",
+      "Per-device credentials  -  Each CPE gets its own ACS username and password, which you can rotate at any time if a device is replaced or exposed."
     ],
     "steps": [
-      "Customer router connects to Internetily's TR-069 ACS on installation",
-      "The device appears in your dashboard with full status and config visibility",
-      "Manage, update, or troubleshoot it remotely from that point on"
+      "Point the CPE's TR-069 ACS URL and credentials at Internetily during installation",
+      "The device checks in and appears in your dashboard, linked to the subscriber",
+      "Change Wi-Fi, reboot, reset or refresh it remotely from then on"
     ]
   },
   {

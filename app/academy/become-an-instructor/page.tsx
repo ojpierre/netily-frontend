@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react"
 import { AcademyHeader } from "../academy-components"
 
 export const metadata: Metadata = {
-  title: "Become an Instructor | Internetily Academy",
+  title: { absolute: "Become an Instructor | Internetily Academy" },
   description:
     "Share practical ISP, WISP, MikroTik, hotspot, billing, support, or broadband growth knowledge through Internetily Academy.",
   alternates: { canonical: "https://netily.co.ke/academy/become-an-instructor" },

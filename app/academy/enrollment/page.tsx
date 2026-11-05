@@ -3,7 +3,7 @@ import { AcademyFooter, AcademyHeader } from "../academy-components"
 import { AcademyCartPage } from "../cart-content"
 
 export const metadata: Metadata = {
-  title: "Course Enrollment | Internetily Academy",
+  title: { absolute: "Course Enrollment | Internetily Academy" },
   robots: { index: false, follow: true }
 }
 export default async function EnrollmentPage({

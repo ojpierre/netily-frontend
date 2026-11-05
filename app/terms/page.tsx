@@ -2,7 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Internetily",
+  title: "Terms of Service",
   description:
     "Review Internetily terms for ISP billing, payment workflows, tenant accounts, support, availability, and responsible platform use.",
   alternates: {

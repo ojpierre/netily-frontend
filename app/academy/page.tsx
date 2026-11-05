@@ -6,7 +6,7 @@ import { AcademyHeader, AcademyFooter, CourseGrid } from "./academy-components"
 import { academyCourses, academyStats } from "@/lib/academy-data"
 
 export const metadata: Metadata = {
-  title: "Internetily Academy | Practical ISP, MikroTik, WISP and Hotspot Training",
+  title: { absolute: "Internetily Academy | Practical ISP, MikroTik, WISP and Hotspot Training" },
   description:
     "Internetily Academy offers practical courses for ISP owners, WISP operators, MikroTik technicians, hotspot teams, support staff, and broadband founders.",
   keywords: [

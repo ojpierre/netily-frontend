@@ -6,7 +6,7 @@ import { blogPosts } from "@/lib/blog-data"
 import BlogLeadModal from "@/components/blog-lead-modal"
 
 export const metadata: Metadata = {
-  title: "ISP Operations, Billing & Network Guides | Internetily",
+  title: "ISP Operations, Billing & Network Guides",
   description:
     "Human, practical guides on ISP billing, TR-069, OLT management, AP mapping, MikroTik automation, M-Pesa workflows and ISP growth.",
   keywords: [
@@ -140,7 +140,7 @@ export default function BlogPage() {
         <div className="mt-20 border border-amber-500/30 bg-amber-500 p-8 text-center text-black md:p-12">
           <h2 className="mb-3 text-2xl font-normal md:text-3xl">Run a better ISP</h2>
           <p className="mx-auto mb-8 max-w-xl text-black/70">
-            Get started with Internetily, formerly Netily. M-Pesa native, MikroTik integrated, and personally onboarded.
+            Get started with Internetily, also known as Netily. M-Pesa native, MikroTik integrated, and personally onboarded.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <BlogLeadModal

@@ -19,7 +19,7 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: "Internetily Shop | ISP Hardware and Network Equipment",
+  title: { absolute: "Internetily Shop | ISP Hardware and Network Equipment" },
   description:
     "Shop ISP-ready routers, PoE switches, fiber tools, wireless backhaul equipment, racks, and cabling for growing internet providers.",
 }

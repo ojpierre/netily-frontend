@@ -670,7 +670,7 @@ function SolutionCarousel() {
             <SplitWords text="A single control layer for ISP operations" />
           </h2>
           <p className="mt-5 text-base leading-7 text-zinc-400 md:text-lg">
-            Internetily, formerly Netily, connects the work that usually lives in separate tools: cash collection, customer access,
+            Internetily, also known as Netily, connects the work that usually lives in separate tools: cash collection, customer access,
             router provisioning, support follow-up, and revenue visibility.
           </p>
         </div>
@@ -1282,7 +1282,7 @@ export function LandingPage() {
                 Internetily runs <RotatingHeroText /> for growing ISPs.
               </h1>
               <p className="mt-5 max-w-3xl text-pretty text-sm leading-7 text-white/70 md:text-base">
-                Formerly Netily, Internetily keeps the proven billing core and adds a clearer brand for the full operating layer: payments, routers, customers, support, and growth.
+                Internetily, also known as Netily, runs the full operating layer of an ISP in one place: payments, routers, customers, support, and growth.
               </p>
               <div className="mt-9 flex flex-col gap-4 sm:flex-row">
                 <a
@@ -1938,7 +1938,7 @@ export function LandingPage() {
         <section className="sr-only" aria-label="Internetily ISP billing software overview">
           <h2>Internetily and Netily ISP billing system for Kenya</h2>
           <p>
-            Internetily, formerly Netily, is an ISP billing system in Kenya for ISPs, WISPs, hotspot operators,
+            Internetily, also known as Netily, is an ISP billing system in Kenya for ISPs, WISPs, hotspot operators,
             estate WiFi teams, hotels, hostels, schools, campuses, and managed internet providers. It supports
             M-Pesa STK Push, MikroTik PPPoE billing, hotspot billing software Kenya workflows, WiFi billing
             system Kenya workflows, RADIUS authentication, subscriber management, automated invoicing, SMS

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { brandTitle } from "@/lib/brand"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -19,7 +20,7 @@ export async function generateMetadata({
   if (!study) return {}
 
   return {
-    title: study.seoTitle,
+    title: { absolute: brandTitle(study.seoTitle) },
     description: study.seoDescription,
     keywords: study.keywords,
     alternates: { canonical: `https://netily.co.ke/case-studies/${study.slug}` },

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowRight, Check, CircleDollarSign, LayoutDashboard, ShieldCheck, Users, Wifi } from "lucide-react"
 import { alternativeFeatureRows, alternativePages, getAlternativePage, publicAlternativePages } from "@/lib/alternatives-data"
+import { brandTitle } from "@/lib/brand"
 
 const sensitiveAlternativeSlugs = new Set(
   alternativePages.filter((page) => page.hiddenFromPublicIndex).map((page) => page.slug),
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (isSensitive) {
     return {
-      title: "ISP Billing Evaluation Checklist Kenya | Internetily",
+      title: { absolute: brandTitle("ISP Billing Evaluation Checklist Kenya") },
       description:
         "A neutral checklist for Kenyan ISPs evaluating billing, M-Pesa workflows, MikroTik automation, hotspot management, invoices, and staff controls.",
       keywords: [
@@ -61,21 +62,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return {
-    title: page.metaTitle,
+    title: { absolute: brandTitle(page.metaTitle) },
     description: page.metaDescription,
     keywords: page.keywords,
     alternates: {
       canonical: `https://netily.co.ke/alternatives/${page.slug}`,
     },
     openGraph: {
-      title: page.metaTitle,
+      title: brandTitle(page.metaTitle),
       description: page.metaDescription,
       url: `https://netily.co.ke/alternatives/${page.slug}`,
       images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: page.metaTitle }],
     },
     twitter: {
       card: "summary_large_image",
-      title: page.metaTitle,
+      title: brandTitle(page.metaTitle),
       description: page.metaDescription,
       images: ["/og-image.svg"],
     },

@@ -4,6 +4,7 @@ import Image from "next/image"
 import { notFound } from "next/navigation"
 import { getBlogPost, getRelatedPosts, blogPosts, type ContentBlock } from "@/lib/blog-data"
 import BlogLeadModal from "@/components/blog-lead-modal"
+import { BRAND_ALTERNATE_NAMES, BRAND_NAME, SITE_URL, brandTitle } from "@/lib/brand"
 
 // ─── Static params for build-time generation ──────────────────────────────
 export function generateStaticParams() {
@@ -19,15 +20,18 @@ export async function generateMetadata({
   const { slug } = await params
   const post = getBlogPost(slug)
   if (!post) return {}
+  // metaTitle data may already end in a brand; normalise so it appears once.
+  const title = brandTitle(post.metaTitle)
   return {
-    title: post.metaTitle,
+    title: { absolute: title },
     description: post.metaDescription,
     keywords: post.keywords,
     authors: [{ name: post.author.name }],
     alternates: { canonical: `https://netily.co.ke/blog/${post.slug}` },
     openGraph: {
       type: "article",
-      title: post.metaTitle,
+      title,
+      siteName: "Internetily (Netily)",
       description: post.metaDescription,
       url: `https://netily.co.ke/blog/${post.slug}`,
       publishedTime: post.publishedAt,
@@ -38,7 +42,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: post.metaTitle,
+      title,
       description: post.metaDescription,
       images: [post.coverImage],
     },
@@ -256,9 +260,10 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
     },
     publisher: {
       "@type": "Organization",
-      name: "Internetily",
-      alternateName: "Netily",
-      url: "https://netily.co.ke",
+      "@id": `${SITE_URL}/#organization`,
+      name: BRAND_NAME,
+      alternateName: BRAND_ALTERNATE_NAMES,
+      url: SITE_URL,
       logo: { "@type": "ImageObject", url: "https://netily.co.ke/internetily-logo-320.webp" },
     },
     image: { "@type": "ImageObject", url: post.coverImage, width: 1400, height: 933 },

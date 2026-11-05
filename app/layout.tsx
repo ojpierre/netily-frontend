@@ -76,11 +76,14 @@ const fontVariables = [
 
 export const metadata: Metadata = {
   title: {
-    default: "ISP Billing System | MikroTik, Hotspot & WiFi Billing | Internetily",
-    template: "%s | Internetily",
+    default: "ISP Billing System for MikroTik & WiFi | Internetily (Netily)",
+    // Pages that already carry the brand must use title.absolute (see lib/brand.ts)
+    // or this template adds it a second time.
+    template: "%s | Internetily (Netily)",
   },
+  applicationName: "Internetily (Netily)",
   description:
-    "Internetily helps ISPs manage payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, customer access, and renewals.",
+    "Internetily (Netily) helps ISPs manage payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, customer access, and renewals.",
   keywords: [
     // — Core product —
     "isp billing system",
@@ -375,9 +378,9 @@ export const metadata: Metadata = {
     "Internetily ISP platform",
     "Internetily billing software",
     "Internetily Kenya",
-    "Internetily formerly Netily",
-    "Netily now Internetily",
     "Internetily Netily",
+    "Internetily (Netily)",
+    "netily.co.ke",
     "Internetily M-Pesa billing",
     "Internetily MikroTik integration",
     "Internetily hotspot billing",
@@ -389,7 +392,7 @@ export const metadata: Metadata = {
     "Netily hotspot billing",
     "Netily MikroTik integration",
   ],
-  authors: [{ name: "Internetily (formerly Netily)", url: "https://netily.co.ke" }],
+  authors: [{ name: "Internetily (Netily)", url: "https://netily.co.ke" }],
   creator: "Internetily",
   publisher: "Internetily",
   metadataBase: new URL("https://netily.co.ke"),
@@ -399,22 +402,22 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_KE",
     url: "https://netily.co.ke",
-    siteName: "Internetily, formerly Netily",
-    title: "ISP Billing System | MikroTik, Hotspot & WiFi Billing | Internetily",
+    siteName: "Internetily (Netily)",
+    title: "ISP Billing System for MikroTik & WiFi | Internetily (Netily)",
     description:
-      "Internetily helps ISPs manage payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and customer renewals.",
+      "Internetily (Netily) helps ISPs manage payments, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and customer renewals.",
     images: [
       {
         url: "/og-image.svg",
         width: 1200,
         height: 630,
-        alt: "Internetily, formerly Netily - ISP Management Platform",
+        alt: "Internetily (Netily) - ISP billing and network management platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ISP Billing System for ISPs | Internetily",
+    title: "ISP Billing System for MikroTik & WiFi | Internetily (Netily)",
     description:
       "Automate M-Pesa ISP billing, MikroTik PPPoE, hotspot billing, WiFi billing, invoices, SMS reminders, and renewals with Internetily.",
     images: ["/og-image.svg"],

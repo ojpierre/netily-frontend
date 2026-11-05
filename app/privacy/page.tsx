@@ -2,7 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Internetily",
+  title: "Privacy Policy",
   description:
     "Read how Internetily handles account, billing, payment, support, router, audit, and operational data for ISP teams.",
   alternates: {

@@ -84,4 +84,14 @@ export const answerEngineContent: Record<string, AnswerEngineContent> = {
       ["Can operators reply to messages from the hotspot login page?", "Yes. Operators can open Tickets, choose Hotspot Chats, and reply to the customer conversation from the admin workspace."],
     ],
   },
+  "/features/tr069-device-management": {
+    answer: "Internetily (Netily) includes a hosted TR-069 ACS for ISPs. Customer routers and ONTs that support TR-069 connect to it, appear in the dashboard next to their subscriber, and can be managed remotely: change Wi-Fi, refresh device data, reboot or factory reset, with a log of every task. There is no separate ACS server to run.",
+    questions: [
+      ["What is TR-069?", "TR-069, also written TR69 and known as CWMP (CPE WAN Management Protocol), is a Broadband Forum standard that lets an ISP manage customer equipment remotely. The customer router or ONT (the CPE) connects to a server called an ACS, which can read its status and send changes."],
+      ["What is a TR-069 ACS?", "An ACS (auto-configuration server) is the server customer devices check in with. Internetily hosts the ACS for you, so each ISP only sets the ACS URL and credentials on its CPE."],
+      ["Which CPE devices work with Internetily TR-069 management?", "Routers and ONTs with TR-069 enabled can connect. What you can change depends on the model, firmware, and the parameters it exposes, so test one device of each model before rolling out."],
+      ["What can I do remotely with TR-069 in Internetily?", "View device status and firmware version, change the Wi-Fi name and password, refresh device data, reboot, and factory reset. Each action is recorded in the device's task history."],
+      ["Do I need TR-069 if I already use MikroTik?", "They do different jobs. MikroTik and RADIUS handle subscriber access and billing on your network; TR-069 manages the router or ONT inside the customer's home. Internetily runs both from the same subscriber record."],
+    ],
+  },
 }

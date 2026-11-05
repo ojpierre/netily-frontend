@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react"
 import { MjengoFooter } from "@/components/mjengo-footer"
 
 export const metadata: Metadata = {
-  title: "ISP Billing Software Nigeria | Internetily",
+  title: "ISP Billing Software Nigeria",
   description:
     "Learn how Nigerian ISPs can manage subscribers, automate MikroTik workflows, and collect payments with Paystack and Flutterwave.",
   keywords: [

@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Internetily Demo | ISP Dashboard Preview",
+  title: { absolute: "Internetily Demo | ISP Dashboard Preview" },
   description:
     "Explore the Internetily ISP demo for billing, customers, routers, hotspot workflows, payments, support, and customer self-service.",
   alternates: {

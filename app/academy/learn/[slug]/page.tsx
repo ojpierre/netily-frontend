@@ -4,7 +4,7 @@ import { getAcademyCourse } from "@/lib/academy-data"
 import { AcademyHeader, AcademyFooter } from "../../academy-components"
 import { LearnerWorkspace } from "../../account/learner-workspace"
 export const metadata: Metadata = {
-  title: "Course Workspace | Internetily Academy",
+  title: { absolute: "Course Workspace | Internetily Academy" },
   robots: { index: false, follow: false }
 }
 export default async function Page({

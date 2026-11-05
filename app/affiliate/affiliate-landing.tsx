@@ -338,7 +338,7 @@ export function AffiliateLandingClient() {
                   <SplitWords text="A 2026 affiliate program for people who already know internet providers." />
                 </h2>
                 <p className="mt-5 text-base leading-7 text-zinc-400">
-                  Internetily, formerly Netily, is built for ISP billing, MikroTik automation, hotspot access, payment workflows, and subscriber operations. That makes the affiliate program a strong fit for partners who can reach operators in Kenya, Uganda, Tanzania, South Africa, Nigeria, Ghana, Rwanda, Europe, Asia, the Americas, and other broadband markets.
+                  Internetily, also known as Netily, is built for ISP billing, MikroTik automation, hotspot access, payment workflows, and subscriber operations. That makes the affiliate program a strong fit for partners who can reach operators in Kenya, Uganda, Tanzania, South Africa, Nigeria, Ghana, Rwanda, Europe, Asia, the Americas, and other broadband markets.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

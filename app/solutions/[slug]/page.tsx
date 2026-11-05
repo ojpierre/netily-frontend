@@ -3,6 +3,7 @@ import Image from "next/image"
 import type { Metadata } from "next"
 import { solutionPages } from "@/components/marketing/content"
 import { marketingMetadata, MarketingRoute } from "@/components/marketing/routes"
+import { BRAND_ALTERNATE_NAMES, BRAND_NAME, SITE_URL, brandTitle, stripBrand } from "@/lib/brand"
 import { ArrowRight, Check, Clock, CreditCard, Globe, MapPin, MessageSquare, Router, ShieldCheck, TrendingUp, Wifi } from "lucide-react"
 
 type SolutionConfig = {
@@ -686,7 +687,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     currency: "KES",
     currencySymbol: "KSh",
     hero: "Win, bill, support, and retain ISP customers from county towns to estates with one M-Pesa-first operating platform.",
-    summary: "Internetily, formerly Netily, helps Kenyan ISPs turn local demand into organized growth. Use it to manage county expansion, estate WiFi, apartment subscribers, student hostels, hotel hotspots, PPPoE customers, MikroTik routers, payments, invoices, support tickets, staff roles, and lead follow-up without scattering work across spreadsheets and WhatsApp.",
+    summary: "Internetily, also known as Netily, helps Kenyan ISPs turn local demand into organized growth. Use it to manage county expansion, estate WiFi, apartment subscribers, student hostels, hotel hotspots, PPPoE customers, MikroTik routers, payments, invoices, support tickets, staff roles, and lead follow-up without scattering work across spreadsheets and WhatsApp.",
     bullets: [
       "Speak clearly to county, town, estate, apartment, hostel, hotel, hotspot, WISP, and MikroTik billing needs",
       "Use M-Pesa-first subscription, PPPoE, hotspot, invoice, support, and customer workflows",
@@ -745,19 +746,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const solution = SOLUTIONS[slug]
   if (!solution) {
     return {
-      title: "Netily Solutions",
+      title: "Solutions",
     }
   }
 
+  // seoTitle data may already end in a brand; brandTitle() normalises it so
+  // the brand appears exactly once (the root template would add a second).
+  const title = brandTitle(solution.seoTitle)
   const countyKeywords = solution.countyClusters?.flatMap((cluster) => cluster.counties.map((county) => `ISP billing software ${county}`)) || []
   const estateKeywords = solution.estateClusters?.flatMap((cluster) => cluster.areas.map((area) => `estate WiFi billing ${area}`)) || []
 
   return {
-    title: solution.seoTitle,
+    title: { absolute: title },
     description: solution.seoDescription,
     keywords: [
       solution.title,
-      solution.seoTitle,
+      stripBrand(solution.seoTitle),
       "Internetily",
       "Netily",
       "ISP billing software 2026",
@@ -775,7 +779,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       canonical: `https://netily.co.ke/solutions/${slug}`,
     },
     openGraph: {
-      title: solution.seoTitle,
+      title,
+      siteName: "Internetily (Netily)",
       description: solution.seoDescription,
       url: `https://netily.co.ke/solutions/${slug}`,
     },
@@ -827,15 +832,16 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
     "@context": "https://schema.org",
     "@type": "Service",
     name: solution.title,
-    alternateName: `${solution.title} by Internetily / Netily`,
+    alternateName: `${solution.title} by Internetily (Netily)`,
     serviceType: "ISP billing software and ISP management platform",
     url: `https://netily.co.ke/solutions/${slug}`,
     description: solution.seoDescription,
     provider: {
       "@type": "Organization",
-      name: "Internetily",
-      alternateName: "Netily",
-      url: "https://netily.co.ke",
+      "@id": `${SITE_URL}/#organization`,
+      name: BRAND_NAME,
+      alternateName: BRAND_ALTERNATE_NAMES,
+      url: SITE_URL,
     },
     areaServed: countyAreaServed.length
       ? countyAreaServed.map((county) => ({ "@type": "AdministrativeArea", name: `${county} County, Kenya` }))
@@ -1372,7 +1378,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
             See how Internetily works for an ISP like yours.
           </h2>
           <p className="mt-5 max-w-3xl text-sm leading-7 text-zinc-300">
-            Internetily, formerly Netily, helps teams looking for {solution.title.toLowerCase()}, MikroTik billing software, WISP billing software, hotspot billing, payment reconciliation, subscriber management, staff controls, lead capture, and regional ISP automation.
+            Internetily, also known as Netily, helps teams looking for {solution.title.toLowerCase()}, MikroTik billing software, WISP billing software, hotspot billing, payment reconciliation, subscriber management, staff controls, lead capture, and regional ISP automation.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             {closingUseCases.slice(0, 5).map((useCase) => (
