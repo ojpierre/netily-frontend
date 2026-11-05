@@ -9,12 +9,12 @@ import { formatShopMoney } from "@/shop-ui/lib/currency"
 
 type Tab = "overview" | "content" | "orders" | "payments" | "products" | "featured" | "add" | "categories" | "inventory"
 
-type AdminCategory = { id: number; name: string; slug: string; sort_order: number; is_active: boolean }
+type AdminCategory = { id: number; name: string; slug: string; description: string; image: string; featured_brands: string[]; sort_order: number; is_active: boolean }
 type AdminProduct = {
-  id: number; slug: string; name: string; category: number; category_name: string
+  id: number; slug: string; name: string; brand: string; category: number; category_name: string
   price: string; compare_at_price: string | null; currency: string; image: string; hover_image: string
   stock_quantity: number; track_stock: boolean; sort_order: number
-  is_active: boolean; warranty: string; long_description: string; made_in: string; is_featured: boolean
+  is_active: boolean; warranty: string; long_description: string; made_in: string; is_featured: boolean; is_trending: boolean
   details: string[]; materials: string[]; care: string[]; specs_sheet: Record<string, string>
 }
 type AdminOrder = {
@@ -35,9 +35,9 @@ const NEXT_STATUS: Record<string, string[]> = {
   shipped: ["delivered"],
 }
 const EMPTY_FORM = {
-  name: "", category: "", price: "", compare_at_price: "", stock_quantity: "0", image: "", hover_image: "",
+  name: "", brand: "", category: "", price: "", compare_at_price: "", stock_quantity: "0", image: "", hover_image: "",
   long_description: "", warranty: "", made_in: "", sort_order: "0",
-  details: "", materials: "", care: "", is_featured: false, is_active: true, track_stock: true,
+  details: "", materials: "", care: "", is_featured: false, is_trending: false, is_active: true, track_stock: true,
 }
 const errText = (e: unknown) => (e instanceof Error ? e.message : "Request failed")
 const label = (s: string) => s.replace(/_/g, " ")
@@ -179,6 +179,19 @@ export function ShopManagement(_props: { embedded?: boolean }) {
     }
   }
 
+  async function saveCategory(category: AdminCategory, data: Record<string, unknown>) {
+    setBusy(`category-${category.id}`)
+    try {
+      const updated = await superadminApi.updateShopCategory(category.id, data)
+      setCategories((list) => list.map((item) => item.id === category.id ? { ...item, ...updated } : item))
+      toast.success("Category merchandising updated")
+    } catch (e) {
+      toast.error(errText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   function startNewProduct() {
     setEditingSlug(null)
     setForm({ ...EMPTY_FORM, category: form.category || String(categories[0]?.id || "") })
@@ -189,6 +202,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
     setEditingSlug(product.slug)
     setForm({
       name: product.name,
+      brand: product.brand || "",
       category: String(product.category),
       price: String(product.price),
       compare_at_price: product.compare_at_price ? String(product.compare_at_price) : "",
@@ -203,6 +217,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
       materials: (product.materials || []).join("\n"),
       care: (product.care || []).join("\n"),
       is_featured: product.is_featured,
+      is_trending: product.is_trending,
       is_active: product.is_active,
       track_stock: product.track_stock,
     })
@@ -225,6 +240,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
     try {
       const payload: Record<string, unknown> = {
         name: form.name.trim(),
+        brand: form.brand.trim(),
         category: Number(form.category),
         price: price.toFixed(2),
         compare_at_price: compareAtPrice === null ? null : compareAtPrice.toFixed(2),
@@ -241,6 +257,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
         materials: form.materials.split("\n").map((line) => line.trim()).filter(Boolean),
         care: form.care.split("\n").map((line) => line.trim()).filter(Boolean),
         is_featured: form.is_featured,
+        is_trending: form.is_trending,
         is_active: form.is_active,
       }
       if (editingSlug) await superadminApi.updateShopProduct(editingSlug, payload)
@@ -544,7 +561,11 @@ export function ShopManagement(_props: { embedded?: boolean }) {
               <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Name *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={input} />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Brand</label>
+                <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="MikroTik" className={input} />
+              </div>
               <div>
                 <label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Category *</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={input}>
@@ -584,7 +605,7 @@ export function ShopManagement(_props: { embedded?: boolean }) {
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-3"><div><label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Product highlights</label><textarea rows={5} value={form.details} onChange={(e) => setForm({ ...form, details: e.target.value })} placeholder="One feature per line" className={input} /></div><div><label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">In the box</label><textarea rows={5} value={form.materials} onChange={(e) => setForm({ ...form, materials: e.target.value })} placeholder="One item per line" className={input} /></div><div><label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Support & care</label><textarea rows={5} value={form.care} onChange={(e) => setForm({ ...form, care: e.target.value })} placeholder="One note per line" className={input} /></div></div>
-            <div className="grid gap-3 sm:grid-cols-3"><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />Published</label><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />Featured item</label><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.track_stock} onChange={(e) => setForm({ ...form, track_stock: e.target.checked })} />Track inventory</label></div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />Published</label><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />Featured item</label><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.is_trending} onChange={(e) => setForm({ ...form, is_trending: e.target.checked })} />Trending now</label><label className="flex items-center gap-3 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={form.track_stock} onChange={(e) => setForm({ ...form, track_stock: e.target.checked })} />Track inventory</label></div>
             <div className="flex justify-end gap-3 border-t border-border pt-4">
               <button type="button" onClick={() => { setEditingSlug(null); setTab("products") }} className="rounded-full border border-border px-5 py-2.5 text-xs uppercase hover:bg-muted">Cancel</button>
               <button type="submit" disabled={saving} className="rounded-full bg-foreground px-6 py-2.5 text-xs uppercase text-background disabled:opacity-50">
@@ -604,12 +625,8 @@ export function ShopManagement(_props: { embedded?: boolean }) {
             </div>
             <button type="button" onClick={addCategory} className="h-11 rounded-lg bg-foreground px-5 text-sm font-medium text-background">Add category</button>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="grid grid-cols-[1fr_90px_110px] border-b border-border bg-muted/30 px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid-cols-[1fr_120px_120px_130px]"><span>Category</span><span className="hidden sm:block">Products</span><span>Status</span><span className="text-right">Action</span></div>
-            {categories.map((category) => {
-              const productCount = products.filter((product) => product.category === category.id).length
-              return <div key={category.id} className={`grid grid-cols-[1fr_90px_110px] items-center border-b border-border/60 px-4 py-3 text-sm last:border-0 sm:grid-cols-[1fr_120px_120px_130px] ${busy === `category-${category.id}` ? "opacity-50" : ""}`}><div><p className="font-medium">{category.name}</p><p className="text-xs text-muted-foreground">/{category.slug}</p></div><span className="hidden text-muted-foreground sm:block">{productCount}</span><span className={category.is_active ? "text-emerald-600" : "text-muted-foreground"}>{category.is_active ? "Published" : "Hidden"}</span><button onClick={() => toggleCategory(category)} className="justify-self-end rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">{category.is_active ? "Hide" : "Publish"}</button></div>
-            })}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {categories.map((category) => <CategoryEditor key={category.id} category={category} productCount={products.filter((product) => product.category === category.id).length} busy={busy === `category-${category.id}`} onSave={(data) => saveCategory(category, data)} onToggle={() => toggleCategory(category)} />)}
           </div>
           <p className="text-xs text-muted-foreground">Categories with products are hidden instead of deleted, preserving product and order history.</p>
         </div>
@@ -708,6 +725,36 @@ export function ShopManagement(_props: { embedded?: boolean }) {
           <p className="text-[11px] text-muted-foreground">Showing the 100 most recent matches. Use search to find older orders.</p>
         </div>
       )}
+      </div>
+    </div>
+  )
+}
+
+function CategoryEditor({ category, productCount, busy, onSave, onToggle }: {
+  category: AdminCategory
+  productCount: number
+  busy: boolean
+  onSave: (data: Record<string, unknown>) => void
+  onToggle: () => void
+}) {
+  const [name, setName] = useState(category.name)
+  const [description, setDescription] = useState(category.description || "")
+  const [image, setImage] = useState(category.image || "")
+  const [brands, setBrands] = useState((category.featured_brands || []).join(", "))
+  const [sortOrder, setSortOrder] = useState(String(category.sort_order || 0))
+
+  return (
+    <div className={`rounded-xl border border-border bg-card p-5 ${busy ? "pointer-events-none opacity-50" : ""}`}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div><p className="text-xs text-muted-foreground">/{category.slug} · {productCount} products</p><p className={category.is_active ? "mt-1 text-xs text-emerald-600" : "mt-1 text-xs text-muted-foreground"}>{category.is_active ? "Published" : "Hidden"}</p></div>
+        <button onClick={onToggle} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted">{category.is_active ? "Hide" : "Publish"}</button>
+      </div>
+      <div className="grid gap-3">
+        <input value={name} onChange={(event) => setName(event.target.value)} aria-label="Category name" className={input} />
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={2} maxLength={320} placeholder="Short storefront description" className={input} />
+        <input value={image} onChange={(event) => setImage(event.target.value)} placeholder="Category image URL or /public path" className={input} />
+        <input value={brands} onChange={(event) => setBrands(event.target.value)} placeholder="Featured brands, comma separated" className={input} />
+        <div className="flex items-end gap-3"><label className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground">Display order<input type="number" min={0} value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className={`${input} mt-1`} /></label><button onClick={() => onSave({ name: name.trim(), description: description.trim(), image: image.trim(), featured_brands: brands.split(",").map((brand) => brand.trim()).filter(Boolean), sort_order: Math.max(0, Number(sortOrder) || 0) })} className="h-11 rounded-lg bg-foreground px-4 text-xs font-medium text-background"><Save className="mr-2 inline h-3.5 w-3.5" />Save</button></div>
       </div>
     </div>
   )

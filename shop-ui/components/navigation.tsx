@@ -66,9 +66,10 @@ export function Navigation() {
 
   const navLinks = [
     { href: "/shop/catalog", label: "All products" },
-    { href: "/shop/catalog?cat=Fiber+Optics+%26+OLT", label: "Fiber" },
+    { href: "/shop/catalog?cat=Fibre+%26+Optics", label: "Fibre" },
     { href: "/shop/catalog?cat=Routers+%26+Gateways", label: "Routers" },
-    { href: "/shop/catalog?cat=Wireless+%26+Backhaul", label: "Wireless" },
+    { href: "/shop/catalog?onSale=true", label: "Deals" },
+    { href: "/shop/how-to-order", label: "How to order" },
     { href: "/shop/track", label: "Track order" },
   ]
 

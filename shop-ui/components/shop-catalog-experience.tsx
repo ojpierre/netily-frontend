@@ -19,12 +19,17 @@ export function ShopCatalogExperience() {
   const searchParams = useSearchParams()
   const initialCategory = searchParams.get("cat") || "All"
   const initialQuery = searchParams.get("q") || ""
+  const initialBrand = searchParams.get("brand") || "All brands"
+  const initialOnSale = searchParams.get("onSale") === "true"
 
   const { products, categories, loading, error } = useShopCatalog()
   const categoryNames = useMemo(() => ["All", ...categories.map((c) => c.name)], [categories])
+  const brandNames = useMemo(() => ["All brands", ...Array.from(new Set(products.map((product) => product.brand).filter(Boolean))).sort()] as string[], [products])
   const [activeCategory, setActiveCategory] = useState(initialCategory)
   const [searchTerm, setSearchTerm] = useState(initialQuery)
-  const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured")
+  const [activeBrand, setActiveBrand] = useState(initialBrand)
+  const [onSaleOnly, setOnSaleOnly] = useState(initialOnSale)
+  const [sortBy, setSortBy] = useState<"featured" | "newest" | "price-asc" | "price-desc">("featured")
   const [stockFilter, setStockFilter] = useState<(typeof stockFilters)[number]>("All Stock")
 
   const filteredProducts = useMemo(() => {
@@ -42,14 +47,18 @@ export function ShopCatalogExperience() {
           product.category.toLowerCase().includes(query) ||
           product.description.toLowerCase().includes(query) ||
           (product.brand || "").toLowerCase().includes(query)
-        return (activeCategory === "All" || product.category === activeCategory) && matchesStock && matchesSearch
+        const matchesBrand = activeBrand === "All brands" || product.brand === activeBrand
+        const matchesSale = !onSaleOnly || Boolean(product.compareAtPrice && product.compareAtPrice > product.price)
+        return (activeCategory === "All" || product.category === activeCategory) && matchesBrand && matchesSale && matchesStock && matchesSearch
       })
       .sort((a, b) => {
         if (sortBy === "price-asc") return a.price - b.price
         if (sortBy === "price-desc") return b.price - a.price
+        if (sortBy === "newest") return (b.createdAt || "").localeCompare(a.createdAt || "")
+        if (a.isFeatured !== b.isFeatured) return Number(b.isFeatured) - Number(a.isFeatured)
         return 0
       })
-  }, [activeCategory, products, searchTerm, sortBy, stockFilter])
+  }, [activeBrand, activeCategory, onSaleOnly, products, searchTerm, sortBy, stockFilter])
 
   return (
     <>
@@ -97,6 +106,14 @@ export function ShopCatalogExperience() {
 
                 <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
                   <select
+                    value={activeBrand}
+                    onChange={(event) => setActiveBrand(event.target.value)}
+                    className="h-10 rounded-xl border border-border bg-muted/30 px-3 text-xs outline-none focus:border-[#1b5eff]"
+                    aria-label="Brand filter"
+                  >
+                    {brandNames.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+                  </select>
+                  <select
                     value={stockFilter}
                     onChange={(event) => setStockFilter(event.target.value as (typeof stockFilters)[number])}
                     className="h-10 rounded-xl border border-border bg-muted/30 px-3 text-xs outline-none focus:border-[#1b5eff]"
@@ -113,10 +130,15 @@ export function ShopCatalogExperience() {
                     aria-label="Sort products"
                   >
                     <option value="featured">Featured</option>
+                    <option value="newest">Newest</option>
                     <option value="price-asc">Price: Low to High</option>
                     <option value="price-desc">Price: High to Low</option>
                   </select>
                 </div>
+                <label className="flex min-h-10 items-center gap-3 rounded-xl border border-border bg-white px-3 text-xs font-medium">
+                  <input type="checkbox" checked={onSaleOnly} onChange={(event) => setOnSaleOnly(event.target.checked)} className="accent-[#1b5eff]" />
+                  On sale now
+                </label>
               </div>
             </aside>
 
@@ -124,7 +146,7 @@ export function ShopCatalogExperience() {
               <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-[#1b5eff]">Shop catalog</p>
-                  <h2 className="mt-1 text-3xl font-semibold">Deployment-ready hardware, phones & laptops</h2>
+                  <h2 className="mt-1 text-3xl font-semibold">Network and business equipment</h2>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredProducts.length} of {products.length} items
@@ -136,7 +158,7 @@ export function ShopCatalogExperience() {
 
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`${activeCategory}-${searchTerm}-${sortBy}-${stockFilter}`}
+                  key={`${activeCategory}-${activeBrand}-${onSaleOnly}-${searchTerm}-${sortBy}-${stockFilter}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -166,6 +188,7 @@ export function ShopCatalogExperience() {
                               Popular
                             </span>
                           )}
+                          {product.compareAtPrice && product.compareAtPrice > product.price && <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-semibold uppercase text-white">Sale</span>}
                         </div>
                       </div>
                       <div className="space-y-3 px-1 py-4">
@@ -178,7 +201,7 @@ export function ShopCatalogExperience() {
                         <h3 className="min-h-12 text-lg font-semibold leading-snug group-hover:text-[#1b5eff]">{product.name}</h3>
                         <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{product.description}</p>
                         <div className="flex items-center justify-between border-t border-border pt-3">
-                          <span className="text-base font-semibold">{formatPrice(product.price, product.currency)}</span>
+                          <span><span className="block text-base font-semibold">{formatPrice(product.price, product.currency)}</span>{product.compareAtPrice && product.compareAtPrice > product.price ? <span className="text-xs text-muted-foreground line-through">{formatPrice(product.compareAtPrice, product.currency)}</span> : null}</span>
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#1b5eff]">
                             View
                             <ArrowRight className="h-3.5 w-3.5" />
@@ -198,6 +221,8 @@ export function ShopCatalogExperience() {
                     type="button"
                     onClick={() => {
                       setActiveCategory("All")
+                      setActiveBrand("All brands")
+                      setOnSaleOnly(false)
                       setSearchTerm("")
                       setStockFilter("All Stock")
                     }}

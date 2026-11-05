@@ -45,7 +45,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T
 }
 
-export interface ShopCategory { name: string; slug: string }
+export interface ShopCategory {
+  name: string
+  slug: string
+  description?: string
+  image?: string
+  featured_brands?: string[]
+  product_count?: number
+}
 
 export interface PublicShopSettings {
   store_name: string

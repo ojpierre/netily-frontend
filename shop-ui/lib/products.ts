@@ -9,6 +9,8 @@ export interface Product {
   brand?: string
   inStock?: boolean
   isFeatured?: boolean
+  isTrending?: boolean
+  createdAt?: string
   warranty?: string
   specsSheet?: Record<string, string>
   image: string
@@ -37,9 +39,11 @@ export function normalizeProduct(raw: any): Product {
     compareAtPrice: raw.compareAtPrice ?? null,
     category: raw.category || "",
     categorySlug: raw.categorySlug,
-    brand: specs.Brand || specs.brand || "",
+    brand: raw.brand || specs.Brand || specs.brand || "",
     inStock: raw.inStock !== false,
     isFeatured: !!raw.isFeatured,
+    isTrending: !!raw.isTrending,
+    createdAt: raw.createdAt || "",
     warranty: raw.warranty || "",
     specsSheet: specs,
     image: raw.image || "",
@@ -79,7 +83,7 @@ export const defaultOfferSlides: ShopOfferSlide[] = [
     description: "Build your next estate fiber rollout with verified hardware, dispatch support, and ISP-friendly recommendations.",
     image: "/shop-assets/shop_hero.png",
     ctaLabel: "Shop Fiber Gear",
-    href: "/shop/catalog?cat=Fiber+Optics+%26+OLT",
+    href: "/shop/catalog?cat=Fibre+%26+Optics",
     badge: "Fiber offers",
   },
   {

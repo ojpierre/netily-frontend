@@ -85,6 +85,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ]
 
+  const shopEntries: MetadataRoute.Sitemap = [
+    { url: `${BASE}/shop`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+    { url: `${BASE}/shop/catalog`, lastModified: new Date(), changeFrequency: "daily", priority: 0.88 },
+    { url: `${BASE}/shop/how-to-order`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.72 },
+    { url: `${BASE}/shop/policies/shipping-returns`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.45 },
+    { url: `${BASE}/shop/policies/warranty`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.45 },
+    { url: `${BASE}/shop/policies/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.4 },
+  ]
+
   return [
     ...marketingPaths.map((path) => ({
       url: `${BASE}${path}`,
@@ -132,6 +141,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...solutionEntries,
     ...caseStudyEntries,
     ...academyEntries,
+    ...shopEntries,
     {
       url: `${BASE}/affiliate`,
       lastModified: new Date(),

@@ -10,12 +10,13 @@ export function PremiumFooter() {
     shop: [
       { label: "Routers & Gateways", href: "/shop/catalog?cat=Routers+%26+Gateways" },
       { label: "Switches & PoE", href: "/shop/catalog?cat=Switches+%26+PoE" },
-      { label: "Fiber Optics & OLT", href: "/shop/catalog?cat=Fiber+Optics+%26+OLT" },
-      { label: "Wireless & Backhaul", href: "/shop/catalog?cat=Wireless+%26+Backhaul" },
+      { label: "Fibre & Optics", href: "/shop/catalog?cat=Fibre+%26+Optics" },
+      { label: "Wireless & Access Points", href: "/shop/catalog?cat=Wireless+%26+Access+Points" },
       { label: "Tools & Test Equipment", href: "/shop/catalog?cat=Tools+%26+Test+Equipment" },
     ],
     account: [
       { label: "Browse Catalog", href: "/shop/catalog" },
+      { label: "How to Order", href: "/shop/how-to-order" },
       { label: "Request a Bulk Quote", href: "mailto:netilysupport@gmail.com?subject=Bulk%20quote%20request" },
       { label: "WhatsApp Sales", href: "https://wa.me/254100034307" },
     ],

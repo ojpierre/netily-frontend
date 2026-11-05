@@ -7,11 +7,11 @@ const image = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit
 
 export const featuredCatalog: Product[] = [
   {
-    id: "mikrotik-rb5009ug-s-in", name: "MikroTik RB5009UG+S+IN", price: 38_500, currency: "KES", category: "Routers & Gateways", categorySlug: "routers-gateways", brand: "MikroTik", inStock: true, isFeatured: true, warranty: "2-year warranty",
+    id: "mikrotik-rb5009ug-s-in", name: "MikroTik RB5009UG+S+IN", price: 38_500, compareAtPrice: 41_500, currency: "KES", category: "Routers & Gateways", categorySlug: "routers-gateways", brand: "MikroTik", inStock: true, isFeatured: true, isTrending: true, warranty: "2-year warranty",
     image: "/shop-assets/products/mikrotik_router.jpg", hoverImage: "/shop-assets/products/mikrotik_router.jpg", description: "Compact 2.5GbE edge router with 10G SFP+ uplink for growing offices and ISP distribution sites.", longDescription: "A practical RouterOS v7 edge platform for small POPs, branches, labs, and subscriber aggregation. Its compact metal chassis makes it easy to deploy where rack space is tight.", materials: [], care: [], sizes: [], colors: [], details: ["7x Gigabit Ethernet", "1x 2.5GbE", "1x 10G SFP+", "RouterOS v7"], madeIn: "Latvia",
   },
   {
-    id: "ubiquiti-u7-pro", name: "Ubiquiti UniFi U7 Pro Wi-Fi 7 Access Point", price: 29_900, currency: "KES", category: "Wireless & Access Points", categorySlug: "wireless-access-points", brand: "Ubiquiti", inStock: true, isFeatured: true, warranty: "1-year warranty",
+    id: "ubiquiti-u7-pro", name: "Ubiquiti UniFi U7 Pro Wi-Fi 7 Access Point", price: 29_900, currency: "KES", category: "Wireless & Access Points", categorySlug: "wireless-access-points", brand: "Ubiquiti", inStock: true, isFeatured: true, isTrending: true, warranty: "1-year warranty",
     image: "/shop-assets/products/ceiling-access-point.svg", hoverImage: "/shop-assets/products/ceiling-access-point.svg", description: "Tri-band Wi-Fi 7 access point with 2.5GbE uplink for high-density offices, hotels, and campuses.", longDescription: "Bring modern Wi-Fi 7 capacity to managed networks with a clean ceiling-mounted design and central UniFi management.", materials: [], care: [], sizes: [], colors: [], details: ["Wi-Fi 7 tri-band", "2.5GbE uplink", "PoE+ powered", "UniFi management"], madeIn: "United States",
   },
   {
@@ -19,7 +19,7 @@ export const featuredCatalog: Product[] = [
     image: "/shop-assets/products/ceiling-access-point.svg", hoverImage: "/shop-assets/products/ceiling-access-point.svg", description: "Reliable Wi-Fi 6 business access point with Omada cloud management and PoE+ deployment.", longDescription: "A strong value choice for schools, clinics, offices, and hospitality deployments that need centralised, scalable Wi-Fi.", materials: [], care: [], sizes: [], colors: [], details: ["Wi-Fi 6 AX3000", "2x2 MU-MIMO", "Gigabit PoE+", "Omada SDN"], madeIn: "China",
   },
   {
-    id: "mikrotik-crs328-24p-4s", name: "MikroTik CRS328-24P-4S+RM", price: 72_500, currency: "KES", category: "Switches & PoE", categorySlug: "switches-poe", brand: "MikroTik", inStock: true, isFeatured: true, warranty: "2-year warranty",
+    id: "mikrotik-crs328-24p-4s", name: "MikroTik CRS328-24P-4S+RM", price: 72_500, compareAtPrice: 76_000, currency: "KES", category: "Switches & PoE", categorySlug: "switches-poe", brand: "MikroTik", inStock: true, isFeatured: true, isTrending: true, warranty: "2-year warranty",
     image: "/shop-assets/products/poe_switch.jpg", hoverImage: "/shop-assets/products/poe_switch.jpg", description: "24-port Gigabit PoE+ switch with 4x 10G SFP+ uplinks and a generous 450W PoE budget.", longDescription: "Designed for WISP towers, cameras, access points, and fibre uplinks where power and aggregation need to live in one rack unit.", materials: [], care: [], sizes: [], colors: [], details: ["24x Gigabit PoE", "4x 10G SFP+", "450W PoE budget", "1U rackmount"], madeIn: "Latvia",
   },
   {
@@ -31,11 +31,11 @@ export const featuredCatalog: Product[] = [
     image: "/shop-assets/products/cat6a_cable.jpg", hoverImage: "/shop-assets/products/cat6a_cable.jpg", description: "Shielded, UV-resistant Cat6A cable for outdoor runs, towers, and high-throughput structured cabling.", longDescription: "A field-ready 305 metre drum for reliable copper runs where weather exposure and future 10GbE capacity matter.", materials: [], care: [], sizes: [], colors: [], details: ["305m drum", "Cat6A S/FTP", "UV-resistant jacket", "10GbE capable"], madeIn: "Kenya",
   },
   {
-    id: "10g-sfp-lr-pair", name: "10G SFP+ LR Optical Transceivers — Pair", price: 12_900, currency: "KES", category: "Fiber Optics & OLT", categorySlug: "fiber-optics-olt", brand: "Netily", inStock: true, isFeatured: false, warranty: "1-year warranty",
+    id: "10g-sfp-lr-pair", name: "10G SFP+ LR Optical Transceivers — Pair", price: 12_900, currency: "KES", category: "Fibre & Optics", categorySlug: "fiber-optics-olt", brand: "Netily", inStock: true, isFeatured: false, warranty: "1-year warranty",
     image: "/shop-assets/products/sfp-transceivers.svg", hoverImage: "/shop-assets/products/sfp-transceivers.svg", description: "Matched single-mode 10GBASE-LR optics for up to 10km fibre links between core and distribution sites.", longDescription: "Keep spare optics on hand for core upgrades and emergency link restoration. Compatible with common SFP+ network platforms.", materials: [], care: [], sizes: [], colors: [], details: ["10Gbps", "1310nm single-mode", "Up to 10km", "LC duplex"], madeIn: "Taiwan",
   },
   {
-    id: "vsol-gpon-olt-8-port", name: "VSOL 8-Port GPON OLT", price: 89_500, currency: "KES", category: "Fiber Optics & OLT", categorySlug: "fiber-optics-olt", brand: "VSOL", inStock: true, isFeatured: true, warranty: "2-year warranty",
+    id: "vsol-gpon-olt-8-port", name: "VSOL 8-Port GPON OLT", price: 89_500, currency: "KES", category: "Fibre & Optics", categorySlug: "fiber-optics-olt", brand: "VSOL", inStock: true, isFeatured: true, isTrending: true, warranty: "2-year warranty",
     image: "/academy/fiber-olt.webp", hoverImage: "/academy/fiber-olt.webp", description: "8-port GPON OLT for compact FTTH rollouts, apartments, estates, and neighbourhood POPs.", longDescription: "A scalable starting point for fibre operators moving beyond wireless access, with room to grow subscribers while keeping the POP compact.", materials: [], care: [], sizes: [], colors: [], details: ["8 GPON ports", "1U rackmount", "VLAN and QoS", "FTTH ready"], madeIn: "China",
   },
   {
