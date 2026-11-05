@@ -52,7 +52,7 @@ import {
   getRoleAccessPolicyVersion,
   subscribeRoleAccessPolicies,
 } from "@/lib/rbac"
-import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
+import { DonutChart } from "@/components/ui/donut-chart"
 import { PaymentTicker } from "@/components/ui/payment-ticker"
 import type {
   AuditLog,
@@ -86,6 +86,17 @@ interface ActivityItem {
 function formatKSh(amount: number | string | undefined): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount || 0
   return `KSh ${num.toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+}
+
+function buildRevenueSegments(today: number, week: number, month: number) {
+  const t = Math.max(0, today)
+  const w = Math.max(t, week)
+  const m = Math.max(w, month)
+  return [
+    { label: "Today", value: t, color: "#d97234" },
+    { label: "Earlier this week", value: w - t, color: "#3d7a5f" },
+    { label: "Earlier this month", value: m - w, color: "#6366f1" },
+  ]
 }
 
 // Helper: relative time
@@ -943,46 +954,41 @@ export default function AdminDashboard() {
                 </div>
               ) : (() => {
                 const ov = quickStats?.overview
-                const todayRev = parseFloat(String(ov?.today_revenue ?? 0))
-                const weekRev = parseFloat(String(ov?.week_revenue ?? 0))
-                const monthRev = parseFloat(String(ov?.month_revenue ?? 0))
-
-                const weeklySpark = (ov?.weekly_income ?? []).map(d => ({ amount: d.amount }))
-                const monthlySpark = (ov?.monthly_earnings ?? []).map(d => ({ amount: d.amount }))
-                const todaySpark = weeklySpark.length >= 2 ? weeklySpark.slice(-2) : weeklySpark
+                const todayRev = Number(ov?.today_revenue) || 0
+                const weekRev = Number(ov?.week_revenue) || 0
+                const monthRev = Number(ov?.month_revenue) || 0
+                const segments = buildRevenueSegments(todayRev, weekRev, monthRev)
 
                 return (
-                  <div className="grid grid-cols-1 gap-3">
-                    <RevenueStatCard
-                      label="Today"
-                      value={todayRev}
-                      deltaPct={ov?.today_change}
-                      color="#d97234"
-                      sparklineData={todaySpark.length ? todaySpark : [{ amount: 0 }, { amount: todayRev }]}
-                      animationDelay={0}
+                  <div className="space-y-4">
+                    <DonutChart
+                      data={segments}
+                      centerLabel="This month"
+                      formatValue={formatKSh}
+                      variant="donut"
+                      legendPosition="bottom"
                     />
-                    <RevenueStatCard
-                      label="This Week"
-                      value={weekRev}
-                      deltaPct={ov?.week_change}
-                      color="#3d7a5f"
-                      sparklineData={weeklySpark.length ? weeklySpark : [{ amount: 0 }, { amount: weekRev }]}
-                      animationDelay={0.1}
-                    />
-                    <RevenueStatCard
-                      label="This Month"
-                      value={monthRev}
-                      deltaPct={ov?.month_change}
-                      color="currentColor"
-                      sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
-                      animationDelay={0.2}
-                    />
+
+                    <div className="grid grid-cols-3 divide-x divide-border/50 text-center">
+                      {[
+                        { label: "Today", delta: ov?.today_change },
+                        { label: "Week", delta: ov?.week_change },
+                        { label: "Month", delta: ov?.month_change },
+                      ].map(({ label, delta }) => (
+                        <div key={label} className="space-y-1 py-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+                          {typeof delta === "number" && delta !== 0 ? (
+                            <ChangeBadge value={delta} />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
                     <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                       <span>Transactions today</span>
-                      <span className="font-medium text-foreground">
-                        {ov?.total_transactions_today ?? 0}
-                      </span>
+                      <span className="font-medium text-foreground">{ov?.total_transactions_today ?? 0}</span>
                     </div>
                   </div>
                 )
