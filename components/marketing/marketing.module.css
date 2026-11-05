@@ -66,6 +66,8 @@
 .hero .eyebrow { color: #9bd0fa !important; }
 .heroIntro { color: #e1ebee !important; max-width: 600px; font-size: 17px; margin-bottom: 26px; }
 .actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.heroSlot { margin-bottom: 26px; }
+.heroSlot + .actions .button, .heroSlot + .actions .heroSecondary { min-height: 44px; }
 .heroSecondary { color: white; border: 1px solid #ffffff80; background: #071b2030; }
 .heroSecondary:hover { background: #ffffff20; }
 .heroNote { font-size: 12px; margin-top: 22px; color: #c6d9de !important; }

@@ -19,7 +19,7 @@ export function SectionHeading({ label, title, children }: { label: string; titl
   return <div className={s.sectionHeading}><p className={s.eyebrow}>{label}</p><h2>{title}</h2>{children && <p>{children}</p>}</div>
 }
 
-export function Hero({ label, title, intro, image = "/academy/wisp-backhaul.webp", home = false }: { label: string; title: string; intro: string; image?: string; home?: boolean }) {
+export function Hero({ label, title, intro, image = "/academy/wisp-backhaul.webp", home = false, children }: { label: string; title: string; intro: string; image?: string; home?: boolean; children?: ReactNode }) {
   return <section className={`${s.hero} ${home ? s.homeHero : ""}`}>
     <Image src={image} alt="Network engineers working with communications equipment" fill priority sizes="100vw" className={s.heroImage} />
     <div className={s.heroShade} />
@@ -27,6 +27,7 @@ export function Hero({ label, title, intro, image = "/academy/wisp-backhaul.webp
       <p className={s.eyebrow}>{label}</p>
       <h1 className={home ? s.heroStatement : undefined}>{title}</h1>
       <p className={s.heroIntro}>{intro}</p>
+      {children && <div className={s.heroSlot}>{children}</div>}
       <div className={s.actions}><Link className={s.button} href={marketingHref("/contact")}>Book a demo <ArrowRight size={18} /></Link><a className={s.heroSecondary} href="https://demo.netily.co.ke/admin/login">Explore the demo <ArrowUpRight size={18} /></a></div>
       <p className={s.heroNote}>Your network. Your subscribers. One connected workflow.</p>
     </div>
