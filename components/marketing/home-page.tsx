@@ -14,7 +14,7 @@ const googleReviewUrl = process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "https://g.
 
 export default function MarketingHomePage() {
   return <>
-    <Hero home label="Internetily (Netily) ISP billing system" title="Paid subscribers stay online. Automatically." intro="Internetily (Netily) makes sure paid subscribers stay online automatically. It connects MikroTik PPPoE, hotspot and WiFi billing, M-Pesa payments, invoices, and renewals in one workflow."><HeroAssistant /></Hero>
+    <Hero home label="Internetily (Netily) ISP billing system" title="Paid subscribers stay online. Automatically." intro="Internetily (Netily) makes sure paid subscribers stay online automatically, with M-Pesa, MikroTik and hotspot billing in one workflow."><HeroAssistant /></Hero>
     <section className={s.compatibility}><div className={s.container}><p>Works with the routers you already own.</p><div>{["MikroTik", "Ubiquiti", "TP-Link", "Tenda", "Cambium", "Huawei", "Starlink", "FreeRADIUS"].map((name) => <span key={name}>{name}</span>)}</div><Link href={marketingHref("/integrations")}>Find the right connection for your setup <ArrowRight size={15} /></Link></div></section>
     <ProductProof variant="overview" />
     <section id="problem" className={s.section}><div className={s.container}><SectionHeading label="Less busywork" title="Every hour on manual billing is an hour not spent growing." /><div className={s.threeColumns}>{[

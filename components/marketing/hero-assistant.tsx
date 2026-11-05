@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import Link from "next/link"
 import { ArrowRight, ArrowUp, Loader2, Minus, Rocket, Sparkles } from "lucide-react"
 import { AssistantMessage } from "@/components/assistant-message"
+import { WanderingEyes } from "@/components/ui/wandering-eyes"
 
 type Message = {
   id: string
@@ -14,15 +15,22 @@ type Message = {
   link?: { href: string; label: string }
 }
 
-const STORAGE_KEY = "internetily-assistant-v1"
+const STORAGE_KEY = "internetily-assistant-v2"
 const HEADER_OFFSET = 90
+// Kept short so the placeholder is never clipped, even on small phones.
 const EXAMPLES = [
-  "auto-reconnect customers after M-Pesa payment",
-  "sell hotspot packages and vouchers",
-  "manage MikroTik PPPoE subscribers",
-  "send expiry reminders by SMS",
-  "see revenue for every router",
-  "fix customer routers remotely",
+  "M-Pesa auto-reconnect",
+  "hotspot vouchers",
+  "MikroTik PPPoE billing",
+  "SMS expiry reminders",
+  "revenue per router",
+  "remote router fixes",
+]
+// Short labels in the hero; each sends a full question to the assistant.
+const HERO_CHIPS = [
+  { label: "M-Pesa auto-reconnect", question: "Auto-reconnect customers after M-Pesa payment" },
+  { label: "Hotspot vouchers", question: "Sell hotspot vouchers through agents" },
+  { label: "Pricing", question: "What does it cost for 200 subscribers?" },
 ]
 const STARTERS = [
   "Auto-reconnect customers after M-Pesa payment",
@@ -280,8 +288,9 @@ export function HeroAssistant() {
             ))}
 
             {busy && (
-              <div className="inline-flex items-center gap-1 rounded-2xl rounded-tl-sm bg-zinc-100 px-3.5 py-3 dark:bg-zinc-800" aria-label="Assistant is typing">
-                {[0, 1, 2].map((dot) => <span key={dot} className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: `${dot * 140}ms` }} />)}
+              <div className="inline-flex items-center gap-2.5 rounded-2xl rounded-tl-sm bg-zinc-100 py-2 pl-3 pr-3.5 text-[#0874cf] dark:bg-zinc-800 dark:text-sky-400">
+                <WanderingEyes className="w-9" duration="4s" label="Assistant is thinking" />
+                <span className="text-xs text-zinc-500 dark:text-zinc-400" aria-hidden="true">Thinking…</span>
               </div>
             )}
             <div ref={endRef} />
@@ -339,51 +348,47 @@ export function HeroAssistant() {
 
   return (
     <>
-      <div className="mt-2 w-full max-w-2xl">
+      <div className="w-full max-w-xl">
         <form
           ref={heroRef}
           onSubmit={submitHero}
-          className="relative rounded-2xl bg-linear-to-r from-sky-400 via-cyan-300 to-emerald-400 p-0.5 shadow-[0_18px_50px_-12px_rgba(56,189,248,0.55)]"
+          className="rounded-2xl bg-linear-to-r from-sky-400 via-cyan-300 to-emerald-400 p-0.5 shadow-[0_16px_44px_-14px_rgba(56,189,248,0.6)]"
         >
-          <div className="flex flex-col gap-2 rounded-[14px] bg-white p-2 sm:flex-row sm:items-center dark:bg-zinc-950">
-            <div className="flex min-w-0 flex-1 items-center gap-3 pl-2">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-linear-to-br from-sky-500 to-emerald-500 text-white">
-                <Sparkles className="h-4 w-4" />
-              </span>
-              <label htmlFor="assistant-hero-input" className="sr-only">Search what you expect your ISP system to do</label>
-              <input
-                id="assistant-hero-input"
-                value={heroInput}
-                onChange={(event) => setHeroInput(event.target.value)}
-                onFocus={() => setHeroFocused(true)}
-                onBlur={() => setHeroFocused(false)}
-                maxLength={600}
-                autoComplete="off"
-                enterKeyHint="send"
-                placeholder={`What should your ISP system do? e.g. ${EXAMPLES[example]}`}
-                className="h-12 min-w-0 flex-1 bg-transparent text-base text-zinc-900 outline-none placeholder:text-zinc-500 dark:text-zinc-100 dark:placeholder:text-zinc-400"
-              />
-            </div>
-            <button type="submit" disabled={busy} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0874cf] px-5 text-sm font-semibold text-white transition hover:bg-[#0663b0] disabled:opacity-60">
-              Ask Internetily AI <ArrowRight className="h-4 w-4" />
+          <div className="flex items-center gap-2 rounded-[14px] bg-white py-1.5 pl-3 pr-1.5 dark:bg-zinc-950">
+            <Sparkles className="h-5 w-5 shrink-0 text-sky-500" aria-hidden="true" />
+            <label htmlFor="assistant-hero-input" className="sr-only">Search what you expect your ISP system to do</label>
+            <input
+              id="assistant-hero-input"
+              value={heroInput}
+              onChange={(event) => setHeroInput(event.target.value)}
+              onFocus={() => setHeroFocused(true)}
+              onBlur={() => setHeroFocused(false)}
+              maxLength={600}
+              autoComplete="off"
+              enterKeyHint="send"
+              placeholder={`Search: ${EXAMPLES[example]}`}
+              className="h-11 min-w-0 flex-1 bg-transparent text-base text-zinc-900 outline-none placeholder:text-zinc-500 dark:text-zinc-100 dark:placeholder:text-zinc-400"
+            />
+            <button type="submit" disabled={busy} aria-label="Ask Internetily AI" className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#0874cf] px-3.5 text-sm font-semibold text-white transition hover:bg-[#0663b0] disabled:opacity-60 sm:px-4">
+              <span className="hidden sm:inline">Ask AI</span>
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </form>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {STARTERS.slice(0, 3).map((item) => (
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <span className="shrink-0 text-xs text-sky-100/70">Try</span>
+          {HERO_CHIPS.map((chip) => (
             <button
-              key={item}
+              key={chip.label}
               type="button"
-              onClick={() => void ask(item, "hero")}
+              onClick={() => void ask(chip.question, "hero")}
               disabled={busy}
-              className="min-h-9 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:border-white/50 hover:bg-white/20 disabled:opacity-50"
+              className="h-8 shrink-0 rounded-full border border-white/20 bg-white/10 px-3 text-xs font-medium text-white backdrop-blur transition hover:border-white/45 hover:bg-white/20 disabled:opacity-50"
             >
-              {item}
+              {chip.label}
             </button>
           ))}
         </div>
-        {/* span, not p: the marketing `.site p` colour rule is unlayered and would override Tailwind. */}
-        <span className="mt-2 block text-xs text-sky-100/75">Instant answers about Internetily. No sign-up needed.</span>
       </div>
       {dockLayer}
     </>

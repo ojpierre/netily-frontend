@@ -27,9 +27,14 @@ export function Hero({ label, title, intro, image = "/academy/wisp-backhaul.webp
       <p className={s.eyebrow}>{label}</p>
       <h1 className={home ? s.heroStatement : undefined}>{title}</h1>
       <p className={s.heroIntro}>{intro}</p>
-      {children && <div className={s.heroSlot}>{children}</div>}
-      <div className={s.actions}><Link className={s.button} href={marketingHref("/contact")}>Book a demo <ArrowRight size={18} /></Link><a className={s.heroSecondary} href="https://demo.netily.co.ke/admin/login">Explore the demo <ArrowUpRight size={18} /></a></div>
-      <p className={s.heroNote}>Your network. Your subscribers. One connected workflow.</p>
+      {children ? <>
+        {/* With an interactive slot as the primary action, demo links step back to quiet text links. */}
+        <div className={s.heroSlot}>{children}</div>
+        <div className={s.heroLinks}><Link href={marketingHref("/contact")}>Book a demo <ArrowRight size={16} /></Link><a href="https://demo.netily.co.ke/admin/login">Explore the demo <ArrowUpRight size={16} /></a></div>
+      </> : <>
+        <div className={s.actions}><Link className={s.button} href={marketingHref("/contact")}>Book a demo <ArrowRight size={18} /></Link><a className={s.heroSecondary} href="https://demo.netily.co.ke/admin/login">Explore the demo <ArrowUpRight size={18} /></a></div>
+        <p className={s.heroNote}>Your network. Your subscribers. One connected workflow.</p>
+      </>}
     </div>
   </section>
 }
