@@ -115,7 +115,7 @@ export function ProductProof({ variant = "overview" }: { variant?: ProductPrevie
     <div className={`${s.container} ${s.productProofLayout}`}>
       <div className={s.productProofCopy}><p className={s.eyebrow}>{copy.label}</p><h2 id={`product-proof-${variant}`}>{copy.title}</h2><p>{copy.copy}</p><div className={s.productProofLegend}><Activity /><span>Illustrative product data. The controls mirror real Internetily workflows.</span></div></div>
       <div className={s.productFrame}>
-        <div className={s.previewTopbar}><div><Image src="/internetily-icon-32.png" alt="" width={28} height={28} /><strong>Internetily</strong><span>Operator workspace</span></div><div><span className={s.previewSearch}>Search subscribers, routers, payments…</span><b>NT</b></div></div>
+        <div className={s.previewTopbar}><div><Image src="/internetily-icon-32.png" alt="Internetily (Netily) icon" width={28} height={28} /><strong>Internetily</strong><span>Operator workspace</span></div><div><span className={s.previewSearch}>Search subscribers, routers, payments…</span><b>NT</b></div></div>
         <div className={s.previewBody}>
           <aside className={s.previewSidebar} aria-hidden="true"><span className={s.previewNavActive}>Overview</span><span>Subscribers</span><span>Billing</span><span>Network</span><span>Support</span></aside>
           <div className={s.previewMain}>

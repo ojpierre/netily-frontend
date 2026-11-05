@@ -12,8 +12,15 @@ export const BRAND_PAIR = `${BRAND_NAME} (${BRAND_ALIAS})`
 export const BRAND_ALTERNATE_NAMES = [BRAND_ALIAS, BRAND_PAIR, "Netily ISP Billing", "netily.co.ke"]
 
 /** Public profiles that confirm the brand entity (schema.org sameAs). */
-// Add LinkedIn, Facebook, X, YouTube and Crunchbase URLs here as they are confirmed.
+export const SOCIAL_PROFILES = {
+  facebook: "https://www.facebook.com/p/Internetily-61594980311902/",
+  instagram: "https://www.instagram.com/internetily/",
+}
+
+// Add LinkedIn, X, YouTube and Crunchbase URLs here as they are confirmed.
 export const BRAND_PROFILES = [
+  SOCIAL_PROFILES.facebook,
+  SOCIAL_PROFILES.instagram,
   "https://g.page/r/CXBirwJlXb_0EAI",
   "https://www.trustpilot.com/review/netily.co.ke",
 ]

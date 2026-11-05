@@ -84,7 +84,13 @@
 .workflowStep > div { display: flex; justify-content: space-between; align-items: center; color: var(--blue); }
 .workflowStep span, .stepNumber { font-family: var(--font-outfit), sans-serif; font-size: 38px; color: var(--blue); }
 .cardGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.featureCard { border: 1px solid var(--line); border-radius: 8px; padding: 26px; display: flex; flex-direction: column; background: var(--paper); transition: border-color .2s, transform .25s cubic-bezier(.22, 1, .36, 1), box-shadow .25s; min-width: 0; }
+.featureCard { position: relative; border: 1px solid var(--line); border-radius: 8px; padding: 26px; display: flex; flex-direction: column; background: var(--paper); transition: border-color .2s, transform .25s cubic-bezier(.22, 1, .36, 1), box-shadow .25s; min-width: 0; }
+.cardLink { text-decoration: none; }
+.cardLink::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.cardLink:focus-visible { outline: none; }
+.featureCard:has(.cardLink:focus-visible) { outline: 2px solid var(--blue); outline-offset: 3px; }
+/* Visual h3 without adding to the heading outline; .site raises specificity over `.plainItem p`. */
+.site .itemTitle { font-family: var(--font-outfit), Arial, sans-serif; font-size: 24px; font-weight: 500; line-height: 1.12; margin: 16px 0 12px; text-wrap: balance; color: inherit; }
 .featureCard:hover { border-color: var(--blue); transform: translateY(-4px); box-shadow: 0 14px 30px #071b2012; }
 .featureCard .cardArrow svg, .textLink svg { transition: transform .2s; }
 .featureCard:hover .cardArrow svg, .textLink:hover svg { transform: translateX(3px); }
@@ -153,7 +159,7 @@
 .ctaBand .container { display: flex; justify-content: space-between; align-items: center; gap: 32px; }
 .ctaBand .button { flex-shrink: 0; }
 .footer { background: #0d171d; color: #e5eef3; padding: 60px 0 24px; }
-.footerGrid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap: 36px; }
+.footerGrid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr 1fr; gap: 36px; }
 .footerHeading { color: #e5eef3 !important; font-family: var(--font-plus-jakarta-sans), sans-serif; font-size: 14px !important; font-weight: 700; margin-bottom: 20px; }
 .footerGrid a { display: block; font-size: 13px; color: #c2ced6; min-height: 40px; padding-block: 8px; }
 .footerGrid a:hover { color: #77c6ff; }

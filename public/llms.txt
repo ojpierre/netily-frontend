@@ -114,6 +114,15 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 - ISP cybersecurity for MikroTik, M-Pesa, and subscriber data: https://netily.co.ke/blog/isp-cybersecurity-mikrotik-mpesa-data-2026
 - Automated WISP billing with M-Pesa: https://netily.co.ke/blog/automate-wisp-billing-mpesa-auto-disconnect
 - Mixed-vendor ISP hardware management: https://netily.co.ke/blog/mixed-vendor-isp-hardware-tr069-smartolt-2026
+- SEO for ISPs in Kenya: https://netily.co.ke/blog/seo-for-isps-kenya-local-search-2026
+- Generative engine optimization (GEO) for ISPs: https://netily.co.ke/blog/generative-engine-optimization-isps-2026
+- Answer engine optimization (AEO) for ISPs: https://netily.co.ke/blog/answer-engine-optimization-isps-2026
+
+## Official profiles
+
+- Facebook: https://www.facebook.com/p/Internetily-61594980311902/
+- Instagram: https://www.instagram.com/internetily/
+- Google Business Profile: https://g.page/r/CXBirwJlXb_0EAI
 
 ## Answers to common questions
 

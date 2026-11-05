@@ -58,8 +58,8 @@ export function MarketingNavigation() {
     }}>
       <div className={s.headerInner}>
         <Link href={marketingHref()} aria-label="Internetily home" className={s.logo}>
-          <Image src="/internetily-logo-320.webp" width={112} height={78} alt="Internetily" className={s.lightLogo} priority />
-          <Image src="/internetily-white-logo-320.webp" width={112} height={78} alt="Internetily" className={s.darkLogo} priority />
+          <Image src="/internetily-logo-320.webp" width={112} height={78} alt="Internetily (Netily)" className={s.lightLogo} priority />
+          <Image src="/internetily-white-logo-320.webp" width={112} height={78} alt="Internetily (Netily)" className={s.darkLogo} priority />
         </Link>
         <button className={s.mobileToggle} aria-label={mobile ? "Close navigation" : "Open navigation"} aria-expanded={mobile} aria-controls="preview-navigation" onClick={() => setMobile(!mobile)}>{mobile ? <X /> : <Menu />}</button>
         <nav id="preview-navigation" aria-label="Main navigation" className={`${s.nav} ${mobile ? s.navOpen : ""}`}>
