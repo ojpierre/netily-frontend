@@ -6,6 +6,7 @@ import { ClosingCTA, DetailCards, Hero, PricingSummary, SectionHeading } from ".
 import { ContactForm } from "./contact-form"
 import { MarketingCalculator } from "./calculator"
 import { ProductProof, type ProductPreviewVariant } from "./product-preview"
+import { PaymentGateways, SmsGateways } from "./integrations-showcase"
 import s from "./marketing.module.css"
 
 function previewForPath(path: string): ProductPreviewVariant {
@@ -48,7 +49,8 @@ export default function MarketingContentPage({ path }: { path: string }) {
     ].map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section></>}
     {path === "contact" && <section className={s.section}><div className={s.container}><ContactForm /></div></section>}
     {path === "resources" && <section className={s.section}><div className={`${s.container} ${s.cardGrid}`}>{resources.map((item) => <Link key={item.href} href={item.href} className={s.featureCard}><h2 style={{ fontSize: 26 }}>{item.title}</h2><p>{item.text}</p><span className={s.cardArrow}>Explore <ArrowRight size={18} /></span></Link>)}</div></section>}
-    {path === "integrations" && <section className={s.section}><div className={s.container}><div className={s.threeColumns}>{[
+    {path === "integrations" && <><PaymentGateways /><SmsGateways /><section className={s.section}><div className={`${s.container} ${s.faq}`}><SectionHeading label="Common questions" title="Payments, banks and SMS." />{answerEngineContent["/integrations"].questions.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section></>}
+    {path === "integrations" && <section className={`${s.section} ${s.tinted}`}><div className={s.container}><div className={s.threeColumns}>{[
       ["Payments", "Connect M-Pesa STK Push and paybill collections. Keep payments linked to subscriber records.", "/features/mpesa-billing"],
       ["Network access", "Connect MikroTik for subscriber access, PPPoE profiles, and hotspot sessions.", "/features/mikrotik-provisioning"],
       ["Customer equipment", "Manage compatible TR-069 CPE remotely. Compatibility depends on the model, firmware, and supported parameters.", "/features/tr069-device-management"],

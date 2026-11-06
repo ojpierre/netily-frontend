@@ -375,6 +375,91 @@
   .motionRoot [data-marketing-reveal] { opacity: 1 !important; transform: none !important; }
   .previewFlow i::after { animation: none; }
 }
+/* Integrations: payment routes, bank finder, SMS gateways */
+.logoSm, .logoMd { display: block; object-fit: contain; background: #fff; border-radius: 8px; flex-shrink: 0; }
+.logoSm { width: 40px; height: 40px; padding: 4px; }
+.logoMd { width: 64px; height: 40px; padding: 4px 6px; }
+.routeLayout { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 24px; align-items: stretch; }
+.routeList { display: grid; gap: 8px; align-content: start; }
+.routeTab { position: relative; overflow: hidden; display: grid; gap: 2px; text-align: left; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font: inherit; transition: border-color .2s, box-shadow .2s; }
+.routeTab strong { font-size: 15px; font-weight: 600; }
+.routeTab:hover { border-color: var(--blue); }
+.routeTab[aria-selected="true"] { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+.routeMarket { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--blue); }
+.routeTimer { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--blue); transform-origin: left; animation: route-timer 6.5s linear both; }
+.routePanel { display: grid; gap: 20px; padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.routeTrack { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.routeTrack::before { content: ""; position: absolute; top: 28px; left: 12.5%; right: 12.5%; height: 2px; background: var(--line); }
+.routeTrack li { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; animation: route-step .5s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--step) * 450ms); }
+.routeTrack li strong { font-size: 14px; font-weight: 600; color: var(--ink); }
+.routeTrack li > span:last-child { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.routeNode { position: relative; z-index: 1; display: grid; place-items: center; min-width: 58px; height: 58px; padding: 0 8px; border-radius: 16px; border: 1px solid var(--line); background: var(--wash); color: var(--blue); animation: route-node .5s ease both; animation-delay: calc(var(--step) * 450ms + 250ms); }
+.routeLogos { display: flex; gap: 6px; }
+.routePulse { position: absolute; top: 23px; left: 12.5%; width: 12px; height: 12px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 6px #16a34a33; animation: route-pulse 1.8s cubic-bezier(.6, 0, .4, 1) .2s both; }
+.routeFacts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.routeFacts div { padding: 14px 16px; border-radius: 10px; background: var(--wash); }
+.routeFacts dt { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.routeFacts dd { margin: 4px 0 0; font-size: 15px; color: var(--ink); }
+.partnerStrip { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.partner { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.partner span, .bankGrid li > span, .smsChip span { display: grid; line-height: 1.3; min-width: 0; }
+.partner strong, .bankGrid strong, .smsChip strong { font-size: 14px; font-weight: 600; color: var(--ink); }
+.partner small, .bankGrid small, .smsChip small { font-size: 12px; color: var(--muted); }
+.partner[data-soon] { opacity: .7; border-style: dashed; }
+.bankFinder { margin-top: 40px; }
+.bankFinderHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.bankFinderHead h3 { margin: 0; }
+.bankSearch { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--muted); width: min(100%, 320px); }
+.bankSearch input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; }
+.bankSearch:focus-within { border-color: var(--blue); }
+.bankGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.bankGrid li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); animation: route-step .35s ease both; }
+.bankGrid li > span { flex: 1; }
+.bankGrid strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bankCheck { color: #16a34a; flex-shrink: 0; }
+.bankEmpty a { color: var(--blue); text-decoration: underline; }
+.smsLayout { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 56px; align-items: center; }
+.phone { width: 100%; max-width: 320px; margin: 0 auto; border: 10px solid #17252d; border-radius: 36px; background: var(--wash); overflow: hidden; box-shadow: 0 30px 60px #0f1f2722; }
+:global(.dark) .phone { border-color: #05090b; }
+.phoneBar { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); border-bottom: 1px solid var(--line); }
+.phoneBody { display: grid; align-content: end; gap: 10px; min-height: 300px; padding: 18px 14px; }
+.site .bubble { max-width: 92%; padding: 12px 14px; border-radius: 16px 16px 16px 4px; background: var(--paper); border: 1px solid var(--line); animation: sms-in .45s cubic-bezier(.22, 1, .36, 1) both; }
+.site .bubble small { display: block; font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; }
+.site .bubble p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.sentVia { justify-self: start; font-size: 12px; color: var(--muted); animation: sms-in .45s .15s ease both; }
+.sentVia strong { color: var(--ink); }
+.smsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.smsChip { display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; padding: 8px 12px 8px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font: inherit; text-align: left; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.smsChip:hover { border-color: var(--blue); }
+.smsChip[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); transform: translateY(-2px); }
+.smsBuiltIn { border-style: dashed; color: var(--blue); }
+.smsBuiltIn svg { width: 40px; flex-shrink: 0; }
+.integrationNote { margin-top: 24px; font-size: 12px; }
+@keyframes route-timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes route-step { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes route-node { from { border-color: var(--line); } to { border-color: var(--blue); box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 15%, transparent); } }
+@keyframes route-pulse { 0% { left: 12.5%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { left: calc(87.5% - 12px); opacity: 0; } }
+@keyframes sms-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 920px) {
+  .routeLayout, .smsLayout { grid-template-columns: 1fr; }
+  .routeList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .smsLayout { gap: 32px; }
+}
+@media (max-width: 640px) {
+  .routeList { grid-template-columns: 1fr; }
+  .routePanel { padding: 18px; }
+  .routeTrack { grid-template-columns: 1fr; gap: 14px; }
+  .routeTrack::before { top: 0; bottom: 0; left: 28px; right: auto; width: 2px; height: auto; }
+  .routeTrack li { grid-template-columns: 58px 1fr; justify-items: start; text-align: left; column-gap: 14px; row-gap: 0; }
+  .routeTrack li .routeNode { grid-row: span 2; }
+  .routePulse { display: none; }
+  .routeFacts { grid-template-columns: 1fr; }
+  .bankGrid, .smsGrid { grid-template-columns: 1fr; }
+  .bankSearch { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .routePulse, .routeTimer { display: none; }
+}
 @media (max-width: 360px) {
   .headerInner { gap: 4px; }
   .logo, .logo img { width: 64px; }

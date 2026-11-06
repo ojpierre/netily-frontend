@@ -5,6 +5,7 @@ import { featurePages, featuredSlugs, marketingHref, solutionPages } from "./con
 import { DetailCards, Hero, PricingSummary, SectionHeading } from "./sections"
 import { ContactForm } from "./contact-form"
 import { HeroAssistant } from "./hero-assistant"
+import { PaymentGateways, SmsGateways } from "./integrations-showcase"
 import { ProductProof } from "./product-preview"
 import s from "./marketing.module.css"
 
@@ -27,9 +28,11 @@ export default function MarketingHomePage() {
       { icon: Router, title: "Router applies access", text: "The PPPoE profile activates or the hotspot session opens. No router login." },
       { icon: ChartNoAxesCombined, title: "You see everything", text: "Revenue, subscribers, renewals, and support. One dashboard, not three systems." },
     ].map(({ icon: Icon, title, text }, index) => <div className={s.workflowStep} key={title}><div><span>0{index + 1}</span><Icon size={28} /></div><p className={s.itemTitle}>{title}</p><p>{text}</p></div>)}</div></div></section>
+    <PaymentGateways />
+    <SmsGateways />
     <section id="features" className={s.section}><div className={s.container}><SectionHeading label="Made for your working day" title="Everything your ISP runs on. One place." /><DetailCards pages={featuredSlugs.map((slug) => featurePages.find((page) => page.path.endsWith(`/${slug}`))!)} /><Link className={s.textLink} href={marketingHref("/features")}>Explore all features <ArrowRight size={18} /></Link></div></section>
     <section className={`${s.section} ${s.operationsBand}`}><div className={s.container}><SectionHeading label="Ready for real networks" title="Local payment habits. One connected operating flow.">Internetily adapts the payment and network experience to the market you serve, while keeping the daily work familiar for your team.</SectionHeading><div className={s.capabilityGrid}>{[
-      { icon: Globe2, title: "Payments across more markets", text: "Support Kenya, Uganda, Tanzania, and other enabled markets through regional options including M-Pesa, MTN MoMo, and Flutterwave-backed flows." },
+      { icon: Globe2, title: "Payments across more markets", text: "M-Pesa and 22 Kenyan banks and SACCOs in Kenya, plus MTN MoMo and Airtel Money in Uganda, each settling to the operator's own account." },
       { icon: RefreshCcw, title: "Paid hotspot users reconnect", text: "When access is still valid, returning hotspot customers can restore their connection instead of being sent through payment again." },
       { icon: Route, title: "Expired PPPoE customers reach payment", text: "A restricted RADIUS and MikroTik path redirects expired PPPoE sessions to the renewal page, then restores normal access after payment." },
       { icon: Tv, title: "Pay for another screen", text: "Customers can pay for supported TV access from the captive portal using the same guided payment experience." },

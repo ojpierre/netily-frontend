@@ -34,6 +34,22 @@ Core public capabilities include:
 
 Feature availability depends on the selected plan, country, configured provider, compatible equipment, and provider approval. A saved payment or router configuration does not by itself prove that the external provider or device is reachable.
 
+## Payment gateways, banks and SMS gateways
+
+Full list: https://netily.co.ke/integrations
+
+Payments settle to the ISP's own Till, Paybill, bank account or mobile money wallet. Internetily does not take a cut of individual subscriber payments.
+
+- Kenya, M-Pesa with your own Safaricom Daraja API keys: STK push, Paybill and Till
+- Kenya, Till or Paybill with no API keys: subscribers get an STK push prompt and the money goes to the ISP's existing number
+- Kenya, direct bank settlement (STK push to the bank's own Paybill) into 22 banks and SACCOs: KCB Bank, Equity Bank, Co-operative Bank, Absa Bank Kenya, NCBA Bank, Standard Chartered, Stanbic Bank, I&M Bank, Diamond Trust Bank, Family Bank, National Bank, Kingdom Bank, SBM Bank, Sidian Bank, Bank of Africa, Ecobank, Faulu Bank, Postbank, LOOP, Fortune Sacco, K-Unity Sacco, Tower Sacco
+- Uganda: MTN MoMo and Airtel Money through iotec
+- Coming soon: KopoKopo
+
+SMS gateways (bring your own account): Africa's Talking, Advanta SMS, Celcom Africa, Talksasa, BlessedTexts, Texin, Bytewave, Beem Africa, Hubtel, Twilio, Vonage, Infobip. Internetily also has built-in SMS that needs no provider account; units are prepaid from the ISP's wallet. Automatic messages: payment confirmation, expiry reminder, welcome message and service suspension notice.
+
+Internetily does not currently offer Paystack, Flutterwave, Pesapal or AzamPay integrations.
+
 ## Positioning
 
 Internetily is designed for ISP teams that want payment state, subscriber entitlement, and network access to agree. A confirmed payment can update the subscriber account and request access restoration without an operator manually matching a statement and opening a router.

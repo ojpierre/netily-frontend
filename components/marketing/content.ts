@@ -1,4 +1,5 @@
 import pages from "./content.json"
+import { INTEGRATION_FAQS } from "@/lib/integrations-data"
 
 export const marketingIndexes: Record<string, { title: string; intro: string }> = {
   features: { title: "Everything your ISP runs on. One place.", intro: "Collect payments, manage network access, support your subscribers, and see what is working." },
@@ -6,7 +7,7 @@ export const marketingIndexes: Record<string, { title: string; intro: string }> 
   pricing: { title: "Pricing that grows with your subscribers.", intro: "A monthly invoice based on your billable usage. Review the breakdown and pay via M-Pesa or bank transfer." },
   contact: { title: "Let's talk about your ISP.", intro: "A walkthrough starts with your network, your subscribers, and the work you want to simplify." },
   resources: { title: "Practical help for your next step.", intro: "Learn a skill, find a setup guide, or explore the tools for your next installation." },
-  integrations: { title: "Connect the tools you already use.", intro: "Bring payments and network access together. We will check the right connection method for your equipment." },
+  integrations: { title: "Payment gateways, banks and SMS for your ISP.", intro: "M-Pesa, MTN MoMo, Airtel Money, 22 Kenyan banks and SACCOs, and 12 SMS gateways, connected to MikroTik billing. Payments settle to your own account." },
   countries: { title: "Local payments. Connected operations.", intro: "Start with the payment channels, equipment, and support your network needs." },
   "countries/kenya": { title: "ISP billing built for Kenya.", intro: "M-Pesa STK Push. Paybill collections. KSh pricing. Billing and network access, working together." },
 }
@@ -56,6 +57,10 @@ type AnswerEngineContent = {
 }
 
 export const answerEngineContent: Record<string, AnswerEngineContent> = {
+  "/integrations": {
+    answer: "Internetily (Netily) supports M-Pesa STK push, Paybill and Till in Kenya (with or without Daraja API keys), direct settlement into 22 Kenyan banks and SACCOs, MTN MoMo and Airtel Money in Uganda through iotec, and 12 SMS gateways plus built-in SMS.",
+    questions: INTEGRATION_FAQS,
+  },
   "/features/mpesa-billing": {
     answer: "Internetily connects M-Pesa payments to an ISP subscriber record, then records the receipt and triggers the normal access workflow. It is built for operators who need payment matching, renewal visibility, and a consistent path from a confirmed payment to restored service without checking statements and routers manually.",
     questions: [

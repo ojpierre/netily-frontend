@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import MarketingContentPage from "./content-page"
 import MarketingLayout from "./layout"
 import { answerEngineContent, detailPages, marketingIndexes, pageName } from "./content"
+import { BANKS, SMS_GATEWAYS } from "@/lib/integrations-data"
 import { BRAND_ALTERNATE_NAMES, BRAND_NAME, BRAND_PROFILES, PARENT_ORGANIZATION, SITE_URL, brandTitle } from "@/lib/brand"
 
 const siteUrl = SITE_URL
@@ -25,7 +26,18 @@ const metaTitles: Record<string, string> = {
   "/solutions/rural-wisps": "WISP Billing and MikroTik Operations",
   "/solutions/managed-wifi": "Managed Wi-Fi and Hotspot Billing",
   "/countries/kenya": "ISP Billing Software Kenya | M-Pesa & MikroTik",
+  "/integrations": "ISP Payment Gateways, Banks & SMS Integrations",
 }
+
+// Named integrations for SoftwareApplication.featureList, so search and AI engines can cite them.
+const featureList = [
+  "M-Pesa STK push, Paybill and Till billing (with or without Daraja API keys)",
+  `Direct settlement to Kenyan banks and SACCOs: ${BANKS.map((b) => b.name).join(", ")}`,
+  "MTN MoMo and Airtel Money in Uganda via iotec",
+  `SMS gateways: ${SMS_GATEWAYS.map((g) => g.name).join(", ")}, plus built-in SMS`,
+  "MikroTik PPPoE and hotspot automation with RADIUS",
+  "TR-069 ACS for customer routers and ONTs",
+]
 
 function pageFor(path: string) {
   const key = path.replace(/^\//, "")
@@ -40,7 +52,7 @@ export function marketingMetadata(path = ""): Metadata {
   return {
     title: { absolute: title },
     description: page.intro,
-    keywords: ["Internetily", "Netily", "ISP billing system", "MikroTik billing", "M-Pesa billing", "PPPoE billing", "hotspot management", ...(path === "/features/pppoe-billing" ? ["expired PPPoE payment redirect", "MikroTik renewal portal", "RADIUS walled garden", "automatic PPPoE reconnection"] : []), ...(path ? [pageName(path)] : [])],
+    keywords: ["Internetily", "Netily", "ISP billing system", "MikroTik billing", "M-Pesa billing", "PPPoE billing", "hotspot management", ...(path === "/features/pppoe-billing" ? ["expired PPPoE payment redirect", "MikroTik renewal portal", "RADIUS walled garden", "automatic PPPoE reconnection"] : []), ...(path === "" || path === "/integrations" ? ["ISP payment gateways Kenya", "M-Pesa Daraja ISP billing", "ISP bank settlement Kenya", "MTN MoMo ISP billing Uganda", "ISP SMS gateway", "Africa's Talking ISP billing"] : []), ...(path ? [pageName(path)] : [])],
     alternates: { canonical: url },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
     openGraph: { title, description: page.intro, url, siteName: "Internetily (Netily)", type: "website", images: [{ url: `${siteUrl}/academy/wisp-backhaul.webp`, alt: "Internetily (Netily) ISP billing and network management" }] },
@@ -72,7 +84,7 @@ export function MarketingStructuredData({ path = "" }: { path?: string }) {
     organization,
     // Google reads WebSite name/alternateName on the homepage for the site name shown in results.
     { "@type": "WebSite", "@id": `${siteUrl}/#website`, name: BRAND_NAME, alternateName: BRAND_ALTERNATE_NAMES, url: `${siteUrl}/`, publisher: { "@id": `${siteUrl}/#organization` }, inLanguage: "en" },
-    { "@type": "SoftwareApplication", "@id": `${siteUrl}/#software`, name: BRAND_NAME, alternateName: BRAND_ALTERNATE_NAMES, applicationCategory: "BusinessApplication", applicationSubCategory: "ISP billing and network management software", operatingSystem: "Web", description: home.intro, provider: { "@id": `${siteUrl}/#organization` }, areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })), offers: { "@type": "Offer", priceCurrency: "KES", price: "500", description: "Monthly minimum; usage-based billing applies." } },
+    { "@type": "SoftwareApplication", "@id": `${siteUrl}/#software`, name: BRAND_NAME, alternateName: BRAND_ALTERNATE_NAMES, applicationCategory: "BusinessApplication", applicationSubCategory: "ISP billing and network management software", operatingSystem: "Web", description: home.intro, featureList, provider: { "@id": `${siteUrl}/#organization` }, areaServed: servedMarkets.map((name) => ({ "@type": "Country", name })), offers: { "@type": "Offer", priceCurrency: "KES", price: "500", description: "Monthly minimum; usage-based billing applies." } },
     webPage,
     ...(path.startsWith("/features/") || path.startsWith("/solutions/") ? [{
       "@type": "Service",

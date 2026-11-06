@@ -76,7 +76,7 @@ export const SALES_TOPICS: SalesTopic[] = [
   {
     id: "sms",
     keywords: ["sms", "text", "reminder", "notify", "notification", "message", "alert", "bulk"],
-    answer: "Yes, and you don't even need your own SMS provider to start. Internetily's **inbuilt SMS** sends welcome messages, payment confirmations and expiry reminders automatically, and you can run campaigns to groups of customers. You can also connect your own gateway if you prefer.",
+    answer: "Yes, and you don't even need your own SMS provider to start. Internetily's **inbuilt SMS** sends welcome messages, payment confirmations and expiry reminders automatically, and you can run campaigns to groups of customers. Prefer your own gateway? Connect **Africa's Talking, Advanta, Celcom Africa, Talksasa, BlessedTexts, Texin, Bytewave, Beem, Hubtel, Twilio, Vonage or Infobip**.",
     link: { href: "/features/sms-reminders", label: "See SMS reminders" },
     followUps: ["Can I send reminders before a package expires?", "Can I use my own SMS provider?", "Can I message only active customers?"],
   },
@@ -137,9 +137,16 @@ export const SALES_TOPICS: SalesTopic[] = [
     followUps: ["How long does setup take?", "Is there a free trial?", "Does it work with MikroTik?"],
   },
   {
+    id: "banks",
+    keywords: ["bank", "banks", "sacco", "kcb", "equity", "co-op", "coop", "absa", "ncba", "stanbic", "settle", "settlement", "payment gateway", "kopokopo"],
+    answer: "Yes. Payments settle straight to **your own account**, never ours. In Kenya you can use M-Pesa with your Daraja keys, a Till or Paybill with no API keys, or settle into **22 banks and SACCOs** including KCB, Equity, Co-op, Absa, NCBA, Stanbic, I&M, DTB and Family Bank. In Uganda it's MTN MoMo and Airtel Money via iotec. KopoKopo is coming soon.",
+    link: { href: "/integrations", label: "See all gateways and banks" },
+    followUps: ["Is my bank supported?", "Which SMS gateways work?", "What does it cost?"],
+  },
+  {
     id: "markets",
     keywords: ["kenya", "uganda", "tanzania", "rwanda", "nigeria", "south africa", "country", "momo", "mtn", "airtel", "flutterwave", "currency", "outside kenya"],
-    answer: "Internetily serves ISPs across **Kenya, Uganda, Tanzania** and beyond. In Kenya it's M-Pesa native; in Uganda customers can pay with **MTN MoMo or Airtel Money** through iotec, and other enabled markets use regional options including Flutterwave-backed flows.",
+    answer: "Internetily serves ISPs across **Kenya, Uganda, Tanzania** and beyond. In Kenya it's M-Pesa native, with settlement straight into 22 banks and SACCOs; in Uganda customers can pay with **MTN MoMo or Airtel Money** through iotec. Operating somewhere else? The team will confirm the right payment option for your market.",
     link: { href: "/countries", label: "See supported countries" },
     followUps: ["Does it support MTN MoMo?", "What does it cost?", "Is there a free trial?"],
   },
