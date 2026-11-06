@@ -389,8 +389,8 @@ export default function LoyaltyPage() {
                         key={m.id}
                         className={`flex flex-wrap items-center gap-3 rounded-xl px-3 py-3 border transition-all sm:flex-nowrap sm:gap-4 sm:px-4 ${
                           isTop3
-                            ? "bg-gradient-to-r from-violet-50 to-white border-violet-200 shadow-sm"
-                            : "bg-white border-slate-100 hover:border-slate-200"
+                            ? "bg-gradient-to-r from-violet-50 to-card border-violet-200 shadow-sm dark:from-violet-950/40 dark:to-card dark:border-violet-800/60"
+                            : "bg-card border-border hover:border-muted-foreground/40"
                         }`}
                       >
                         {/* Rank circle */}
@@ -398,14 +398,14 @@ export default function LoyaltyPage() {
                           rank === 1 ? "bg-warning text-yellow-900" :
                           rank === 2 ? "bg-slate-300 text-slate-800" :
                           rank === 3 ? "bg-orange-300 text-orange-900" :
-                          "bg-slate-100 text-slate-500"
+                          "bg-muted text-muted-foreground"
                         }`}>
                           {rank}
                         </div>
 
                         {/* Member info */}
                         <div className="flex-1 min-w-0">
-                          <p className={`font-semibold truncate ${isTop3 ? "text-foreground text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
+                          <p className={`font-semibold truncate text-foreground ${isTop3 ? "text-base" : "text-sm"}`}>
                             {m.name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -426,7 +426,7 @@ export default function LoyaltyPage() {
 
                         {/* Points */}
                         <div className={`text-right shrink-0 ${isTop3 ? "min-w-[100px]" : "min-w-[80px]"}`}>
-                          <p className={`font-bold ${isTop3 ? "text-violet-700 text-base" : "text-slate-700 text-sm"}`}>
+                          <p className={`font-bold ${isTop3 ? "text-violet-700 dark:text-violet-300 text-base" : "text-foreground text-sm"}`}>
                             {m.current_points.toLocaleString()} pts
                           </p>
                           <p className="text-[10px] text-muted-foreground">{kes(m.total_spent)} spent</p>
@@ -522,13 +522,13 @@ export default function LoyaltyPage() {
               ) : (
                 <div className="space-y-3">
                   {rewards.map(r => (
-                    <div key={r.id} className="flex items-center gap-4 rounded-xl px-4 py-3 border bg-white hover:border-slate-200 transition-all">
+                    <div key={r.id} className="flex items-center gap-4 rounded-xl px-4 py-3 border border-border bg-card hover:border-muted-foreground/40 transition-all">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                         r.category === "voucher" ? "bg-primary/15 text-primary" :
                         r.category === "credit" ? "bg-success/15 text-success" :
                         r.category === "internet" ? "bg-purple-100 text-purple-600" :
                         r.category === "discount" ? "bg-warning/15 text-warning" :
-                        "bg-slate-100 text-slate-600"
+                        "bg-muted text-muted-foreground"
                       }`}>
                         {r.category === "voucher" ? <Ticket className="w-5 h-5" /> :
                          r.category === "credit" ? <TrendingUp className="w-5 h-5" /> :
@@ -580,7 +580,7 @@ export default function LoyaltyPage() {
               ) : (
                 <div className="space-y-2">
                   {transactions.map(tx => (
-                    <div key={tx.id} className="flex items-center gap-4 rounded-lg px-3 py-2.5 border border-slate-100 hover:border-slate-200 transition-all">
+                    <div key={tx.id} className="flex items-center gap-4 rounded-lg px-3 py-2.5 border border-border hover:border-muted-foreground/40 transition-all">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
                         tx.transaction_type === "earned" ? "bg-success/15 text-success" :
                         tx.transaction_type === "redeemed" ? "bg-warning/15 text-warning" :
@@ -594,7 +594,7 @@ export default function LoyaltyPage() {
                          tx.transaction_type === "expired" ? "✕" : "~"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800">{tx.member_name}</p>
+                        <p className="text-sm font-medium text-foreground">{tx.member_name}</p>
                         <p className="text-xs text-muted-foreground truncate">{tx.description || tx.transaction_type}</p>
                       </div>
                       <div className="text-right shrink-0 hidden sm:block">
@@ -783,7 +783,7 @@ export default function LoyaltyPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between bg-muted rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-slate-400" />
                 <Label className="text-sm">Send SMS notification</Label>
@@ -942,8 +942,8 @@ function EmptyState({ icon, title, message }: { icon: React.ReactNode; title: st
   return (
     <div className="py-16 flex flex-col items-center justify-center text-center">
       {icon}
-      <p className="font-semibold text-slate-600 mt-3">{title}</p>
-      <p className="text-sm text-slate-400 max-w-sm mt-1">{message}</p>
+      <p className="font-semibold text-muted-foreground mt-3">{title}</p>
+      <p className="text-sm text-muted-foreground/80 max-w-sm mt-1">{message}</p>
     </div>
   )
 }
@@ -952,9 +952,9 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   return (
     <Card>
       <CardContent className="p-4 flex items-center gap-3">
-        <div className="p-2 bg-slate-50 rounded-lg">{icon}</div>
+        <div className="p-2 bg-muted rounded-lg">{icon}</div>
         <div>
-          <p className="text-xs text-slate-500">{label}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
           <p className="font-black text-base text-foreground leading-tight">{value}</p>
         </div>
       </CardContent>
@@ -976,9 +976,24 @@ function LeaderboardSection({
   onVoucher: (memberId: number) => void
 }) {
   const colorMap = {
-    violet: { header: "text-violet-700", gradient: "from-violet-50 to-white", border: "border-violet-200", value: "text-violet-700" },
-    green: { header: "text-success", gradient: "from-green-50 to-white", border: "border-success/20", value: "text-success" },
-    purple: { header: "text-purple-700", gradient: "from-purple-50 to-white", border: "border-purple-200", value: "text-purple-700" },
+    violet: {
+      header: "text-violet-700 dark:text-violet-300",
+      gradient: "from-violet-50 to-card dark:from-violet-950/40 dark:to-card",
+      border: "border-violet-200 dark:border-violet-800/60",
+      value: "text-violet-700 dark:text-violet-300",
+    },
+    green: {
+      header: "text-success",
+      gradient: "from-green-50 to-card dark:from-green-950/40 dark:to-card",
+      border: "border-success/20 dark:border-success/30",
+      value: "text-success",
+    },
+    purple: {
+      header: "text-purple-700 dark:text-purple-300",
+      gradient: "from-purple-50 to-card dark:from-purple-950/40 dark:to-card",
+      border: "border-purple-200 dark:border-purple-800/60",
+      value: "text-purple-700 dark:text-purple-300",
+    },
   }
   const c = colorMap[color]
 
@@ -999,11 +1014,11 @@ function LeaderboardSection({
               const rank = i + 1
               const isTop3 = rank <= 3
               const badgeConfig =
-                rank === 1 ? { label: "👑 Most Valuable", cls: "bg-warning/15 text-yellow-800 border-warning/30" } :
-                rank === 2 ? { label: "🥈 Elite Client", cls: "bg-slate-100 text-slate-700 border-slate-300" } :
-                rank === 3 ? { label: "🥉 Top Performer", cls: "bg-warning/15 text-warning border-orange-300" } :
+                rank === 1 ? { label: "👑 Most Valuable", cls: "bg-warning/15 text-yellow-800 dark:text-yellow-300 border-warning/30" } :
+                rank === 2 ? { label: "🥈 Elite Client", cls: "bg-muted text-foreground border-border" } :
+                rank === 3 ? { label: "🥉 Top Performer", cls: "bg-warning/15 text-warning border-orange-300 dark:border-orange-700" } :
                 rank <= 5 ? { label: "⭐ High Value", cls: "bg-primary/10 text-primary border-primary/20" } :
-                { label: m.tier_name || "Member", cls: "bg-gray-50 text-gray-600 border-gray-200" }
+                { label: m.tier_name || "Member", cls: "bg-muted text-muted-foreground border-border" }
 
               return (
                 <div
@@ -1011,7 +1026,7 @@ function LeaderboardSection({
                   className={`flex items-center gap-4 rounded-xl px-4 py-3 border transition-all ${
                     isTop3
                       ? `bg-gradient-to-r ${c.gradient} ${c.border} shadow-sm`
-                      : "bg-white border-slate-100 hover:border-slate-200"
+                      : "bg-card border-border hover:border-muted-foreground/40"
                   }`}
                 >
                   {/* Rank */}
@@ -1019,14 +1034,14 @@ function LeaderboardSection({
                     rank === 1 ? "bg-warning text-yellow-900" :
                     rank === 2 ? "bg-slate-300 text-slate-800" :
                     rank === 3 ? "bg-orange-300 text-orange-900" :
-                    "bg-slate-100 text-slate-500"
+                    "bg-muted text-muted-foreground"
                   }`}>
                     {rank}
                   </div>
 
                   {/* Name + badge */}
                   <div className="flex-1 min-w-0">
-                    <p className={`font-semibold truncate ${isTop3 ? "text-foreground text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
+                    <p className={`font-semibold truncate text-foreground ${isTop3 ? "text-base" : "text-sm"}`}>
                       {m.name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -1047,7 +1062,7 @@ function LeaderboardSection({
 
                   {/* Value */}
                   <div className={`text-right shrink-0 ${isTop3 ? "min-w-[110px]" : "min-w-[90px]"}`}>
-                    <p className={`font-bold ${isTop3 ? `${c.value} text-base` : "text-slate-700 text-sm"}`}>
+                    <p className={`font-bold ${isTop3 ? `${c.value} text-base` : "text-foreground text-sm"}`}>
                       {valueFormat(Number(m[valueKey]))}
                     </p>
                     {valueKey === "lifetime_points" ? (
