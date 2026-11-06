@@ -1196,9 +1196,23 @@ const getAdminSettingsApiBase = (): string => {
   return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 }
 
+const SETTINGS_TABS = ["account", "security", "system", "system-notifications", "appearance"]
+
 export default function SettingsPage() {
   const { user } = useAdminAuth()
   const canViewSmsSettings = canDo(user, "/admin/sms", "view")
+  // Deep links (?tab=security) and the profile menu open a specific tab.
+  const [activeTab, setActiveTab] = useState("account")
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab")
+    if (requested && SETTINGS_TABS.includes(requested)) setActiveTab(requested)
+    const onTab = (event: Event) => {
+      const tab = (event as CustomEvent<string>).detail
+      if (SETTINGS_TABS.includes(tab)) setActiveTab(tab)
+    }
+    window.addEventListener("netily:settings-tab", onTab)
+    return () => window.removeEventListener("netily:settings-tab", onTab)
+  }, [])
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1687,7 +1701,7 @@ export default function SettingsPage() {
       )}
 
       {/* Settings Tabs */}
-      <Tabs defaultValue="account" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <ScrollArea className="w-full">
           <TabsList className="inline-flex w-full md:w-auto">
             <TabsTrigger value="account" className="flex items-center gap-2">

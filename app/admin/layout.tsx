@@ -19,7 +19,6 @@ import {
   X,
   Bell,
   Search,
-  LogOut,
   User,
   ChevronDown,
   ChevronRight,
@@ -55,7 +54,6 @@ import {
   ArrowUpRight,
   Loader2,
   Clock3,
-  Download,   // ← ADDED
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
@@ -74,15 +72,6 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -92,6 +81,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
 import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
+import { AdminProfileMenu } from "@/components/admin-profile-menu"
 import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
 import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
@@ -1536,66 +1526,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </Link>
 
             {/* User menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex h-9 shrink-0 items-center gap-1 px-1 sm:gap-2 sm:px-2">
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarImage src="" alt="Admin" />
-                    <AvatarFallback className="bg-primary text-white">
-                      {user?.username?.charAt(0).toUpperCase() || "A"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="hidden md:flex flex-col items-start">
-                    <span className="text-sm font-medium">{user?.username || "Admin"}</span>
-                    <span className="text-xs text-muted-foreground">{user?.email || "admin@netily.com"}</span>
-                  </div>
-                  <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                side="bottom"
-                sideOffset={8}
-                collisionPadding={16}
-                className="z-[100] w-64 shadow-lg"
-              >
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-
-                {/* ── Install App (conditional) ── */}
-                {canInstall && (
-                  <>
-                    <DropdownMenuItem onClick={handleInstallApp}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Install App
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-
-                <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
-                  <User className="w-4 h-4 mr-2" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("netily:onboarding:start"))}>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Setup guide &amp; video
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/customer/login")}>
-                  <Globe className="w-4 h-4 mr-2" />
-                  Customer Portal
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={logout}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <AdminProfileMenu
+              user={user}
+              canInstall={canInstall}
+              onInstall={handleInstallApp}
+              onOpenSearch={() => setSearchOpen(true)}
+              onLogout={logout}
+            />
           </div>
         </header>
 

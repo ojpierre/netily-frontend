@@ -60,6 +60,18 @@ export function NetilySupportChat() {
     loadCurrent()
   }, [open])
 
+  // Other parts of the admin (e.g. the profile menu's "Send feedback") open the chat.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const detail = (event as CustomEvent<{ category?: string; message?: string }>).detail
+      if (detail?.category && CATEGORIES.includes(detail.category)) setCategory(detail.category)
+      if (detail?.message) setMessage((current) => current || detail.message!)
+      setOpen(true)
+    }
+    window.addEventListener("netily:support-chat:open", onOpen)
+    return () => window.removeEventListener("netily:support-chat:open", onOpen)
+  }, [])
+
   useEffect(() => {
     if (!open || !conversation?.id) return
     const interval = window.setInterval(async () => {
