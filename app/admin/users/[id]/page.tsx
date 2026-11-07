@@ -615,7 +615,12 @@ export default function UserDetailPage() {
   }
 
   const handleSaveBillingNumber = async () => {
-    if (!user || !billingNumberEdit.trim()) return
+    const value = billingNumberEdit.trim()
+    if (!user || !value) return
+    if (value.length < 4) {
+      toast.error("Billing account number must be at least 4 characters.")
+      return
+    }
     try {
       setSavingBilling(true)
       const services = await adminApi.getCustomerServices(userId)
@@ -624,14 +629,12 @@ export default function UserDetailPage() {
         return
       }
       const primaryService = services[0]
-      await adminApi.updateCustomerService(
-        userId,
-        primaryService.id,
-        { billing_account_number: billingNumberEdit.trim().toUpperCase() }
-      )
+      await adminApi.updateCustomerService(userId, primaryService.id, {
+        billing_account_number: value,
+      })
       toast.success('Billing account number updated')
       setEditingBilling(false)
-      setUser(prev => prev ? { ...prev, billingAccountNumber: billingNumberEdit.trim().toUpperCase() } : prev)
+      setUser(prev => prev ? { ...prev, billingAccountNumber: value } : prev)
       await fetchUserData()
     } catch (err: any) {
       toast.error(err.message || 'Failed to update billing number')
@@ -1075,7 +1078,7 @@ export default function UserDetailPage() {
                           <Input
                             className="flex-1 font-mono text-sm rounded-xl"
                             value={billingNumberEdit}
-                            onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
+                            onChange={(e) => setBillingNumberEdit(e.target.value)}
                             maxLength={20}
                             autoFocus
                             placeholder="Enter billing account number"
