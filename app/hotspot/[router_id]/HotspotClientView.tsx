@@ -307,6 +307,16 @@ async function pollPurchaseStatus(sessionId: string, loginUrl?: string, tenant?:
     { cache: "no-store" },
     { timeoutMs: 3500, retries: 1, retryDelayMs: 250 }
   )
+  // 404 means the session was never persisted (or was rolled back on the
+  // server after a gateway failure). Return a definitive failure so the
+  // caller stops polling and shows the failed state instead of looping.
+  if (response.status === 404) {
+    return {
+      status: "failed",
+      session_id: sessionId,
+      message: "Session not found. Please try again.",
+    }
+  }
   if (!response.ok) throw new Error("Failed to check payment status")
   return response.json()
 }
