@@ -115,18 +115,18 @@ const TOPUP_PACKAGES = [
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    delivered: 'bg-emerald-100 text-emerald-700',
-    completed: 'bg-emerald-100 text-emerald-700',
+    delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
     pending: 'bg-warning/15 text-warning',
     failed: 'bg-destructive/15 text-destructive',
     sent: 'bg-primary/15 text-primary',
     running: 'bg-primary/15 text-primary',
-    scheduled: 'bg-purple-100 text-purple-700',
-    draft: 'bg-slate-100 text-slate-600',
+    scheduled: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400',
+    draft: 'bg-muted text-muted-foreground',
     cancelled: 'bg-destructive/15 text-destructive',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${map[status] ?? 'bg-slate-100 text-slate-600'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${map[status] ?? 'bg-muted text-muted-foreground'}`}>
       {status}
     </span>
   )
@@ -146,8 +146,8 @@ function NotifToggle({
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800">{label}</p>
-          {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
         <Switch checked={checked} onCheckedChange={onCheckedChange} />
       </div>
@@ -158,7 +158,7 @@ function NotifToggle({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3 mt-5 first:mt-0">
+    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 mt-5 first:mt-0">
       {children}
     </p>
   )
@@ -241,7 +241,7 @@ function TemplateEditor({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Message</Label>
-                <span className={`text-xs ${content.length > 160 ? 'text-warning font-medium' : 'text-slate-400'}`}>
+                <span className={`text-xs ${content.length > 160 ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
                   {content.length} chars · {Math.ceil(content.length / 160)} SMS
                 </span>
               </div>
@@ -255,13 +255,13 @@ function TemplateEditor({
 
             {vars.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Click to insert variable</Label>
+                <Label className="text-xs text-muted-foreground">Click to insert variable</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {vars.map(v => (
                     <button
                       key={v.key}
                       onClick={() => insertVar(v.key)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-slate-200 bg-slate-50 hover:bg-primary/10 hover:border-primary/20 text-xs text-slate-600 hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border bg-muted/50 hover:bg-primary/10 hover:border-primary/20 text-xs text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Plus className="w-2.5 h-2.5" />
                       {v.label}
@@ -273,7 +273,8 @@ function TemplateEditor({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-xs text-slate-500 uppercase tracking-wide">Preview</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
+            {/* PRESERVED: dark phone-preview is intentional — do not theme-swap */}
             <div className="bg-slate-900 rounded-xl p-4 min-h-[200px]">
               <div className="bg-[#1a2e1a] rounded-lg p-3 max-w-[220px] mx-auto">
                 <div className="text-[11px] text-slate-400 mb-1">SMS</div>
@@ -284,12 +285,12 @@ function TemplateEditor({
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs text-slate-500 uppercase tracking-wide">Available variables</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Available variables</Label>
               <div className="rounded-lg border divide-y text-xs">
                 {vars.map(v => (
                   <div key={v.key} className="flex items-center justify-between px-3 py-1.5">
                     <code className="text-primary">{v.key}</code>
-                    <span className="text-slate-400">{v.label}</span>
+                    <span className="text-muted-foreground">{v.label}</span>
                   </div>
                 ))}
               </div>
@@ -371,26 +372,26 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
                 className={`relative rounded-xl border-2 p-4 text-left transition-all ${
                   selected?.units === pkg.units && !customAmount
                     ? 'border-primary bg-primary/10'
-                    : 'border-slate-200 hover:border-slate-300'
+                    : 'border-border hover:border-border'
                 }`}
               >
                 {pkg.badge && (
-                  <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {pkg.badge}
                   </span>
                 )}
-                <div className="text-lg font-bold text-slate-800">{pkg.label}</div>
+                <div className="text-lg font-bold text-foreground">{pkg.label}</div>
                 <div className="text-2xl font-extrabold text-foreground mt-1">KES {pkg.price}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{pkg.pricePerUnit.toFixed(2)}/unit</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{pkg.pricePerUnit.toFixed(2)}/unit</div>
               </button>
             ))}
           </div>
 
           {/* Custom amount input */}
           <div className="space-y-1.5">
-            <Label className="text-sm text-slate-600">Or enter custom amount (min KES 10)</Label>
+            <Label className="text-sm text-muted-foreground">Or enter custom amount (min KES 10)</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">KES</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">KES</span>
               <Input
                 type="number"
                 min="10"
@@ -402,7 +403,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
               />
             </div>
             {customAmount && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {isCustomValid
                   ? `- ${customUnits} units at KES 0.40/unit`
                   : 'Minimum amount is KES 10'}
@@ -422,9 +423,9 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
 
           {/* Summary */}
           {(activeUnits || activePrice) && (
-            <div className="rounded-lg bg-slate-50 border p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">Units</span><span className="font-medium">{(activeUnits ?? 0).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-foreground">KES {activePrice}</span></div>
+            <div className="rounded-lg bg-muted/50 border p-4 space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Units</span><span className="font-medium">{(activeUnits ?? 0).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-bold text-foreground">KES {activePrice}</span></div>
             </div>
           )}
 
@@ -445,6 +446,14 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
 // -----------------------------------------------------------------------------
 // MAIN PAGE
 // -----------------------------------------------------------------------------
+
+const STAT_COLORS: Record<string, string> = {
+  blue:    'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400',
+  emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
+  amber:   'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+  red:     'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400',
+  purple:  'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400',
+}
 
 export default function SMSPage() {
   const perms = usePagePermissions("/admin/sms")
@@ -775,7 +784,7 @@ export default function SMSPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">SMS Management</h1>
-            <p className="text-slate-500 text-sm mt-1">Send messages, manage templates, and configure notifications</p>
+            <p className="text-muted-foreground text-sm mt-1">Send messages, manage templates, and configure notifications</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Button variant="outline" size="sm" onClick={fetchAll} disabled={isLoading} className="w-full sm:w-auto">
@@ -807,11 +816,11 @@ export default function SMSPage() {
             <Card key={s.label}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-lg bg-${s.color}-100 flex items-center justify-center shrink-0`}>
-                    <s.icon className={`w-4 h-4 text-${s.color}-600`} />
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${STAT_COLORS[s.color]}`}>
+                    <s.icon className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">{s.label}</p>
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
                     <p className="text-xl font-bold text-foreground">{s.value}</p>
                   </div>
                 </div>
@@ -848,7 +857,7 @@ export default function SMSPage() {
               <CardContent>
                 <div className="flex flex-col gap-2 mb-4 sm:flex-row">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <Input placeholder="Search messages..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -866,7 +875,7 @@ export default function SMSPage() {
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-50">
+                      <TableRow className="bg-muted/50">
                         <TableHead className="text-xs">Recipient</TableHead>
                         <TableHead className="text-xs hidden md:table-cell">Message</TableHead>
                         <TableHead className="text-xs">Status</TableHead>
@@ -880,26 +889,26 @@ export default function SMSPage() {
                         <TableRow key={m.id}>
                           <TableCell>
                             <div className="font-medium text-sm">{m.recipient_name || m.recipient}</div>
-                            {m.recipient_name && <div className="text-xs text-slate-400">{m.recipient}</div>}
+                            {m.recipient_name && <div className="text-xs text-muted-foreground">{m.recipient}</div>}
                           </TableCell>
                           <TableCell className="hidden md:table-cell max-w-xs">
                             <div className="flex items-center gap-1.5">
-                              <p className="text-xs text-slate-600 truncate">{m.message}</p>
+                              <p className="text-xs text-muted-foreground truncate">{m.message}</p>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6 shrink-0"
                                 onClick={() => setViewMessage(m)}
                               >
-                                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                                <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                               </Button>
                             </div>
                           </TableCell>
                           <TableCell><StatusBadge status={m.status} /></TableCell>
                           <TableCell className="hidden sm:table-cell">
-                            <span className="text-xs capitalize text-slate-500">{m.type}</span>
+                            <span className="text-xs capitalize text-muted-foreground">{m.type}</span>
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell text-xs text-slate-400">
+                          <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                             {m.sent_at ? new Date(m.sent_at).toLocaleString() : '—'}
                           </TableCell>
                           <TableCell>
@@ -923,7 +932,7 @@ export default function SMSPage() {
                       ))}
                       {filteredMessages.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-12 text-slate-400 text-sm">
+                          <TableCell colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
                             No messages found
                           </TableCell>
                         </TableRow>
@@ -955,26 +964,26 @@ export default function SMSPage() {
               </CardHeader>
               <CardContent>
                 {templates.length === 0 && (
-                  <div className="text-center py-16 text-slate-400">
+                  <div className="text-center py-16 text-muted-foreground">
                     <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">No templates yet. Create one to save time.</p>
                   </div>
                 )}
                 <div className="grid gap-3">
                   {templates.map(t => (
-                    <div key={t.id} className="border rounded-xl p-4 hover:border-slate-300 transition-colors">
+                    <div key={t.id} className="border rounded-xl p-4 hover:border-border transition-colors">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{t.name}</span>
-                            <span className="text-xs text-slate-400">Used {t.usage_count ?? 0}×</span>
+                            <span className="text-xs text-muted-foreground">Used {t.usage_count ?? 0}×</span>
                             {(t as any).event_type && (
-                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
                                 {(t as any).event_type}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-slate-600 mt-1 line-clamp-2">{t.content}</p>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{t.content}</p>
                           {t.variables?.length > 0 && (
                             <div className="flex gap-1 mt-2 flex-wrap">
                               {t.variables.map(v => (
@@ -1040,7 +1049,7 @@ export default function SMSPage() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between">
                       <Label>Message</Label>
-                      <span className={`text-xs ${bulkMessage.length > 160 ? 'text-warning' : 'text-slate-400'}`}>
+                      <span className={`text-xs ${bulkMessage.length > 160 ? 'text-warning' : 'text-muted-foreground'}`}>
                         {bulkMessage.length}/160 · {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
                       </span>
                     </div>
@@ -1070,7 +1079,7 @@ export default function SMSPage() {
                   <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-slate-50">
+                        <TableRow className="bg-muted/50">
                           <TableHead className="text-xs">Name</TableHead>
                           <TableHead className="text-xs text-right">Recipients</TableHead>
                           <TableHead className="text-xs text-right">Sent ?</TableHead>
@@ -1090,7 +1099,7 @@ export default function SMSPage() {
                         ))}
                         {campaigns.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-10 text-slate-400 text-sm">No campaigns yet</TableCell>
+                            <TableCell colSpan={5} className="text-center py-10 text-muted-foreground text-sm">No campaigns yet</TableCell>
                           </TableRow>
                         )}
                       </TableBody>
@@ -1109,14 +1118,14 @@ export default function SMSPage() {
               <Card data-onboarding="sms-notifications-panel" className="lg:col-span-2">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${notifSettings.use_inbuilt_system ? 'bg-primary' : 'bg-slate-100'}`}>
-                      <Zap className={`w-6 h-6 ${notifSettings.use_inbuilt_system ? 'text-white' : 'text-slate-400'}`} />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${notifSettings.use_inbuilt_system ? 'bg-primary' : 'bg-muted'}`}>
+                      <Zap className={`w-6 h-6 ${notifSettings.use_inbuilt_system ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold text-foreground">Use Netily Inbuilt SMS System</h3>
-                          <p className="text-sm text-slate-500 mt-0.5">
+                          <p className="text-sm text-muted-foreground mt-0.5">
                             Route all automated SMS through Netily's Bytewave gateway. No need to configure your own provider.
                             Units are deducted from your wallet balance.
                           </p>
@@ -1193,7 +1202,7 @@ export default function SMSPage() {
                     onCheckedChange={v => handleToggleNotif('pppoe_expiry_reminder', v)}
                   >
                     <div className="mt-3 space-y-2">
-                      <Label className="text-xs text-slate-500">Send reminders at:</Label>
+                      <Label className="text-xs text-muted-foreground">Send reminders at:</Label>
                       {((notifSettings as any).pppoe_expiry_intervals ?? [{ value: 4, unit: 'days' }]).map(
                         (interval: { value: number; unit: string }, idx: number) => (
                           <div key={idx} className="flex items-center gap-2">
@@ -1222,7 +1231,7 @@ export default function SMSPage() {
                                 <SelectItem value="hours">hours</SelectItem>
                               </SelectContent>
                             </Select>
-                            <span className="text-xs text-slate-400">before expiry</span>
+                            <span className="text-xs text-muted-foreground">before expiry</span>
                             <Button
                               variant="ghost" size="icon" className="h-6 w-6 text-destructive"
                               onClick={() => {
@@ -1279,7 +1288,7 @@ export default function SMSPage() {
                     <div className="rounded-xl border-2 border-primary/20 bg-primary/10 p-5 space-y-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                          <Zap className="w-5 h-5 text-white" />
+                          <Zap className="w-5 h-5 text-primary-foreground" />
                         </div>
                         <div>
                           <p className="font-semibold text-primary">Netily Inbuilt SMS Active</p>
@@ -1288,16 +1297,16 @@ export default function SMSPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-primary/15">
-                        <span className="text-slate-500">Provider</span>
-                        <span className="font-semibold text-slate-800">Bytewave (Netily Default)</span>
+                      <div className="flex items-center justify-between text-sm bg-card rounded-lg px-4 py-2 border border-primary/15">
+                        <span className="text-muted-foreground">Provider</span>
+                        <span className="font-semibold text-foreground">Bytewave (Netily Default)</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-primary/15">
-                        <span className="text-slate-500">API Keys</span>
-                        <span className="text-slate-400 italic text-xs">Managed by Netily — not required</span>
+                      <div className="flex items-center justify-between text-sm bg-card rounded-lg px-4 py-2 border border-primary/15">
+                        <span className="text-muted-foreground">API Keys</span>
+                        <span className="text-muted-foreground italic text-xs">Managed by Netily — not required</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-primary/15">
-                        <span className="text-slate-500">SMS Units</span>
+                      <div className="flex items-center justify-between text-sm bg-card rounded-lg px-4 py-2 border border-primary/15">
+                        <span className="text-muted-foreground">SMS Units</span>
                         <span className="font-bold text-primary">
                           {Number(walletUnits).toLocaleString()} units available
                         </span>
@@ -1310,7 +1319,7 @@ export default function SMSPage() {
                       >
                         <Plus className="w-4 h-4 mr-2" />Buy More Units
                       </Button>
-                      <p className="text-xs text-center text-slate-400">
+                      <p className="text-xs text-center text-muted-foreground">
                         To use your own provider, turn off "Netily Inbuilt SMS" in the Notifications tab.
                       </p>
                     </div>
@@ -1395,20 +1404,20 @@ export default function SMSPage() {
                       {/* Saved gateways list - only show custom gateways */}
                       {gatewayConfigs.filter(g => !g.use_inbuilt_system).length > 0 && (
                         <div className="pt-3 border-t space-y-2">
-                          <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">Saved Gateways</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Saved Gateways</p>
                           {gatewayConfigs.filter(g => !g.use_inbuilt_system).map(gw => (
                             <div key={gw.id} className={`flex items-center justify-between p-2.5 rounded-lg text-sm ${
                               gw.is_active
-                                ? 'bg-emerald-50 border border-emerald-200'
-                                : 'bg-slate-50 border border-slate-100'
+                                ? 'bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20'
+                                : 'bg-muted/50 border border-border'
                             }`}>
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{gw.provider_display}</span>
                                 {gw.is_active && (
-                                  <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Active</Badge>
+                                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 text-[10px]">Active</Badge>
                                 )}
                                 {gw.sender_id && (
-                                  <span className="text-slate-400 text-xs">{gw.sender_id}</span>
+                                  <span className="text-muted-foreground text-xs">{gw.sender_id}</span>
                                 )}
                               </div>
                               <div className="flex items-center justify-end gap-1">
@@ -1462,6 +1471,7 @@ export default function SMSPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* PRESERVED: dark balance card is intentional — do not theme-swap */}
                   <div className="rounded-xl bg-linear-to-br from-slate-800 to-slate-900 p-5 text-white">
                     <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">
                       {notifSettings.use_inbuilt_system ? 'Wallet Units' : 'Provider Balance'}
@@ -1488,9 +1498,9 @@ export default function SMSPage() {
                         value: `KES ${Number(stats.total_cost ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                       },
                     ].map(s => (
-                      <div key={s.label} className="bg-slate-50 rounded-lg p-3">
-                        <p className="text-xs text-slate-500">{s.label}</p>
-                        <p className="text-lg font-bold text-slate-800">{s.value}</p>
+                      <div key={s.label} className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground">{s.label}</p>
+                        <p className="text-lg font-bold text-foreground">{s.value}</p>
                       </div>
                     ))}
                   </div>
@@ -1510,9 +1520,9 @@ export default function SMSPage() {
                       <Wallet className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Available SMS Units</p>
+                      <p className="text-sm text-muted-foreground">Available SMS Units</p>
                       <p className="text-4xl font-extrabold text-foreground mt-1">{Number(walletUnits).toLocaleString()}</p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         ~ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
                       </p>
                     </div>
@@ -1521,12 +1531,12 @@ export default function SMSPage() {
                     </Button>
 
                     <div className="text-left pt-2 space-y-1">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Pricing</p>
-                      <div className="flex justify-between text-xs text-slate-500">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pricing</p>
+                      <div className="flex justify-between text-xs text-muted-foreground">
                         <span>All units</span>
-                        <span className="font-semibold text-slate-700">KES 0.40/unit</span>
+                        <span className="font-semibold text-foreground">KES 0.40/unit</span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">Minimum top-up: KES 10 (25 units)</p>
+                      <p className="text-xs text-muted-foreground mt-1">Minimum top-up: KES 10 (25 units)</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -1541,7 +1551,7 @@ export default function SMSPage() {
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-slate-50">
+                          <TableRow className="bg-muted/50">
                             <TableHead className="text-xs">Units</TableHead>
                             <TableHead className="text-xs">Amount</TableHead>
                             <TableHead className="text-xs">Status</TableHead>
@@ -1554,14 +1564,14 @@ export default function SMSPage() {
                               <TableCell className="font-medium">{t.units_purchased.toLocaleString()}</TableCell>
                               <TableCell>KES {Number(t.amount_paid).toLocaleString()}</TableCell>
                               <TableCell><StatusBadge status={t.status} /></TableCell>
-                              <TableCell className="text-xs text-slate-400">
+                              <TableCell className="text-xs text-muted-foreground">
                                 {new Date(t.created_at).toLocaleDateString()}
                               </TableCell>
                             </TableRow>
                           ))}
                           {(wallet?.topup_history ?? []).length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center py-10 text-slate-400 text-sm">
+                              <TableCell colSpan={4} className="text-center py-10 text-muted-foreground text-sm">
                                 No purchases yet
                               </TableCell>
                             </TableRow>
@@ -1603,7 +1613,7 @@ export default function SMSPage() {
               <div className="space-y-1.5">
                 <Label>Search & Add Recipients</Label>
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+                  <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
                   <Input
                     className="pl-8 h-8 text-sm"
                     placeholder="Name or phone..."
@@ -1614,7 +1624,7 @@ export default function SMSPage() {
                 {customerResults.length > 0 && (
                   <div className="border rounded-lg max-h-40 overflow-y-auto text-sm divide-y">
                     {customerResults.map(c => (
-                      <button key={c.id} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex justify-between"
+                      <button key={c.id} className="w-full text-left px-3 py-1.5 hover:bg-muted flex justify-between"
                         onClick={() => {
                           if (!selectedRecipients.find(r => r.phone === c.phone)) {
                             setSelectedRecipients(p => [...p, { phone: c.phone, name: c.name }])
@@ -1623,7 +1633,7 @@ export default function SMSPage() {
                           setCustomerResults([])
                         }}>
                         <span className="font-medium">{c.name}</span>
-                        <span className="text-slate-400">{c.phone}</span>
+                        <span className="text-muted-foreground">{c.phone}</span>
                       </button>
                     ))}
                   </div>
@@ -1658,7 +1668,7 @@ export default function SMSPage() {
               <div className="space-y-1.5">
                 <div className="flex justify-between">
                   <Label>Message</Label>
-                  <span className={`text-xs ${composeForm.message.length > 160 ? 'text-warning' : 'text-slate-400'}`}>
+                  <span className={`text-xs ${composeForm.message.length > 160 ? 'text-warning' : 'text-muted-foreground'}`}>
                     {composeForm.message.length}/160
                   </span>
                 </div>
@@ -1708,13 +1718,13 @@ export default function SMSPage() {
                 {viewMessage?.sent_at ? new Date(viewMessage.sent_at).toLocaleString() : '—'}
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-700 whitespace-pre-wrap break-words">
+            <div className="rounded-lg border bg-muted/50 p-3 text-sm text-foreground whitespace-pre-wrap break-words">
               {viewMessage?.message}
             </div>
             {viewMessage && (
               <div className="flex items-center gap-2 pt-1">
                 <StatusBadge status={viewMessage.status} />
-                <span className="text-xs text-slate-400 capitalize">{viewMessage.type}</span>
+                <span className="text-xs text-muted-foreground capitalize">{viewMessage.type}</span>
               </div>
             )}
           </DialogContent>
