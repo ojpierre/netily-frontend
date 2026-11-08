@@ -1349,6 +1349,16 @@ class SuperadminApiService {
 
   // ── Dashboard ──
 
+  /**
+   * Lightweight auth check. Returns { ok: true } if the bearer token is
+   * valid for a superadmin. Used by the auth context to validate the
+   * session on page load without triggering the full dashboard
+   * aggregation (which is expensive and cached 60s anyway).
+   */
+  async ping(): Promise<{ ok: boolean }> {
+    return this.request("/superadmin/ping/")
+  }
+
   async getDashboard(): Promise<DashboardKPI> {
     return this.request("/superadmin/dashboard/")
   }

@@ -44,10 +44,13 @@ export function SuperAdminAuthProvider({ children }: { children: React.ReactNode
         return
       }
 
-      // Verify token by hitting dashboard (lightweight)
-      const kpi = await superadminApi.getDashboard()
-      // If we got here the token is valid and user is superadmin
-      // Decode minimal user info from the token
+      // Verify token via the lightweight ping endpoint. Previously this
+      // called getDashboard() which ran the full cross-tenant aggregation
+      // on every page load — expensive and unnecessary just to check that
+      // the bearer token is still valid for a superadmin.
+      await superadminApi.ping()
+      // If we got here the token is valid and user is superadmin.
+      // Decode minimal user info from the JWT.
       try {
         const payload = JSON.parse(atob(token.split(".")[1]))
         setUser({

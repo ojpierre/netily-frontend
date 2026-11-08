@@ -55,9 +55,9 @@ export default function SuperAdminDashboardPage() {
       const [dashData, actData, tenantData, paySummary, payData, trendData, leadsData, leadStatsData] = await Promise.allSettled([
         superadminApi.getDashboard(),
         superadminApi.getActivity(10),
-        superadminApi.getTenants({ ordering: "-created_at" }),
+        superadminApi.getTenants({ ordering: "-created_at", limit: "5" }),
         superadminApi.getPaymentSummary(),
-        superadminApi.getPayments({ page_size: "5", ordering: "-created_at" }),
+        superadminApi.getPayments({ page_size: "5", ordering: "-created_at", source: "platform" }),
         superadminApi.getRevenueTrend(6),
         superadminApi.getLeads({ page_size: "5" }),
         superadminApi.getLeadStats(),
