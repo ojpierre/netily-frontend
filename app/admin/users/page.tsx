@@ -171,6 +171,9 @@ interface User {
   balance: number
   radiusCredentials?: RADIUSCredentials
   liveUsageString?: string
+  parentId?: number | null
+  accountSuffix?: string
+  accountLabel?: string
 }
 
 interface HotspotClientData {
@@ -323,6 +326,9 @@ const mapCustomerToUser = (customer: Customer): User => {
       return credit - debt
     })(),
     radiusCredentials,
+    parentId: (customer as any).parent ?? null,
+    accountSuffix: (customer as any).account_suffix || '',
+    accountLabel: (customer as any).account_label || '',
   }
 }
 
@@ -632,6 +638,17 @@ export default function UsersPage() {
     amount: "",
     reference: "",
     send_sms: true,
+  })
+
+  // ============================================================
+  // ADD CHILD ACCOUNT STATE
+  // ============================================================
+  const [showChildDialog, setShowChildDialog] = useState(false)
+  const [childParent, setChildParent] = useState<User | null>(null)
+  const [creatingChild, setCreatingChild] = useState(false)
+  const [childForm, setChildForm] = useState({
+    label: "", plan_id: "", connection_type: "pppoe" as "pppoe" | "static",
+    radius_password: "", activate_now: true,
   })
 
   // ============================================================
@@ -1557,6 +1574,72 @@ export default function UsersPage() {
       toast.error(err.message || "Failed to create customer. Please try again.")
     } finally {
       setCreating(false)
+    }
+  }
+
+  // ============================================================
+  // ADD CHILD ACCOUNT HANDLERS
+  // ============================================================
+  const handleOpenChildDialog = (user: User) => {
+    setChildParent(user)
+    setChildForm({ label: "", plan_id: "", connection_type: "pppoe", radius_password: "", activate_now: true })
+    loadPlans()
+    setShowChildDialog(true)
+  }
+
+  const handleCreateChildAccount = async () => {
+    if (!childParent || creatingChild) return
+    if (!childForm.plan_id) { toast.error("Select a plan"); return }
+    let child: Awaited<ReturnType<typeof adminApi.addChildAccount>> | null = null
+    try {
+      setCreatingChild(true)
+      child = await adminApi.addChildAccount(childParent.customerId, { label: childForm.label.trim() })
+
+      const planId = parseInt(childForm.plan_id, 10)
+      const plan = plans.find(p => p.id === planId)
+      const serviceData: Record<string, any> = {
+        service_type: 'INTERNET',
+        auth_connection_type: childForm.connection_type.toUpperCase(),
+        status: childForm.activate_now ? 'ACTIVE' : 'PENDING',
+        activate_now: childForm.activate_now,
+        radius_username: child.radius_username,
+        radius_password: childForm.radius_password.trim() || child.radius_password,
+        plan: planId,
+        download_speed: plan?.download_speed,
+        upload_speed: plan?.upload_speed,
+        monthly_price: plan?.base_price || plan?.price,
+      }
+      const poolId = typeof plan?.ip_pool === 'number' ? plan.ip_pool : null
+      if (poolId) {
+        try {
+          const ips = await adminApi.getIPPoolAvailableIPs(poolId)
+          if (ips.results?.length) serviceData.assigned_ip = ips.results[0].id
+          else toast.warning('IP pool has no available addresses.')
+        } catch { /* non-fatal */ }
+      }
+
+      const service = await adminApi.createCustomerService(child.id, serviceData)
+      let billing = child.billing_account_number
+      if (childForm.activate_now && service?.id) {
+        try {
+          const res = await adminApi.activateService(child.id, service.id)
+          billing = res?.billing_account_number || billing
+        } catch { /* non-fatal */ }
+      }
+
+      toast.success(`Child account ${child.account_suffix} created. Paybill account: ${billing}`, { duration: 8000 })
+      setShowChildDialog(false)
+      setChildParent(null)
+      await new Promise((r) => setTimeout(r, 400))
+      await loadUsers(1, searchQuery, statusFilter, false)
+      setServerPage(1); setHasMore(true)
+      await Promise.all([loadServerStats(), loadStatusCounts()])
+    } catch (err: any) {
+      // don't leave an orphan child behind if the service step failed
+      if (child?.id) { await adminApi.deleteCustomer(child.id).catch(() => {}) }
+      toast.error(err.message || "Failed to create child account")
+    } finally {
+      setCreatingChild(false)
     }
   }
 
@@ -4134,6 +4217,11 @@ export default function UsersPage() {
                                   <div>
                                     <p className="font-medium text-foreground">{user.name}</p>
                                     <p className="text-xs text-muted-foreground">{user.phone}</p>
+                                    {user.accountSuffix && (
+                                      <Badge variant="outline" className="mt-0.5 text-[10px] border-violet-300 text-violet-700 dark:border-violet-700 dark:text-violet-300">
+                                        Child {user.accountSuffix}{user.accountLabel ? ` · ${user.accountLabel}` : ""}
+                                      </Badge>
+                                    )}
                                     {user.location && (
                                       <p className="text-[11px] text-muted-foreground/70 flex items-center gap-0.5 mt-0.5">
                                         <MapPin className="w-2.5 h-2.5 shrink-0" />
@@ -4211,6 +4299,12 @@ export default function UsersPage() {
                                       <ArrowRightLeft className="w-4 h-4 mr-2" />
                                       Change Plan
                                     </DropdownMenuItem>
+                                    {(user.type === "pppoe" || user.type === "static") && (
+                                      <DropdownMenuItem onClick={() => handleOpenChildDialog(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Add Child Account
+                                      </DropdownMenuItem>
+                                    )}
                                     {(user.type === "pppoe" || user.type === "static") && (
                                       <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                         <Server className="w-4 h-4 mr-2" />
@@ -4369,7 +4463,7 @@ export default function UsersPage() {
                         type="button" 
                         variant="outline" 
                         onClick={handleRegenerateUsername}
-                        disabled={updating}
+                        disabled={updating || !!selectedUser?.parentId}
                         title="Regenerate from phone number"
                       >
                         {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -5635,6 +5729,66 @@ export default function UsersPage() {
               </Button>
             </DialogFooter>
           </motion.div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Child Account Dialog ── */}
+      <Dialog open={showChildDialog} onOpenChange={(o) => { if (!creatingChild) { setShowChildDialog(o); if (!o) setChildParent(null) } }}>
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
+          <div className="p-6 space-y-4">
+            <DialogHeader>
+              <DialogTitle>Add Child Account</DialogTitle>
+              <DialogDescription>
+                Another PPPoE account for <strong>{childParent?.name}</strong> ({childParent?.phone}).
+                It gets its own login, expiry and a Paybill account number like <code>{childParent?.phone?.replace(/^\+?254/, "0")}B</code>.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1">
+              <Label>Label <span className="text-xs text-slate-400">(optional, e.g. Shop)</span></Label>
+              <Input value={childForm.label} onChange={(e) => setChildForm({ ...childForm, label: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Connection</Label>
+                <Select value={childForm.connection_type} onValueChange={(v: "pppoe" | "static") => setChildForm({ ...childForm, connection_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pppoe">PPPoE</SelectItem>
+                    <SelectItem value="static">Static IP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Plan <span className="text-red-500">*</span></Label>
+                <Select value={childForm.plan_id || undefined} onValueChange={(v) => setChildForm({ ...childForm, plan_id: v })} disabled={plansLoading}>
+                  <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                  <SelectContent>
+                    {plans.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name} - KES {parseFloat(p.base_price || p.price || "0").toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>PPPoE Password <span className="text-xs text-slate-400">(blank = phone number)</span></Label>
+              <Input type="password" autoComplete="new-password" value={childForm.radius_password}
+                     onChange={(e) => setChildForm({ ...childForm, radius_password: e.target.value })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="child_activate" checked={childForm.activate_now}
+                        onCheckedChange={(c) => setChildForm({ ...childForm, activate_now: !!c })} />
+              <Label htmlFor="child_activate" className="cursor-pointer text-sm">Activate now (starts the expiry timer)</Label>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowChildDialog(false)} disabled={creatingChild}>Cancel</Button>
+              <Button onClick={handleCreateChildAccount} disabled={creatingChild || !childForm.plan_id}>
+                {creatingChild ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Child Account"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

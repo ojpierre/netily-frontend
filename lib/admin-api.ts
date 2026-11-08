@@ -1184,6 +1184,22 @@ async activateService(
     })
   }
 
+  async addChildAccount(customerId: number, data: { label?: string }): Promise<{
+    id: number
+    customer_code: string
+    parent_id: number
+    account_suffix: string
+    account_label: string
+    radius_username: string
+    radius_password: string
+    billing_account_number: string
+  }> {
+    return this.request(`/customers/${customerId}/add_child_account/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
   async getPendingActivations(): Promise<CustomerService[]> {
     return this.request<CustomerService[]>('/customers/services/pending-activations/')
   }

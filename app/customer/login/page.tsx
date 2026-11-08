@@ -61,6 +61,11 @@ export default function CustomerLoginPage() {
     ? isValidPaymentPhone(phone, locale)
     : isValidLocalPhone(phone)
 
+  const splitAccount = (value: string) => {
+    const m = value.replace(/[\s-]/g, "").match(/^(.*?)([a-zA-Z])$/)
+    return m ? { phone: m[1], suffix: m[2].toUpperCase() } : { phone: value, suffix: "" }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -71,11 +76,11 @@ export default function CustomerLoginPage() {
         setError("Checking your account settings. Please try again.")
         return
       }
-      const phoneNumber = locale.country === "UG"
-        ? normalizePaymentPhone(identifier, locale)
-        : normalizeLocalPhone(identifier)
-      if (!isValidPhone(identifier)) {
-        setError("Enter a valid phone number.")
+      const { phone: rawPhone, suffix } = splitAccount(identifier)
+      const phoneNumber =
+        (locale.country === "UG" ? normalizePaymentPhone(rawPhone, locale) : normalizeLocalPhone(rawPhone)) + suffix
+      if (!isValidPhone(rawPhone)) {
+        setError("Enter a valid phone number or account number.")
         setIsLoading(false)
         return
       }
@@ -152,12 +157,12 @@ export default function CustomerLoginPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="identifier" className="text-slate-700 text-sm font-medium">
-                Phone Number
+                Phone or Account Number
               </Label>
               <Input
                 id="identifier"
                 type="text"
-                inputMode="numeric"
+                inputMode="text"
                 autoComplete="tel"
                 placeholder={locale.phonePlaceholder}
                 value={identifier}
@@ -202,7 +207,7 @@ export default function CustomerLoginPage() {
             <Button
               type="submit"
               className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
-              disabled={isLoading || !ready || !isValidPhone(identifier) || !password.trim()}
+              disabled={isLoading || !ready || !isValidPhone(splitAccount(identifier).phone) || !password.trim()}
             >
               {isLoading ? (
                 <>
