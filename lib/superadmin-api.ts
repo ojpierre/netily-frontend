@@ -686,6 +686,61 @@ export interface TenantStats {
   }
 }
 
+export interface TenantInsightPayment {
+  id: string
+  reference: string
+  plan_name: string
+  period_start: string | null
+  period_end: string | null
+  paid_on: string
+  amount: number
+  status: string
+}
+
+export interface TenantInsights {
+  currency: string
+  generated_at: string
+  tenant: {
+    id: string; code: string; company_name: string; subdomain: string
+    status: string; health: "healthy" | "watch" | "at_risk"
+    joined_at: string | null; location: string; website: string; active_subscribers: number
+  }
+  revenue: {
+    current_month: number; previous_month: number; mom_pct: number | null
+    pppoe: number; hotspot: number; other: number
+    pppoe_share: number; hotspot_share: number
+    pppoe_mom_pct: number | null; hotspot_mom_pct: number | null
+    run_rate: number; yoy_pct: number | null
+  }
+  monthly: { key: string; label: string; pppoe: number; hotspot: number; other: number; total: number }[]
+  signal: {
+    score: number; label: string; badge: string; summary: string
+    revenue_growth_yoy: number | null; subscriber_growth_yoy: number | null
+    arpu_change_pct: number | null; churn_rate: number | null; growth_streak: number
+  }
+  projection: {
+    actual: { label: string; value: number }[]
+    projected: { label: string; value: number }[]
+    next_month_forecast: number | null
+    forecast_label?: string | null
+    forecast_value?: number | null
+    confidence: number
+  }
+  subscription: {
+    exists: boolean
+    plan_name?: string; plan_description?: string; is_metered?: boolean
+    status?: string; billing_period?: string; price?: number
+    max_subscribers?: number; next_billing?: string | null; trial_ends_at?: string | null
+    lifetime_paid?: number; payments_count?: number
+    reliability_pct?: number | null; revenue_multiple?: number | null
+    payments: TenantInsightPayment[]
+  }
+  stats: {
+    active_subscribers: number; new_this_month: number; arpu: number
+    arpu_change_pct: number | null; churn_rate: number | null
+  }
+}
+
 export interface PaginatedResponse<T> {
   count: number
   page: number
@@ -1464,6 +1519,10 @@ class SuperadminApiService {
 
   async getTenantStats(id: string): Promise<TenantStats> {
     return this.request(`/superadmin/tenants/${id}/stats/`)
+  }
+
+  async getTenantInsights(id: string, refresh = false): Promise<TenantInsights> {
+    return this.request(`/superadmin/tenants/${id}/insights/${refresh ? "?refresh=1" : ""}`)
   }
 
   async getTenantAuditLog(id: string, params?: Record<string, string>): Promise<PaginatedResponse<AuditLogEntry>> {
