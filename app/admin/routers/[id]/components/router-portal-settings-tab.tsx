@@ -466,6 +466,28 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     }
   }
 
+  const handleRemoveLogo = async () => {
+    // Always drop any locally picked (unsaved) file
+    setLogoFile(null)
+    setLogoPreview("")
+
+    // Nothing persisted on the server → local clear is enough
+    if (!existingLogo) return
+
+    if (isDemo) {
+      setExistingLogo("")
+      return
+    }
+
+    try {
+      await adminApi.updateRouter(routerId, { logo: null } as any)
+      setExistingLogo("")
+      toast.success("Logo removed")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove logo")
+    }
+  }
+
   // Currently selected template
   const selectedTemplate = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0]
 
@@ -822,11 +844,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          setLogoFile(null)
-                          setLogoPreview("")
-                          if (existingLogo) setExistingLogo("")
-                        }}
+                        onClick={handleRemoveLogo}
                         className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center hover:bg-destructive"
                       >
                         <X className="w-3 h-3" />
@@ -850,6 +868,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
+                        e.target.value = ""
                         if (!file) return
                         if (file.size > 1 * 1024 * 1024) {
                           toast.error("Logo must be smaller than 1 MB")
