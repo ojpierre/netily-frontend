@@ -4767,6 +4767,17 @@ async activateService(
     })
   }
 
+  /** Real-time bandwidth for a PPPoE customer (polled by the user detail page). */
+  async getLiveTraffic(credentialId: string): Promise<{
+    online: boolean
+    supported: boolean
+    download_mbps: number
+    upload_mbps: number
+    error?: string
+  }> {
+    return this.request(`/radius/credentials/${credentialId}/live_traffic/`, { cache: 'no-store' })
+  }
+
   /**
    * Update RADIUS credentials for a customer by customer ID
    * This is a convenience method that first fetches the credential ID

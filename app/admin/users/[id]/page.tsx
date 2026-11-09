@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -76,16 +76,8 @@ import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool, SMSMessage } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts"
 import { UserActions, type ActionTarget } from "@/components/admin/users/user-actions"
+import { LiveLineChart } from "@/components/ui/live-line-chart"
 
 // ============================================================
 // ANIMATION VARIANTS — same language as the main Users page
@@ -273,90 +265,93 @@ function mapTicket(t: SupportTicket): TicketEntry {
   }
 }
 
-// Premium Live Bandwidth Chart - Vercel style with live readout
-function LiveBandwidthChart() {
-  const [data, setData] = useState(
-    Array.from({ length: 40 }, (_, i) => ({
-      time: i,
-      download: 0,
-      upload: 0,
-    }))
-  )
+type PushFn = (value: number, time?: number) => void
+const LIVE_POLL_MS = 3000
+
+// Polls the backend only while mounted (i.e. while this page is open) and the tab is visible.
+function LiveBandwidthChart({ credentialId }: { credentialId: string }) {
+  const dlPush = useRef<PushFn | null>(null)
+  const ulPush = useRef<PushFn | null>(null)
+  const [status, setStatus] = useState<"connecting" | "live" | "offline" | "error">("connecting")
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setData((prev) => {
-        const last = prev[prev.length - 1]
-        return [
-          ...prev.slice(1),
-          {
-            time: last.time + 1,
-            download: Math.max(0, last.download + (Math.random() - 0.45) * 2),
-            upload: Math.max(0, last.upload + (Math.random() - 0.45) * 0.8),
-          },
-        ]
-      })
-    }, 2200)
+    let stopped = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let fails = 0
 
-    return () => clearInterval(interval)
-  }, [])
+    const tick = async () => {
+      if (stopped) return
+      let delay = LIVE_POLL_MS
+      if (!document.hidden) {
+        try {
+          const r = await adminApi.getLiveTraffic(credentialId)
+          if (stopped) return
+          if (r.online && !r.error) {
+            dlPush.current?.(r.download_mbps)
+            ulPush.current?.(r.upload_mbps)
+            setStatus("live")
+            fails = 0
+          } else {
+            setStatus(r.online ? "error" : "offline")
+            delay = 10000
+          }
+        } catch {
+          if (stopped) return
+          fails += 1
+          setStatus("error")
+          delay = Math.min(30000, LIVE_POLL_MS * 2 ** fails)
+        }
+      }
+      timer = setTimeout(tick, delay)
+    }
 
-  const currentDown = data[data.length - 1]?.download.toFixed(1) ?? '0.0'
-  const currentUp = data[data.length - 1]?.upload.toFixed(1) ?? '0.0'
+    tick()
+    return () => {
+      stopped = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [credentialId])
 
   return (
-    <div>
-      <div className="flex items-center gap-6 px-6 pb-2">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
-          <span className="text-xs text-slate-400">Download</span>
-          <span className="text-sm font-bold text-emerald-500 tabular-nums font-mono">{currentDown} Mbps</span>
+    <div className="px-6 pb-4">
+      {status !== "live" && (
+        <p className="text-xs text-muted-foreground pb-2">
+          {status === "connecting" && "Connecting to router…"}
+          {status === "offline" && "User is not currently connected."}
+          {status === "error" && "Router didn't respond — retrying…"}
+        </p>
+      )}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Download</p>
+          <LiveLineChart
+            unit="Mbps"
+            color="#34D399"
+            height={180}
+            intervalMs={LIVE_POLL_MS}
+            windowSeconds={120}
+            formatValue={(n) => n.toFixed(2)}
+            source={(push) => {
+              dlPush.current = push
+              return () => { dlPush.current = null }
+            }}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.7)]" />
-          <span className="text-xs text-slate-400">Upload</span>
-          <span className="text-sm font-bold text-violet-500 tabular-nums font-mono">{currentUp} Mbps</span>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Upload</p>
+          <LiveLineChart
+            unit="Mbps"
+            color="#A78BFA"
+            height={180}
+            intervalMs={LIVE_POLL_MS}
+            windowSeconds={120}
+            formatValue={(n) => n.toFixed(2)}
+            source={(push) => {
+              ulPush.current = push
+              return () => { ulPush.current = null }
+            }}
+          />
         </div>
-      </div>
-
-      <div className="h-[200px] px-2 pb-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="download" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34D399" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#34D399" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="upload" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#A78BFA" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#A78BFA" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 6" />
-            <XAxis hide />
-            <YAxis
-              stroke="currentColor"
-              className="text-slate-400 dark:text-slate-500"
-              tick={{ fontSize: 10 }}
-              width={30}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              contentStyle={{
-                background: 'var(--card, #fff)',
-                border: '1px solid rgba(148,163,184,0.2)',
-                borderRadius: 12,
-                fontSize: 12,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-              }}
-              labelFormatter={() => ''}
-              formatter={(value: number, name: string) => [`${value.toFixed(2)} Mbps`, name === 'download' ? 'Download' : 'Upload']}
-            />
-            <Area type="monotone" dataKey="download" stroke="#34D399" strokeWidth={2.5} fill="url(#download)" dot={false} isAnimationActive={false} />
-            <Area type="monotone" dataKey="upload" stroke="#A78BFA" strokeWidth={2.5} fill="url(#upload)" dot={false} isAnimationActive={false} />
-          </AreaChart>
-        </ResponsiveContainer>
       </div>
     </div>
   )
@@ -1266,7 +1261,7 @@ export default function UserDetailPage() {
             </motion.div>
 
             {/* Live Bandwidth Graph */}
-            {user.connectionStatus === 'online' && user.pppoeUsername && (
+            {user.connectionStatus === 'online' && user.pppoeUsername && user.radiusCredentials?.id && (
               <motion.div variants={cardVariants} initial="hidden" animate="show">
                 <Card className="rounded-lg border-border bg-card shadow-none">
                   <CardHeader className="pb-2 pt-5">
@@ -1280,7 +1275,7 @@ export default function UserDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0 pb-5">
-                    <LiveBandwidthChart />
+                    <LiveBandwidthChart credentialId={String(user.radiusCredentials.id)} />
                   </CardContent>
                 </Card>
               </motion.div>
