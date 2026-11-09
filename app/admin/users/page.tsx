@@ -3892,10 +3892,20 @@ export default function UsersPage() {
                                 </TableCell>
                                 <TableCell>
                                   {isActive ? (
-                                    <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 gap-1 text-xs">
-                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                      Active
-                                    </Badge>
+                                    item.ever_connected === false && !hotspotOnlineSet.has(hotspotIdentifier) ? (
+                                      <Badge
+                                        className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 gap-1 text-xs"
+                                        title="Payment received but this client has not connected to the internet yet"
+                                      >
+                                        <WifiOff className="w-3 h-3" />
+                                        Never Connected
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 gap-1 text-xs">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                        Active
+                                      </Badge>
+                                    )
                                   ) : (
                                     <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">Expired</Badge>
                                   )}

@@ -3359,6 +3359,7 @@ export interface ActiveSubscription {
   // ADDED: Fields for hotspot client detail
   subscription_status?: string        // 'active' | 'expired' | 'paid' | 'pending'
   is_active_sub?: boolean             // convenience flag
+  ever_connected?: boolean            // false = paid/active but never got online this period
   client_id?: number                  // HotspotClient.id for detail fetch
 }
 
