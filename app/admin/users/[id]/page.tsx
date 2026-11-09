@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
   Trash2,
-  MoreVertical,
   User,
   Mail,
   Phone,
@@ -51,13 +50,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
@@ -93,6 +85,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts"
+import { UserActions, type ActionTarget } from "@/components/admin/users/user-actions"
 
 // ============================================================
 // ANIMATION VARIANTS — same language as the main Users page
@@ -717,6 +710,26 @@ export default function UserDetailPage() {
     )
   }
 
+  // ── Action target for the shared UserActions dropdown ──
+  const actionTarget: ActionTarget = {
+    customerId: userId,
+    serviceId: user.serviceId,
+    name: user.fullName,
+    email: user.email,
+    phone: user.phone,
+    location: user.location,
+    type: user.type,
+    serviceStatus: user.serviceStatus,
+    expiryDate: user.expiryDate,
+    planName: user.package.name !== "No plan" ? user.package.name : undefined,
+    planPrice: user.package.price,
+    ipAddress: user.ipAddress || user.staticIp || undefined,
+    online: user.connectionStatus === "online",
+    creds: user.radiusCredentials
+      ? { id: user.radiusCredentials.id, username: user.radiusCredentials.username, is_enabled: user.radiusCredentials.is_enabled }
+      : null,
+  }
+
   // ── Simple lifecycle timeline built from data we already have ──
   const lifecycleEvents = [
     {
@@ -817,22 +830,11 @@ export default function UserDetailPage() {
                   <Send className="w-4 h-4 mr-2" />
                   SMS
                 </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" aria-label="More subscriber actions">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-xl">
-                    <DropdownMenuItem 
-                      className="text-destructive rounded-lg"
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete User
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <UserActions
+                  target={actionTarget}
+                  onChanged={fetchUserData}
+                  onDelete={() => setIsDeleteDialogOpen(true)}
+                />
               </div>
             </div>
           </CardContent>
