@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useEffect, useCallback } from "react"
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import {
   MessageSquare, Plus, Send, Search, RefreshCw, Users, CheckCircle,
   XCircle, Clock, MoreVertical, Download, Trash2, Eye, Zap, TrendingUp,
@@ -31,9 +31,9 @@ import { adminApi } from "@/lib/admin-api"
 import type {
   SMSMessage, SMSTemplate, SMSCampaign, SMSStats, SMSBalance,
   SMSGatewayConfig, SMSGatewayConfigWrite, SMSProvider,
-  SMSNotificationSettings, SMSWallet, SMSUnitTopup,
+  SMSNotificationSettings, SMSWallet, SMSUnitTopup, SMSEventTemplate,
 } from "@/lib/types"
-import { SMS_TEMPLATE_VARIABLES } from "@/lib/types"
+import { SMS_TEMPLATE_VARIABLES, COMPOSE_SMS_VARIABLES } from "@/lib/types"
 
 // -----------------------------------------------------------------------------
 // CONSTANTS
@@ -165,147 +165,140 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 // -----------------------------------------------------------------------------
-// TEMPLATE EDITOR - FIXED: locks name/event_type when editing, loads correct vars
+// TEMPLATES — one inline editor per automation event (no create / delete / popup)
 // -----------------------------------------------------------------------------
 
-function TemplateEditor({
-  open, onClose, onSave, initial,
-}: {
-  open: boolean
-  onClose: () => void
-  onSave: (t: { name: string; content: string; event_type?: string }) => void
-  initial?: SMSTemplate | null
-}) {
-  const [name, setName] = useState(initial?.name ?? '')
-  const [content, setContent] = useState(initial?.content ?? '')
-  // FIX: derive eventType from the template being edited, not a hardcoded default
-  const [eventType, setEventType] = useState((initial as any)?.event_type ?? 'pppoe_payment')
+const MAX_SMS_CHARS = 480
+const smsSegments = (n: number) => (n <= 160 ? 1 : 1 + Math.ceil((n - 160) / 153))
 
-  const vars = SMS_TEMPLATE_VARIABLES[eventType] ?? []
-  const isEditing = !!initial
+function EventTemplateCard({ tpl, canEdit }: { tpl: SMSEventTemplate; canEdit: boolean }) {
+  const [value, setValue] = useState(tpl.content)
+  const [saved, setSaved] = useState(tpl.content)
+  const [saving, setSaving] = useState(false)
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const vars = SMS_TEMPLATE_VARIABLES[tpl.event_type] ?? []
+  const dirty = value !== saved
 
   const insertVar = (key: string) => {
-    setContent(prev => prev + key)
+    const el = ref.current
+    const start = el?.selectionStart ?? value.length
+    const end = el?.selectionEnd ?? value.length
+    const next = value.slice(0, start) + key + value.slice(end)
+    if (next.length > MAX_SMS_CHARS) {
+      toast.error(`Message is limited to ${MAX_SMS_CHARS} characters`)
+      return
+    }
+    setValue(next)
+    requestAnimationFrame(() => {
+      if (!el) return
+      el.focus()
+      const pos = start + key.length
+      el.setSelectionRange(pos, pos)
+    })
   }
 
-  const preview = useMemo(() => {
-    let text = content
-    ;(SMS_TEMPLATE_VARIABLES[eventType] ?? []).forEach(v => {
-      text = text.replace(new RegExp(v.key.replace(/[{}]/g, '\\$&'), 'g'), v.example)
-    })
-    return text
-  }, [content, eventType])
-
-  useEffect(() => {
-    if (open) {
-      setName(initial?.name ?? '')
-      setContent(initial?.content ?? '')
-      setEventType((initial as any)?.event_type ?? 'pppoe_payment')
+  const save = async () => {
+    if (!value.trim()) { toast.error('Message cannot be empty'); return }
+    setSaving(true)
+    try {
+      const res = await adminApi.saveSMSEventTemplate(tpl.event_type, value)
+      setSaved(res.content)
+      setValue(res.content)
+      toast.success(`${tpl.label} saved`)
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to save')
+    } finally {
+      setSaving(false)
     }
-  }, [open, initial])
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{initial ? 'Edit Template' : 'New Template'}</DialogTitle>
-          <DialogDescription>Build a reusable message. Click variables to insert them.</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Template Name</Label>
-              <Input
-                placeholder="e.g., PPPoE Payment Received"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                disabled={isEditing}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Event Type</Label>
-              <Select value={eventType} onValueChange={setEventType} disabled={isEditing}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hotspot_welcome">Hotspot → Welcome</SelectItem>
-                  <SelectItem value="pppoe_welcome">PPPoE → Welcome</SelectItem>
-                  <SelectItem value="pppoe_payment">PPPoE → Payment / Renewal Confirmation</SelectItem>
-                  <SelectItem value="pppoe_expiry_reminder">PPPoE → Expiry Reminder</SelectItem>
-                  <SelectItem value="pppoe_expiry_notification">PPPoE → Subscription Expired</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Message</Label>
-                <span className={`text-xs ${content.length > 160 ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
-                  {content.length} chars · {Math.ceil(content.length / 160)} SMS
-                </span>
-              </div>
-              <Textarea
-                placeholder="Type your message..."
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={5}
-              />
-            </div>
-
-            {vars.length > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Click to insert variable</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {vars.map(v => (
-                    <button
-                      key={v.key}
-                      onClick={() => insertVar(v.key)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border bg-muted/50 hover:bg-primary/10 hover:border-primary/20 text-xs text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <Plus className="w-2.5 h-2.5" />
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
-            {/* PRESERVED: dark phone-preview is intentional — do not theme-swap */}
-            <div className="bg-slate-900 rounded-xl p-4 min-h-[200px]">
-              <div className="bg-[#1a2e1a] rounded-lg p-3 max-w-[220px] mx-auto">
-                <div className="text-[11px] text-slate-400 mb-1">SMS</div>
-                <div className="text-xs text-green-300 leading-relaxed whitespace-pre-wrap">
-                  {preview || <span className="text-slate-600">Preview appears here...</span>}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Available variables</Label>
-              <div className="rounded-lg border divide-y text-xs">
-                {vars.map(v => (
-                  <div key={v.key} className="flex items-center justify-between px-3 py-1.5">
-                    <code className="text-primary">{v.key}</code>
-                    <span className="text-muted-foreground">{v.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{tpl.label}</CardTitle>
+        <CardDescription>{tpl.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Textarea
+          ref={ref}
+          rows={5}
+          maxLength={MAX_SMS_CHARS}
+          value={value}
+          disabled={!canEdit}
+          onChange={e => setValue(e.target.value)}
+          placeholder="Type your message..."
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{value.length} / {MAX_SMS_CHARS}</span>
+          <span>{smsSegments(value.length)} segment{smsSegments(value.length) > 1 ? 's' : ''}</span>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave({ name, content, event_type: eventType })} disabled={!name || !content}>
-            {initial ? 'Save Changes' : 'Create Template'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {vars.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {vars.map(v => (
+              <button
+                key={v.key}
+                type="button"
+                title={`${v.label} — e.g. ${v.example}`}
+                disabled={!canEdit}
+                onClick={() => insertVar(v.key)}
+                className="rounded border border-border bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground transition-colors hover:border-primary/20 hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+              >
+                {v.key}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {canEdit && (
+          <div className="flex items-center justify-end gap-2 pt-1">
+            {value.trim() !== tpl.default_content.trim() && (
+              <Button variant="ghost" size="sm" onClick={() => setValue(tpl.default_content)}>
+                Reset to default
+              </Button>
+            )}
+            <Button size="sm" onClick={save} disabled={!dirty || saving || !value.trim()}>
+              {saving && <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Save
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function TemplatesPanel({ canEdit }: { canEdit: boolean }) {
+  const [items, setItems] = useState<SMSEventTemplate[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  const load = useCallback(async () => {
+    setFailed(false)
+    try {
+      setItems(await adminApi.getSMSEventTemplates())
+    } catch {
+      setFailed(true)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  if (failed) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        Could not load templates.{' '}
+        <button className="underline" onClick={load}>Retry</button>
+      </div>
+    )
+  }
+  if (!items) {
+    return <div className="py-12 text-center text-sm text-muted-foreground">Loading templates…</div>
+  }
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      {items.map(t => <EventTemplateCard key={t.event_type} tpl={t} canEdit={canEdit} />)}
+    </div>
   )
 }
 
@@ -459,7 +452,6 @@ export default function SMSPage() {
   const perms = usePagePermissions("/admin/sms")
   const [activeTab, setActiveTab] = useState("history")
   const [messages, setMessages] = useState<SMSMessage[]>([])
-  const [templates, setTemplates] = useState<SMSTemplate[]>([])
   const [campaigns, setCampaigns] = useState<SMSCampaign[]>([])
   const [stats, setStats] = useState<SMSStats>(EMPTY_STATS)
   const [balance, setBalance] = useState<SMSBalance | null>(null)
@@ -477,9 +469,7 @@ export default function SMSPage() {
   const [gwTesting, setGwTesting] = useState(false)
 
   const [isComposeOpen, setIsComposeOpen] = useState(false)
-  const [isTemplateOpen, setIsTemplateOpen] = useState(false)
   const [isTopupOpen, setIsTopupOpen] = useState(false)
-  const [editingTemplate, setEditingTemplate] = useState<SMSTemplate | null>(null)
   const [selectedMessages, setSelectedMessages] = useState<number[]>([])
   const [viewMessage, setViewMessage] = useState<SMSMessage | null>(null)
 
@@ -506,7 +496,7 @@ export default function SMSPage() {
   // FIX: Compose dialog with customer search
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerResults, setCustomerResults] = useState<{id:string; name:string; phone:string; code:string; type:string}[]>([])
-  const [selectedRecipients, setSelectedRecipients] = useState<{phone:string; name:string}[]>([])
+  const [selectedRecipients, setSelectedRecipients] = useState<{phone:string; name:string; type:string; id:string}[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [recipientType, setRecipientType] = useState<'pppoe'|'hotspot'|'all'>('pppoe')
 
@@ -533,9 +523,8 @@ export default function SMSPage() {
   const fetchAll = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [msgs, tmpls, camps, sts, bal, wlt, ns, gws] = await Promise.all([
+      const [msgs, camps, sts, bal, wlt, ns, gws] = await Promise.all([
         adminApi.getSMSMessages().catch(() => null),
-        adminApi.getSMSTemplates().catch(() => null),
         adminApi.getSMSCampaigns().catch(() => null),
         adminApi.getSMSStats().catch(() => null),
         adminApi.getSMSBalance().catch(() => null),
@@ -545,7 +534,6 @@ export default function SMSPage() {
       ])
 
       if (msgs) setMessages(Array.isArray(msgs) ? msgs : (msgs as any).results ?? [])
-      if (tmpls) setTemplates(Array.isArray(tmpls) ? tmpls : (tmpls as any).results ?? [])
       if (camps) setCampaigns(Array.isArray(camps) ? camps : (camps as any).results ?? [])
       if (sts) setStats(sts)
       if (bal) setBalance(bal)
@@ -616,22 +604,30 @@ export default function SMSPage() {
 
   // -- handlers ---------------------------------------------------------------
   const handleSend = async () => {
-    const phones = selectedRecipients.map(r => r.phone)
-    if (phones.length === 0 || !composeForm.message) {
+    if (selectedRecipients.length === 0 || !composeForm.message.trim()) {
       toast.error('Add at least one recipient and a message')
       return
     }
     setIsSending(true)
     try {
-      if (phones.length === 1) {
-        await adminApi.sendSMS({ recipient: phones[0], message: composeForm.message })
+      const res = await adminApi.composeSMS({
+        message: composeForm.message,
+        recipients: selectedRecipients,
+      })
+      if (res.queued) {
+        toast.success(`Sending to ${res.count} recipients in the background`)
+      } else if (!res.failed) {
+        toast.success(`SMS sent to ${res.sent} recipient(s)`)
       } else {
-        await adminApi.sendBulkSMS({ recipients: phones, message: composeForm.message })
+        const firstErr = res.results?.find(r => !r.success)?.error || 'Send failed'
+        toast.error(`${res.failed} failed: ${firstErr}`)
+        if (res.sent) toast.success(`${res.sent} sent`)
       }
-      toast.success(`SMS sent to ${phones.length} recipient(s)`)
-      setIsComposeOpen(false)
-      setSelectedRecipients([])
-      setComposeForm({ recipients: '', message: '', template: '' })
+      if (res.queued || (res.sent ?? 0) > 0) {
+        setIsComposeOpen(false)
+        setSelectedRecipients([])
+        setComposeForm({ recipients: '', message: '', template: '' })
+      }
       fetchAll()
     } catch (e: any) {
       toast.error(e?.message ?? 'Failed to send')
@@ -654,38 +650,6 @@ export default function SMSPage() {
     } catch (e: any) {
       toast.error(e?.message ?? 'Failed to start campaign')
     } finally { setBulkSending(false) }
-  }
-
-  // FIX: handleSaveTemplate - send event_type for updates (preserves original)
-  const handleSaveTemplate = async (data: { name: string; content: string; event_type?: string }) => {
-    try {
-      if (editingTemplate) {
-        // FIX: preserve original event_type on update (field is locked but must still be sent)
-        const res = await adminApi.updateSMSTemplate(editingTemplate.id, {
-          content: data.content,
-        })
-        setTemplates(p => p.map(t => t.id === editingTemplate.id ? res : t))
-        toast.success('Template updated')
-      } else {
-        const res = await adminApi.createSMSTemplate({
-          name: data.name,
-          content: data.content,
-          is_active: true,
-          event_type: data.event_type,
-          variables: [...(data.content.match(/\{[\w_]+\}/g) ?? [])],
-        })
-        setTemplates(p => [...p, res])
-        toast.success('Template created')
-      }
-      setIsTemplateOpen(false)
-      setEditingTemplate(null)
-    } catch (e: any) { toast.error(e?.message ?? 'Failed') }
-  }
-
-  const handleDeleteTemplate = async (id: number) => {
-    await adminApi.deleteSMSTemplate(id).catch(() => null)
-    setTemplates(p => p.filter(t => t.id !== id))
-    toast.success('Template deleted')
   }
 
   const handleSaveNotifSettings = async (patch: Partial<SMSNotificationSettings>) => {
@@ -773,6 +737,22 @@ export default function SMSPage() {
   }
 
   const [composeForm, setComposeForm] = useState({ recipients: '', message: '', template: '' })
+  const composeRef = useRef<HTMLTextAreaElement>(null)
+  const insertComposeVar = (key: string) => {
+    const el = composeRef.current
+    const cur = composeForm.message
+    const start = el?.selectionStart ?? cur.length
+    const end = el?.selectionEnd ?? cur.length
+    const next = cur.slice(0, start) + key + cur.slice(end)
+    if (next.length > MAX_SMS_CHARS) { toast.error(`Message is limited to ${MAX_SMS_CHARS} characters`); return }
+    setComposeForm(p => ({ ...p, message: next }))
+    requestAnimationFrame(() => {
+      if (!el) return
+      el.focus()
+      const pos = start + key.length
+      el.setSelectionRange(pos, pos)
+    })
+  }
   const walletUnits = wallet?.sms_units ?? 0
 
   // -------------------------------------------------------------------------
@@ -946,76 +926,7 @@ export default function SMSPage() {
 
           {/* -- TEMPLATES ------------------------------------------------------ */}
           <TabsContent value="templates" className="mt-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Message Templates</CardTitle>
-                    <CardDescription>Reusable messages with smart variable substitution</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                  {perms.canAdd && (
-                    <Button size="sm" onClick={() => { setEditingTemplate(null); setIsTemplateOpen(true) }}>
-                      <Plus className="w-4 h-4 mr-1.5" />New Template
-                    </Button>
-                  )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {templates.length === 0 && (
-                  <div className="text-center py-16 text-muted-foreground">
-                    <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">No templates yet. Create one to save time.</p>
-                  </div>
-                )}
-                <div className="grid gap-3">
-                  {templates.map(t => (
-                    <div key={t.id} className="border rounded-xl p-4 hover:border-border transition-colors">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm">{t.name}</span>
-                            <span className="text-xs text-muted-foreground">Used {t.usage_count ?? 0}×</span>
-                            {(t as any).event_type && (
-                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
-                                {(t as any).event_type}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{t.content}</p>
-                          {t.variables?.length > 0 && (
-                            <div className="flex gap-1 mt-2 flex-wrap">
-                              {t.variables.map(v => (
-                                <code key={v} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">{'{' + v + '}'}</code>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex gap-1 justify-end">
-                          <Button variant="outline" size="sm" className="h-7 text-xs"
-                            onClick={() => { setComposeForm(p => ({ ...p, message: t.content })); setIsComposeOpen(true) }}>
-                            Use
-                          </Button>
-                          {perms.canEdit && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7"
-                              onClick={() => { setEditingTemplate(t); setIsTemplateOpen(true) }}>
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                          {perms.canDelete && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteTemplate(t.id)}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <TemplatesPanel canEdit={perms.canEdit} />
           </TabsContent>
 
           {/* -- CAMPAIGNS (UPDATED with PPPoE Active/Expired and Hotspot Active) -- */}
@@ -1627,7 +1538,7 @@ export default function SMSPage() {
                       <button key={c.id} className="w-full text-left px-3 py-1.5 hover:bg-muted flex justify-between"
                         onClick={() => {
                           if (!selectedRecipients.find(r => r.phone === c.phone)) {
-                            setSelectedRecipients(p => [...p, { phone: c.phone, name: c.name }])
+                            setSelectedRecipients(p => [...p, { phone: c.phone, name: c.name, type: c.type, id: c.id }])
                           }
                           setCustomerSearch('')
                           setCustomerResults([])
@@ -1653,31 +1564,36 @@ export default function SMSPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Template (optional)</Label>
-                <Select value={composeForm.template} onValueChange={v => {
-                  const t = templates.find(x => String(x.id) === v)
-                  setComposeForm(p => ({ ...p, template: v, message: t?.content ?? p.message }))
-                }}>
-                  <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
-                  <SelectContent>
-                    {templates.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex justify-between">
-                  <Label>Message</Label>
-                  <span className={`text-xs ${composeForm.message.length > 160 ? 'text-warning' : 'text-muted-foreground'}`}>
-                    {composeForm.message.length}/160
-                  </span>
-                </div>
+                <Label>Message</Label>
+                <p className="text-xs text-muted-foreground">Use variables to personalize each delivery.</p>
                 <Textarea
-                  rows={4}
-                  placeholder="Type your message-"
+                  ref={composeRef}
+                  rows={5}
+                  maxLength={MAX_SMS_CHARS}
+                  placeholder="Dear {first_name}, your package expires on {expiry_date}."
                   value={composeForm.message}
                   onChange={e => setComposeForm(p => ({ ...p, message: e.target.value }))}
                 />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{composeForm.message.length} / {MAX_SMS_CHARS}</span>
+                  <span>
+                    {smsSegments(composeForm.message.length)} segment
+                    {smsSegments(composeForm.message.length) > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {COMPOSE_SMS_VARIABLES.map(v => (
+                    <button
+                      key={v.key}
+                      type="button"
+                      title={`${v.label} — e.g. ${v.example}`}
+                      onClick={() => insertComposeVar(v.key)}
+                      className="rounded border border-border bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground transition-colors hover:border-primary/20 hover:bg-primary/10 hover:text-primary"
+                    >
+                      {v.key}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsComposeOpen(false)}>Cancel</Button>
@@ -1693,14 +1609,6 @@ export default function SMSPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* -- TEMPLATE EDITOR ------------------------------------------------- */}
-        <TemplateEditor
-          open={isTemplateOpen}
-          onClose={() => { setIsTemplateOpen(false); setEditingTemplate(null) }}
-          onSave={handleSaveTemplate}
-          initial={editingTemplate}
-        />
 
         {/* -- TOPUP SHEET ----------------------------------------------------- */}
         <TopupSheet

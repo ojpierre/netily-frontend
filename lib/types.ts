@@ -2978,6 +2978,15 @@ export interface SMSTemplate {
   updated_at: string
 }
 
+export interface SMSEventTemplate {
+  event_type: string
+  label: string
+  description: string
+  content: string
+  default_content: string
+  is_customized: boolean
+}
+
 export interface SMSCampaign {
   id: number
   name: string
@@ -3813,6 +3822,22 @@ pppoe_welcome: [
     { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
   ],
 }
+
+// Variables supported by the "Send SMS" compose dialog (filled per recipient on the server)
+export const COMPOSE_SMS_VARIABLES: SMSTemplateVariable[] = [
+  { key: '{first_name}', label: 'First name', example: 'John' },
+  { key: '{last_name}', label: 'Last name', example: 'Doe' },
+  { key: '{full_name}', label: 'Full name', example: 'John Doe' },
+  { key: '{phone}', label: 'Phone', example: '+254712345678' },
+  { key: '{email}', label: 'Email', example: 'john@mail.com' },
+  { key: '{plan_name}', label: 'Package name', example: 'Home 10Mbps' },
+  { key: '{amount_due}', label: 'Package price', example: 'KES 1,500' },
+  { key: '{customer_account}', label: 'Account number', example: '0712345678' },
+  { key: '{company_name}', label: 'Company name', example: 'Acme ISP' },
+  { key: '{expiry_date}', label: 'Expiry date', example: '04 Jun 2026' },
+  { key: '{expiry_time}', label: 'Expiry time', example: '20:59' },
+  { key: '{expiry_full}', label: 'Expiry date & time', example: '04 Jun 2026 at 20:59' },
+]
 
 // ==========================================
 // EXPENSES & INVENTORY (Backend Aligned)

@@ -105,6 +105,7 @@ import type {
   // SMS types
   SMSMessage,
   SMSTemplate,
+  SMSEventTemplate,
   SMSCampaign,
   SMSStats,
   SendSMSRequest,
@@ -3897,6 +3898,35 @@ async activateService(
 
   async deleteSMSTemplate(id: number): Promise<void> {
     await this.request(`/messaging/templates/${id}/`, { method: 'DELETE' })
+  }
+
+  // ── Automation event templates (one editable message per event) ──
+  async getSMSEventTemplates(): Promise<SMSEventTemplate[]> {
+    return this.request<SMSEventTemplate[]>('/messaging/templates/events/')
+  }
+
+  async saveSMSEventTemplate(eventType: string, content: string): Promise<SMSEventTemplate> {
+    return this.request<SMSEventTemplate>(`/messaging/templates/events/${eventType}/`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    })
+  }
+
+  // ── Personalised compose send ──
+  async composeSMS(data: {
+    message: string
+    recipients: { phone: string; name?: string; type?: string; id?: string }[]
+  }): Promise<{
+    queued: boolean
+    count?: number
+    sent?: number
+    failed?: number
+    results?: { phone: string; success: boolean; error: string }[]
+  }> {
+    return this.request('/messaging/sms/compose/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 
   // ------------------------------------------
