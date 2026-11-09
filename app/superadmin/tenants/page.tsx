@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Building2,
   Search,
@@ -73,6 +74,7 @@ const HARD_DELETE_STEPS = [
 ]
 
 export default function TenantsPage() {
+  const router = useRouter()
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
   const [rbacNormalizeLoading, setRbacNormalizeLoading] = useState(false)
@@ -557,7 +559,14 @@ export default function TenantsPage() {
               </thead>
               <tbody>
                 {visibleTenants.map((t) => (
-                  <tr key={t.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                  <tr
+                    key={t.id}
+                    tabIndex={0}
+                    role="link"
+                    onClick={() => router.push(`/superadmin/tenants/${t.id}`)}
+                    onKeyDown={(e) => { if (e.key === "Enter") router.push(`/superadmin/tenants/${t.id}`) }}
+                    className="border-b border-slate-800/50 hover:bg-slate-800/40 transition-colors cursor-pointer focus:outline-none focus:bg-slate-800/40"
+                  >
                     <td className="p-4">
                       <div>
                         <p className="font-medium text-white">{t.company_name}</p>
@@ -655,7 +664,7 @@ export default function TenantsPage() {
                     <td className="p-4 hidden xl:table-cell text-slate-400 text-xs">
                       {new Date(t.created_at).toLocaleDateString()}
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
                         {isTenantSuspended(t) ? (
                           <Button

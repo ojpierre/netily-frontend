@@ -27,9 +27,8 @@ import {
   superadminApi, type Tenant, type TenantStats, type TenantUpdatePayload, type TenantInsights,
 } from "@/lib/superadmin-api"
 import { TenantBillingTab } from "./components/tenant-billing-tab"
-import {
-  RoutersTab, PPPoETab, HotspotTab, InventoryTab, AuditTab,
-} from "./components/tenant-data-tabs"
+import { RoutersTab, AuditTab } from "./components/tenant-data-tabs"
+import { StaffTab } from "./components/tenant-staff-tab"
 
 const HARD_DELETE_STEPS = [
   "Verify confirmation and protect system schemas",
@@ -389,9 +388,7 @@ export default function TenantDetailPage() {
           <TabsTrigger value="billing" className={tabCls}><CreditCard className={tabIcon} />Billing</TabsTrigger>
           <TabsTrigger value="settings" className={tabCls}><Settings2 className={tabIcon} />Settings</TabsTrigger>
           <TabsTrigger value="routers" className={tabCls}><Wifi className={tabIcon} />Routers</TabsTrigger>
-          <TabsTrigger value="pppoe" className={tabCls}><Radio className={tabIcon} />PPPoE</TabsTrigger>
-          <TabsTrigger value="hotspot" className={tabCls}><Signal className={tabIcon} />Hotspot</TabsTrigger>
-          <TabsTrigger value="inventory" className={tabCls}><Package className={tabIcon} />Inventory</TabsTrigger>
+          <TabsTrigger value="staff" className={tabCls}><Users className={tabIcon} />Staff</TabsTrigger>
           <TabsTrigger value="audit" className={tabCls}><ScrollText className={tabIcon} />Audit log</TabsTrigger>
         </TabsList>
 
@@ -717,9 +714,7 @@ export default function TenantDetailPage() {
         </TabsContent>
 
         <TabsContent value="routers" className="mt-6"><RoutersTab tenantId={id} icon={<Wifi className="h-5 w-5 text-emerald-600" />} /></TabsContent>
-        <TabsContent value="pppoe" className="mt-6"><PPPoETab tenantId={id} icon={<Radio className="h-5 w-5 text-cyan-600" />} /></TabsContent>
-        <TabsContent value="hotspot" className="mt-6"><HotspotTab tenantId={id} icon={<Signal className="h-5 w-5 text-amber-600" />} /></TabsContent>
-        <TabsContent value="inventory" className="mt-6"><InventoryTab tenantId={id} icon={<Package className="h-5 w-5 text-orange-600" />} /></TabsContent>
+        <TabsContent value="staff" className="mt-6"><StaffTab tenantId={id} /></TabsContent>
         <TabsContent value="audit" className="mt-6"><AuditTab tenantId={id} icon={<ScrollText className="h-5 w-5 text-violet-600" />} /></TabsContent>
       </Tabs>
 

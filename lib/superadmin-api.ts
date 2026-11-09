@@ -1265,6 +1265,30 @@ export interface ServerStatsResponse {
   timestamp: string
 }
 
+// ── Tenant Staff Types ─────────────────────────────
+
+export interface TenantStaffUser {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+  full_name: string
+  phone_number: string
+  role: string
+  is_active: boolean
+  is_primary_admin: boolean
+  last_login: string | null
+  date_joined: string | null
+}
+
+export interface TenantStaffResponse {
+  tenant_id: string
+  company_name: string
+  admin: TenantStaffUser | null
+  other_admins: TenantStaffUser[]
+  staff: TenantStaffUser[]
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -1547,6 +1571,17 @@ class SuperadminApiService {
   async getTenantInventory(id: string, params?: Record<string, string>): Promise<PaginatedResponse<InventoryItem>> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/tenants/${id}/inventory/${qs}`)
+  }
+
+  async getTenantStaff(id: string): Promise<TenantStaffResponse> {
+    return this.request(`/superadmin/tenants/${id}/staff/`)
+  }
+
+  async resetTenantStaffPassword(id: string, userId: number, newPassword: string): Promise<{ detail: string }> {
+    return this.request(`/superadmin/tenants/${id}/staff/${userId}/reset-password/`, {
+      method: "POST",
+      body: JSON.stringify({ new_password: newPassword }),
+    })
   }
 
   async impersonateTenant(id: string): Promise<ImpersonateResult> {
