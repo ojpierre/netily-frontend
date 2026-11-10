@@ -3609,6 +3609,7 @@ export interface CustomerPaymentInitiateRequest {
   payment_type: 'recharge' | 'invoice'
   invoice_id?: number
   plan_id?: number
+  reward_id?: number
 }
 
 export interface CustomerPaymentInitiateResponse {

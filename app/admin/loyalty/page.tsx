@@ -85,7 +85,6 @@ export default function LoyaltyPage() {
 
   // Loading / error
   const [initialLoading, setInitialLoading] = useState(true)
-  const [apiReady, setApiReady] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
 
   // Tab + member search
@@ -123,13 +122,12 @@ export default function LoyaltyPage() {
         safeFetch(() => adminApi.getLoyaltyLeaderboard('total_spent', 10), []),
         safeFetch(() => adminApi.getLoyaltyLeaderboard('total_payments', 10), []),
       ])
-      setApiReady(!!(s || cfg || t.length > 0))
       setStats(s)
       setTiers(t); setRewards(r); setRules(rl)
       setLeaderboard({ top_points: lbPoints, highest_spending: lbSpent, most_returning: lbReturning })
       if (cfg) { setSettings(cfg); if (first) setSettingsForm(cfg) }   // never overwrite unsaved edits
     } catch {
-      setApiReady(false)
+      // ignore: individual fetches already fall back via safeFetch
     } finally {
       if (first) setInitialLoading(false)
     }
@@ -343,24 +341,6 @@ export default function LoyaltyPage() {
           </Button>
         </div>
       </div>
-
-      {/* API not deployed warning */}
-      {!apiReady && (
-        <Card className="border-warning/20 bg-warning/10">
-          <CardContent className="p-4 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-warning/15 shrink-0">
-              <Trophy className="w-5 h-5 text-warning" />
-            </div>
-            <div>
-              <p className="font-semibold text-amber-800">Loyalty backend not deployed yet</p>
-              <p className="text-sm text-warning mt-1">
-                Run the migration <code className="bg-warning/15 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono">docker compose exec web python manage.py migrate_schemas</code> and then{" "}
-                <code className="bg-warning/15 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono">docker compose exec web python manage.py populate_loyalty_members</code> to seed tiers and enroll existing customers.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

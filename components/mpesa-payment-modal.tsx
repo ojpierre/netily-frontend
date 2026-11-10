@@ -15,6 +15,7 @@ import { Loader2, CheckCircle2, XCircle, Smartphone, CreditCard } from "lucide-r
 import { customerApi } from "@/lib/customer-api"
 import { useCustomerPaymentLocale } from "@/hooks/use-customer-payment-locale"
 import { formatPaymentAmount, isValidPaymentPhone, normalizePaymentPhone } from "@/lib/tenant-locale"
+import { RewardPicker } from "@/components/reward-picker"
 
 interface MpesaPaymentModalProps {
   open: boolean
@@ -45,6 +46,10 @@ export function MpesaPaymentModal({
   const [paymentId, setPaymentId] = useState<number | null>(null)
   const [pollCount, setPollCount] = useState(0)
 
+  const baseAmount = Number(amount)
+  const [rewardId, setRewardId] = useState<number | null>(null)
+  const [payable, setPayable] = useState(baseAmount)
+
   const maxPolls = 30 // 30 * 3s = 90 seconds max wait
 
   // Reset state when modal opens
@@ -55,13 +60,15 @@ export function MpesaPaymentModal({
       setPaymentMessage("")
       setPaymentId(null)
       setPollCount(0)
+      setRewardId(null)
+      setPayable(Number(amount))
       // Try to get saved phone number
       const savedPhone = localStorage.getItem(`customerPhone:${window.location.hostname}`)
       if (savedPhone) {
         setPhoneNumber(savedPhone)
       }
     }
-  }, [open])
+  }, [open, amount])
 
   // Poll for payment status
   useEffect(() => {
@@ -125,7 +132,9 @@ export function MpesaPaymentModal({
       const formattedPhone = normalizePaymentPhone(phoneNumber, locale)
       const response = await customerApi.initiateIspPayment({
         phone_number: formattedPhone,
-        amount: Number(amount),
+        // Always send the ORIGINAL amount; backend applies the discount.
+        amount: baseAmount,
+        ...(rewardId ? { reward_id: rewardId } : {}),
       })
 
       if (!response.payment_id) throw new Error("Payment started, but its tracking reference is missing. Check payment history before trying again.")
@@ -187,6 +196,21 @@ export function MpesaPaymentModal({
                 You will receive a payment request on this number
               </p>
             </div>
+
+            <RewardPicker
+              amount={baseAmount}
+              currency={locale.currency}
+              value={rewardId}
+              disabled={status !== "idle"}
+              onChange={(id, p) => { setRewardId(id); setPayable(p) }}
+            />
+
+            {rewardId && (
+              <p className="text-sm">
+                Total: <span className="line-through text-muted-foreground">{formatPaymentAmount(baseAmount, locale.currency)}</span>{" "}
+                <strong>{formatPaymentAmount(payable, locale.currency)}</strong>
+              </p>
+            )}
 
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">

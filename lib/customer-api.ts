@@ -320,7 +320,7 @@ class CustomerApiService {
     return this.request<CustomerPaymentStatus>(`/self-service/payments/${paymentId}/status/`)
   }
 
-  async initiateIspPayment(data: { amount: number; phone_number: string; invoice_id?: number; use_loyalty_discount?: boolean }): Promise<CustomerPaymentInitiateResponse> {
+  async initiateIspPayment(data: { amount: number; phone_number: string; invoice_id?: number; reward_id?: number }): Promise<CustomerPaymentInitiateResponse> {
     return this.request<CustomerPaymentInitiateResponse>('/billing/payments/initiate/', {
       method: 'POST', body: JSON.stringify(data),
     })
@@ -336,13 +336,8 @@ class CustomerApiService {
     lifetime_points?: number
     tier_name?: string
     rewards?: Array<{ id: number; name: string; description: string; points_cost: number; discount_percent: string; affordable: boolean }>
-    discounts?: Array<{ id: number; percent: string; reward_name: string }>
   }> {
     return this.request('/loyalty/me/')
-  }
-
-  async redeemLoyaltyReward(rewardId: number): Promise<{ status: string; points_remaining: number; discount_percent: string }> {
-    return this.request('/loyalty/me/redeem/', { method: 'POST', body: JSON.stringify({ reward_id: rewardId }) })
   }
 
   /**
