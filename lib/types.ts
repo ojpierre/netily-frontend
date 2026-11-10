@@ -75,6 +75,7 @@ export interface CreateStaffUserRequest {
   gender?: StaffGender
   date_of_birth?: string
   custom_allowed_paths?: string[] | null
+  send_sms?: boolean
 }
 
 // Response from creating staff user

@@ -233,6 +233,7 @@ export default function DispatchPage() {
   const [jobForm, setJobForm] = useState({
     customer: "",
     ticket: "",
+    technician: "",
     job_type: "installation" as JobType,
     priority: "medium" as JobPriority,
     scheduled_date: "",
@@ -380,6 +381,7 @@ export default function DispatchPage() {
     setJobForm({
       customer: "",
       ticket: "",
+      technician: "",
       job_type: "installation",
       priority: "medium",
       scheduled_date: "",
@@ -394,6 +396,7 @@ export default function DispatchPage() {
     setJobForm({
       customer: String(job.customer || ""),
       ticket: job.ticket ? String(job.ticket) : "",
+      technician: job.assigned_to ? String(job.assigned_to) : "",
       job_type: job.job_type,
       priority: job.priority,
       scheduled_date: job.scheduled_date || "",
@@ -419,6 +422,7 @@ export default function DispatchPage() {
         description: jobForm.description,
         notes: jobForm.notes,
         ticket: jobForm.ticket ? Number(jobForm.ticket) : undefined,
+        ...(!editingJob && jobForm.technician ? { assigned_to: Number(jobForm.technician) } : {}),
       } as any
       if (editingJob) {
         await adminApi.updateDispatchJob(editingJob.id, payload)
@@ -527,7 +531,7 @@ export default function DispatchPage() {
     setJobForm((prev) => ({
       ...prev,
       ticket: ticketId,
-      customer: ticket ? String(ticket.customer_id) : prev.customer,
+      customer: ticket ? String((ticket as any).customer_id ?? (ticket as any).customer ?? "") : prev.customer,
       description: ticket ? `${ticket.subject}\n\n${ticket.description}` : prev.description,
       priority: ticket ? ticket.priority : prev.priority,
     }))
@@ -1356,6 +1360,19 @@ export default function DispatchPage() {
                 </Select>
               </div>
             </div>
+            {!editingJob && (
+              <div className="grid gap-2">
+                <Label>Assign Technician (optional, sends SMS)</Label>
+                <Select value={jobForm.technician} onValueChange={(v) => setJobForm({ ...jobForm, technician: v })}>
+                  <SelectTrigger><SelectValue placeholder="Assign later" /></SelectTrigger>
+                  <SelectContent>
+                    {technicians.filter(t => t.status !== 'offline').map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="scheduled_date">Date</Label>

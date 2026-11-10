@@ -272,6 +272,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     date_of_birth: "",
   })
   const [customAllowedPaths, setCustomAllowedPaths] = useState<string[]>([])
+  const [sendSms, setSendSms] = useState(true)
 
   const passwordValidation = useMemo(
     () => validatePassword(formData.password),
@@ -295,6 +296,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
       setErrors({})
       setCustomAllowedPaths([])
       setShowOptionalFields(false)
+      setSendSms(true)
     }
   }, [open])
 
@@ -358,6 +360,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         last_name: formData.last_name.trim(),
         role: formData.role === "custom" ? "staff" : formData.role as StaffRole,
         custom_allowed_paths: formData.role === "custom" ? normalizedCustomAllowedPaths : null,
+        send_sms: sendSms,
       }
 
       if (formData.phone_number?.trim()) payload.phone_number = normalizePhoneNumber(formData.phone_number)
@@ -608,6 +611,16 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                 ))}
               </div>
             )}
+
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="send-sms" className="text-sm font-medium">Send login details by SMS</Label>
+                <p className="text-xs text-muted-foreground">
+                  Sends role, email and password to the phone number above via your active SMS gateway.
+                </p>
+              </div>
+              <Switch id="send-sms" checked={sendSms} onCheckedChange={setSendSms} />
+            </div>
           </div>
 
           {/* Optional Fields */}
@@ -701,6 +714,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
     confirmPassword: "",
   })
   const [customAllowedPaths, setCustomAllowedPaths] = useState<string[]>([])
+  const [sendSms, setSendSms] = useState(false)
 
   useEffect(() => {
     if (user && open) {
@@ -714,6 +728,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
         confirmPassword: "",
       })
       setCustomAllowedPaths(user.custom_allowed_paths || [])
+      setSendSms(false)
       setErrors({})
     }
   }, [user, open])
@@ -764,6 +779,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
       }
       if (formData.new_password) {
         payload.new_password = formData.new_password
+        payload.send_sms = sendSms
       }
 
       await adminApi.updateStaffUser(user.id, payload)
@@ -945,6 +961,10 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
                     {req.label}
                   </Badge>
                 ))}
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                <Label htmlFor="edit-send-sms" className="text-sm font-medium">Send new password by SMS</Label>
+                <Switch id="edit-send-sms" checked={sendSms} onCheckedChange={setSendSms} />
               </div>
             </>
           )}
