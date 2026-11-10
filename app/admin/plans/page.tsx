@@ -284,6 +284,12 @@ function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, toggling
                   🎁 Free
                 </Badge>
               )}
+              {hp._routerName && (
+                <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5">
+                  <Signal className="w-3 h-3 mr-1" />
+                  Router: {hp._routerName}
+                </Badge>
+              )}
             </CardDescription>
           </div>
           <DropdownMenu>
@@ -701,6 +707,7 @@ export default function PlansPage() {
         _isHotspotPlan: true,
         _hotspotPlanId: hp.id,
         _routerId: routerId,
+        _routerName: routers.find(r => r.id === routerId)?.name,
         limitation_type: hp.limitation_type || 'UNLIMITED',
         data_limit_value: hp.data_limit_value,
         data_limit_unit: hp.data_limit_unit || 'MB',
@@ -722,7 +729,7 @@ export default function PlansPage() {
       console.error('Failed to fetch hotspot plans:', error)
       setHotspotPlans([])
     }
-  }, [])
+  }, [routers])
 
   // Fetch hotspot plans when router changes - updated for 'all'
   useEffect(() => {
@@ -1736,6 +1743,11 @@ export default function PlansPage() {
                               {plan.name}
                               {isFreeTrial && <Badge className="bg-green-500 text-white text-xs">Free</Badge>}
                               {plan.is_popular && <Zap className="w-3 h-3 text-warning" />}
+                              {hp._routerName && (
+                                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                                  {hp._routerName}
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price, baseCurrency)}</TableCell>

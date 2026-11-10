@@ -6,6 +6,7 @@ import {
   Play, Pause, Copy, Calendar, TrendingUp, BarChart3, Upload,
   ExternalLink, CheckCircle, AlertCircle, Settings, MousePointer,
   HardDrive, Gift, Clock, Wifi, X, Loader2, ToggleLeft, ToggleRight,
+  FileText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +21,8 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
+import { adminApi } from "@/lib/admin-api"
+import { toast } from "sonner"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +126,7 @@ export default function AdsPage() {
   const [previewAd, setPreviewAd] = useState<HotspotAd | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [exportingId, setExportingId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
@@ -260,6 +264,21 @@ export default function AdsPage() {
     }
   }
 
+  const handleExportReport = async (ad: HotspotAd) => {
+    setExportingId(ad.id)
+    try {
+      await adminApi.downloadFile(
+        `/hotspot/admin/ads/${ad.id}/report-pdf/`,
+        `ad-report-${ad.id}.pdf`
+      )
+      toast.success('Ad report downloaded')
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to export report')
+    } finally {
+      setExportingId(null)
+    }
+  }
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -388,6 +407,14 @@ export default function AdsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {perms.canViewDetails && <DropdownMenuItem onClick={() => setPreviewAd(ad)}><Eye className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>}
+                      {perms.canViewDetails && (
+                        <DropdownMenuItem onClick={() => handleExportReport(ad)} disabled={exportingId === ad.id}>
+                          {exportingId === ad.id
+                            ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            : <FileText className="w-4 h-4 mr-2" />}
+                          Export Report (PDF)
+                        </DropdownMenuItem>
+                      )}
                       {perms.canEdit && <DropdownMenuItem onClick={() => openEdit(ad)}><Edit className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>}
                       {perms.canDelete && (
                         <>
@@ -581,6 +608,11 @@ export default function AdsPage() {
             </div>
           )}
           <DialogFooter>
+            {previewAd && (
+              <Button onClick={() => handleExportReport(previewAd)} disabled={exportingId === previewAd.id}>
+                <FileText className="w-4 h-4 mr-2" />Export Report
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setPreviewAd(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
