@@ -184,6 +184,7 @@ import type {
   PointsTransaction,
   PointsRule,
   LoyaltyStats,
+  LoyaltySearchResult,
   // Hotspot Client Detail types
   HotspotClientDetailResponse,
   // Hotspot Chat types
@@ -4094,10 +4095,24 @@ async activateService(
     return this.request<LoyaltyMember>(`/loyalty/members/${id}/`)
   }
 
-  async awardPoints(memberId: number, points: number, reason?: string): Promise<PointsTransaction> {
+  async searchLoyaltyMembers(category: 'pppoe' | 'hotspot', q: string): Promise<LoyaltySearchResult[]> {
+    const res = await this.request<{ results: LoyaltySearchResult[] }>(
+      `/loyalty/members/search/?category=${category}&q=${encodeURIComponent(q)}`
+    )
+    return res.results || []
+  }
+
+  async awardPoints(data: {
+    member_id?: number
+    category?: 'pppoe' | 'hotspot'
+    target_id?: number
+    points: number
+    reason?: string
+    send_sms?: boolean
+  }): Promise<PointsTransaction> {
     return this.request<PointsTransaction>('/loyalty/members/award/', {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, points, reason }),
+      body: JSON.stringify(data),
     })
   }
 
@@ -4138,10 +4153,15 @@ async activateService(
     })
   }
 
-  async awardVoucher(memberId: number, voucherBatchId?: number, sendSms?: boolean): Promise<{ voucher_code: string; voucher_pin: string; member: string }> {
+  async awardVoucher(data: {
+    member_id?: number
+    target_id?: number
+    plan_id: string
+    send_sms?: boolean
+  }): Promise<{ voucher_code: string; plan_name: string; member: string; sms_sent: boolean }> {
     return this.request('/loyalty/rewards/award-voucher/', {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, voucher_batch_id: voucherBatchId, send_sms: sendSms ?? true }),
+      body: JSON.stringify(data),
     })
   }
 

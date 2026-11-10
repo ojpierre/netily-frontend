@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { adminApi } from "@/lib/admin-api"
 import {
   LoyaltyStats, LoyaltySettings, LoyaltyTier, LoyaltyMember,
-  LoyaltyReward, PointsTransaction, PointsRule, TierLevel, RewardCategory
+  LoyaltyReward, PointsTransaction, PointsRule, TierLevel, RewardCategory,
+  LoyaltySearchResult
 } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,7 +28,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   Trophy, Star, Gift, Users, TrendingUp, Award, Crown, Medal,
   Plus, Search, Loader2, RefreshCw, Zap, Edit, Trash2, Settings,
-  MessageSquare, Send, Ticket
+  MessageSquare, Send, Ticket, Tag
 } from "lucide-react"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -54,6 +55,8 @@ const tierIcons: Record<TierLevel | string, React.ReactNode> = {
 }
 
 const categoryLabels: Record<RewardCategory, string> = {
+  hotspot: "Hotspot (free WiFi)",
+  pppoe: "PPPoE (plan discount)",
   internet: "Internet / Data",
   credit: "Account Credit",
   voucher: "Hotspot Voucher",
@@ -76,34 +79,164 @@ export default function LoyaltyPage() {
   const [stats, setStats] = useState<LoyaltyStats | null>(null)
   const [settings, setSettings] = useState<LoyaltySettings | null>(null)
   const [tiers, setTiers] = useState<LoyaltyTier[]>([])
-  const [members, setMembers] = useState<LoyaltyMember[]>([])
   const [rewards, setRewards] = useState<LoyaltyReward[]>([])
-  const [transactions, setTransactions] = useState<PointsTransaction[]>([])
   const [rules, setRules] = useState<PointsRule[]>([])
   const [leaderboard, setLeaderboard] = useState<{ most_returning: LoyaltyMember[]; highest_spending: LoyaltyMember[]; top_points: LoyaltyMember[] }>({ most_returning: [], highest_spending: [], top_points: [] })
 
   // Loading / error
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [apiReady, setApiReady] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
 
-  // Search / filter
+  // Tab + member search
+  const [tab, setTab] = useState("members")
   const [memberSearch, setMemberSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(memberSearch.trim()), 350)
+    return () => clearTimeout(t)
+  }, [memberSearch])
 
-  // Award Points dialog
+  // Infinite lists (members + transactions)
+  const membersList = useInfiniteList<LoyaltyMember>(
+    (page) => adminApi.getLoyaltyMembers({ page: String(page), ...(debouncedSearch ? { search: debouncedSearch } : {}) }) as any,
+    `members:${debouncedSearch}`
+  )
+  const txList = useInfiniteList<PointsTransaction>(
+    (page) => adminApi.getLoyaltyTransactions({ page: String(page) }) as any,
+    "tx"
+  )
+  const members = membersList.items
+  const transactions = txList.items
+  const filteredMembers = members            // search is server-side now
+  const loading = membersList.loading
+
+  const loadStatic = useCallback(async (first = false) => {
+    try {
+      const [s, cfg, t, r, rl, lbPoints, lbSpent, lbReturning] = await Promise.all([
+        safeFetch(() => adminApi.getLoyaltyStats(), null),
+        safeFetch(() => adminApi.getLoyaltySettings(), null),
+        safeFetch(() => adminApi.getLoyaltyTiers(), []),
+        safeFetch(() => adminApi.getLoyaltyRewards(), []),
+        safeFetch(() => adminApi.getLoyaltyRules(), []),
+        safeFetch(() => adminApi.getLoyaltyLeaderboard('lifetime_points', 10), []),
+        safeFetch(() => adminApi.getLoyaltyLeaderboard('total_spent', 10), []),
+        safeFetch(() => adminApi.getLoyaltyLeaderboard('total_payments', 10), []),
+      ])
+      setApiReady(!!(s || cfg || t.length > 0))
+      setStats(s)
+      setTiers(t); setRewards(r); setRules(rl)
+      setLeaderboard({ top_points: lbPoints, highest_spending: lbSpent, most_returning: lbReturning })
+      if (cfg) { setSettings(cfg); if (first) setSettingsForm(cfg) }   // never overwrite unsaved edits
+    } catch {
+      setApiReady(false)
+    } finally {
+      if (first) setInitialLoading(false)
+    }
+  }, [])
+  useEffect(() => { loadStatic(true) }, [loadStatic])
+
+  // Light background refresh: stats only, never touches dialogs/lists/forms
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.hidden) return
+      safeFetch(() => adminApi.getLoyaltyStats(), null).then(s => { if (s) setStats(s) })
+    }, 30_000)
+    return () => clearInterval(t)
+  }, [])
+
+  const refreshAll = () => { loadStatic(); membersList.reload(); txList.reload() }
+
+  // ── Award points ──
+  type Picked = { category: "pppoe" | "hotspot"; target_id?: number; member_id?: number; name: string; phone?: string }
   const [awardDialog, setAwardDialog] = useState(false)
-  const [awardMemberId, setAwardMemberId] = useState<string>("")
+  const [awardCategory, setAwardCategory] = useState<"pppoe" | "hotspot">("pppoe")
+  const [awardPicked, setAwardPicked] = useState<Picked | null>(null)
   const [awardPoints, setAwardPointsValue] = useState("")
   const [awardReason, setAwardReason] = useState("")
   const [awardSMS, setAwardSMS] = useState(true)
   const [awardLoading, setAwardLoading] = useState(false)
 
-  // Award Voucher dialog
+  const openAward = (m?: LoyaltyMember) => {
+    if (m) {
+      const cat = m.customer_id ? "pppoe" : "hotspot"
+      setAwardCategory(cat)
+      setAwardPicked({ category: cat, member_id: m.id, name: m.name, phone: m.phone })
+    } else {
+      setAwardPicked(null)
+    }
+    setAwardDialog(true)
+  }
+  const closeAward = () => {
+    setAwardDialog(false); setAwardPicked(null); setAwardPointsValue(""); setAwardReason(""); setAwardSMS(true)
+  }
+
+  const handleAwardPoints = async () => {
+    if (!awardPicked || !awardPoints) return
+    setAwardLoading(true)
+    try {
+      await adminApi.awardPoints({
+        ...(awardPicked.member_id
+          ? { member_id: awardPicked.member_id }
+          : { category: awardPicked.category, target_id: awardPicked.target_id }),
+        points: Number(awardPoints),
+        reason: awardReason || undefined,
+        send_sms: awardSMS,
+      })
+      toast({ title: `+${awardPoints} points awarded to ${awardPicked.name}` })
+      closeAward()
+      refreshAll()
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Failed to award points", variant: "destructive" })
+    } finally {
+      setAwardLoading(false)
+    }
+  }
+
+  // ── Award voucher (hotspot only) ──
   const [voucherDialog, setVoucherDialog] = useState(false)
-  const [voucherMemberId, setVoucherMemberId] = useState<string>("")
-  const [voucherBatchId, setVoucherBatchId] = useState("")
+  const [voucherPicked, setVoucherPicked] = useState<Picked | null>(null)
+  const [voucherPlanId, setVoucherPlanId] = useState("")
   const [voucherSMS, setVoucherSMS] = useState(true)
   const [voucherLoading, setVoucherLoading] = useState(false)
+  const [hsPlans, setHsPlans] = useState<{ id: string; name: string }[]>([])
+
+  useEffect(() => {
+    if (!voucherDialog || hsPlans.length) return
+    adminApi.getAllHotspotPlans()
+      .then((r: any) => setHsPlans(Array.isArray(r) ? r : (r.results || [])))
+      .catch(() => {})
+  }, [voucherDialog, hsPlans.length])
+
+  const openVoucher = (m?: LoyaltyMember) => {
+    setVoucherPicked(m ? { category: "hotspot", member_id: m.id, name: m.name, phone: m.phone } : null)
+    setVoucherDialog(true)
+  }
+  const closeVoucher = () => {
+    setVoucherDialog(false); setVoucherPicked(null); setVoucherPlanId(""); setVoucherSMS(true)
+  }
+
+  const handleAwardVoucher = async () => {
+    if (!voucherPicked || !voucherPlanId) return
+    setVoucherLoading(true)
+    try {
+      const res = await adminApi.awardVoucher({
+        member_id: voucherPicked.member_id,
+        target_id: voucherPicked.target_id,
+        plan_id: voucherPlanId,
+        send_sms: voucherSMS,
+      })
+      toast({
+        title: `Voucher ${res.voucher_code} (${res.plan_name}) awarded`,
+        description: voucherSMS ? (res.sms_sent ? "SMS queued" : "No phone number on file - SMS not sent") : undefined,
+      })
+      closeVoucher()
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Failed to award voucher", variant: "destructive" })
+    } finally {
+      setVoucherLoading(false)
+    }
+  }
 
   // Reward dialog
   const [rewardDialog, setRewardDialog] = useState<"create" | "edit" | null>(null)
@@ -113,89 +246,6 @@ export default function LoyaltyPage() {
 
   // Settings form
   const [settingsForm, setSettingsForm] = useState<Partial<LoyaltySettings>>({})
-
-  // ─── Load all data (gracefully handles missing endpoints) ─────────────────
-
-  const loadAll = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [s, cfg, t, m, r, tx, rl, lbPoints, lbSpent, lbReturning] = await Promise.all([
-        safeFetch(() => adminApi.getLoyaltyStats(), null),
-        safeFetch(() => adminApi.getLoyaltySettings(), null),
-        safeFetch(() => adminApi.getLoyaltyTiers(), []),
-        safeFetch(() => adminApi.getLoyaltyMembers(), { results: [] } as any),
-        safeFetch(() => adminApi.getLoyaltyRewards(), []),
-        safeFetch(() => adminApi.getLoyaltyTransactions(), { results: [] } as any),
-        safeFetch(() => adminApi.getLoyaltyRules(), []),
-        safeFetch(() => adminApi.getLoyaltyLeaderboard('lifetime_points', 10), []),
-        safeFetch(() => adminApi.getLoyaltyLeaderboard('total_spent', 10), []),
-        safeFetch(() => adminApi.getLoyaltyLeaderboard('total_payments', 10), []),
-      ])
-
-      // Check if the API is deployed at all
-      const hasData = s || cfg || t.length > 0
-      setApiReady(hasData)
-
-      setStats(s)
-      if (cfg) { setSettings(cfg); setSettingsForm(cfg) }
-      setTiers(t)
-      setMembers(Array.isArray(m) ? m : (m.results ?? []))
-      setRewards(r)
-      setTransactions(Array.isArray(tx) ? tx : (tx.results ?? []))
-      setRules(rl)
-      setLeaderboard({ top_points: lbPoints, highest_spending: lbSpent, most_returning: lbReturning })
-    } catch {
-      setApiReady(false)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { loadAll() }, [loadAll])
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const timer = setInterval(() => { loadAll() }, 30_000)
-    return () => clearInterval(timer)
-  }, [loadAll])
-
-  // ─── Award Points ───────────────────────────────────────────────────────────
-
-  const handleAwardPoints = async () => {
-    if (!awardMemberId || !awardPoints) return
-    setAwardLoading(true)
-    try {
-      await adminApi.awardPoints(Number(awardMemberId), Number(awardPoints), awardReason || undefined)
-      const member = members.find(m => String(m.id) === awardMemberId)
-      toast({ title: `+${awardPoints} points awarded to ${member?.name ?? "member"}` })
-      setAwardDialog(false)
-      setAwardMemberId(""); setAwardPointsValue(""); setAwardReason("")
-      loadAll()
-    } catch (e: any) {
-      toast({ title: e?.message ?? "Failed to award points", variant: "destructive" })
-    } finally {
-      setAwardLoading(false)
-    }
-  }
-
-  // ─── Award Voucher ──────────────────────────────────────────────────────────
-
-  const handleAwardVoucher = async () => {
-    if (!voucherMemberId) return
-    setVoucherLoading(true)
-    try {
-      const res = await adminApi.awardVoucher(Number(voucherMemberId), voucherBatchId ? Number(voucherBatchId) : undefined, voucherSMS)
-      const member = members.find(m => String(m.id) === voucherMemberId)
-      toast({ title: `Voucher awarded to ${member?.name ?? "member"}${res?.voucher_code ? ` — Code: ${res.voucher_code}` : ""}` })
-      setVoucherDialog(false)
-      setVoucherMemberId(""); setVoucherBatchId(""); setVoucherSMS(true)
-      loadAll()
-    } catch (e: any) {
-      toast({ title: e?.message ?? "Failed to award voucher", variant: "destructive" })
-    } finally {
-      setVoucherLoading(false)
-    }
-  }
 
   // ─── Save Settings ──────────────────────────────────────────────────────────
 
@@ -216,18 +266,16 @@ export default function LoyaltyPage() {
 
   const openCreateReward = () => {
     setEditingReward(null)
-    setRewardForm({ 
-      status: "active", 
-      category: "other",
-      hotspot_reward_minutes: null,
-      hotspot_reward_speed_mbps: "5"
-    })
+    setRewardForm({ status: "active", category: "hotspot", hotspot_reward_minutes: null, hotspot_reward_speed_mbps: "5", discount_percent: null })
     setRewardDialog("create")
   }
 
   const openEditReward = (r: LoyaltyReward) => {
     setEditingReward(r)
-    setRewardForm({ ...r })
+    setRewardForm({
+      ...r,
+      category: r.category === "pppoe" ? "pppoe" : (r.hotspot_reward_minutes ? "hotspot" : r.category),
+    })
     setRewardDialog("edit")
   }
 
@@ -242,10 +290,9 @@ export default function LoyaltyPage() {
         toast({ title: "Reward created" })
       }
       setRewardDialog(null)
-      const updated = await safeFetch(() => adminApi.getLoyaltyRewards(), [])
-      setRewards(updated)
-    } catch {
-      toast({ title: "Failed to save reward", variant: "destructive" })
+      setRewards(await safeFetch(() => adminApi.getLoyaltyRewards(), []))
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Failed to save reward", variant: "destructive" })
     } finally {
       setRewardLoading(false)
     }
@@ -261,18 +308,9 @@ export default function LoyaltyPage() {
     }
   }
 
-  // ─── Filtered members ───────────────────────────────────────────────────────
-
-  const filteredMembers = members.filter(m =>
-    !memberSearch ||
-    m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
-    m.customer_code?.toLowerCase().includes(memberSearch.toLowerCase()) ||
-    m.phone?.includes(memberSearch)
-  )
-
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  if (loading && members.length === 0) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-72">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -294,13 +332,13 @@ export default function LoyaltyPage() {
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading} className="w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={refreshAll} disabled={loading} className="w-full sm:w-auto">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={() => setAwardDialog(true)} className="w-full sm:w-auto">
+          <Button size="sm" onClick={() => openAward()} className="w-full sm:w-auto">
             <Zap className="w-4 h-4 mr-2" /> Award Points
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setVoucherDialog(true)} className="w-full sm:w-auto">
+          <Button size="sm" variant="secondary" onClick={() => openVoucher()} className="w-full sm:w-auto">
             <Ticket className="w-4 h-4 mr-2" /> Award Voucher
           </Button>
         </div>
@@ -346,7 +384,7 @@ export default function LoyaltyPage() {
       )}
 
       {/* Main Tabs */}
-      <Tabs defaultValue="members">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="members" className="text-xs sm:text-sm"><Users className="w-4 h-4 mr-1 hidden sm:inline" /> Members</TabsTrigger>
           <TabsTrigger value="tiers" className="text-xs sm:text-sm"><Crown className="w-4 h-4 mr-1 hidden sm:inline" /> Tiers</TabsTrigger>
@@ -363,7 +401,7 @@ export default function LoyaltyPage() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <CardTitle>Loyalty Members</CardTitle>
-                  <CardDescription>Click on any member row to award points or vouchers</CardDescription>
+                  <CardDescription>Search by name, phone or username</CardDescription>
                 </div>
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -436,22 +474,31 @@ export default function LoyaltyPage() {
                         <div className="flex gap-1 shrink-0">
                           <Button
                             size="sm" variant="outline" className="h-7 px-2 text-xs"
-                            onClick={() => { setAwardMemberId(String(m.id)); setAwardDialog(true) }}
+                            onClick={() => openAward(m)}
                             title="Award Points"
                           >
                             <Zap className="w-3 h-3" />
                           </Button>
-                          <Button
-                            size="sm" variant="outline" className="h-7 px-2 text-xs"
-                            onClick={() => { setVoucherMemberId(String(m.id)); setVoucherDialog(true) }}
-                            title="Award Voucher"
-                          >
-                            <Ticket className="w-3 h-3" />
-                          </Button>
+                          {!m.customer_id && (
+                            <Button
+                              size="sm" variant="outline" className="h-7 px-2 text-xs"
+                              onClick={() => openVoucher(m)}
+                              title="Award Voucher"
+                            >
+                              <Ticket className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     )
                   })}
+                </div>
+              )}
+
+              {filteredMembers.length > 0 && (
+                <div ref={membersList.setSentinel} className="h-10 flex items-center justify-center">
+                  {membersList.loadingMore && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+                  {!membersList.hasMore && !membersList.loadingMore && <span className="text-xs text-muted-foreground">End of list</span>}
                 </div>
               )}
             </CardContent>
@@ -461,7 +508,7 @@ export default function LoyaltyPage() {
         {/* ── TIERS ── */}
         <TabsContent value="tiers" className="mt-4">
           {tiers.length === 0 ? (
-            <EmptyState icon={<Crown className="w-10 h-10 text-slate-300" />} title="No tiers configured" message="Deploy the loyalty backend and run populate_loyalty_members to create default tiers (Bronze → Silver → Gold → Platinum → Diamond)." />
+            <EmptyState icon={<Crown className="w-10 h-10 text-slate-300" />} title="No tiers yet" message="Tiers (Bronze to Diamond) are created automatically when you switch the Loyalty Program on in the Settings tab." />
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {tiers.map(tier => (
@@ -544,6 +591,9 @@ export default function LoyaltyPage() {
                           {r.hotspot_reward_minutes && (
                             <span className="text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0 rounded">🎁 {r.hotspot_reward_minutes} min WiFi</span>
                           )}
+                          {r.category === "pppoe" && r.discount_percent && (
+                            <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0 rounded">🏷️ {Number(r.discount_percent)}% off renewal</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -618,6 +668,13 @@ export default function LoyaltyPage() {
                   ))}
                 </div>
               )}
+
+              {transactions.length > 0 && (
+                <div ref={txList.setSentinel} className="h-10 flex items-center justify-center">
+                  {txList.loadingMore && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+                  {!txList.hasMore && !txList.loadingMore && <span className="text-xs text-muted-foreground">End of list</span>}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -636,8 +693,8 @@ export default function LoyaltyPage() {
             ).slice(0, 10)}
             valueKey="lifetime_points"
             valueFormat={v => fmtPts(v)}
-            onAward={(id) => { setAwardMemberId(String(id)); setAwardDialog(true) }}
-            onVoucher={(id) => { setVoucherMemberId(String(id)); setVoucherDialog(true) }}
+            onAward={openAward}
+            onVoucher={openVoucher}
           />
           <LeaderboardSection
             title="Highest Spenders"
@@ -651,8 +708,8 @@ export default function LoyaltyPage() {
             ).slice(0, 10)}
             valueKey="total_spent"
             valueFormat={v => kes(v)}
-            onAward={(id) => { setAwardMemberId(String(id)); setAwardDialog(true) }}
-            onVoucher={(id) => { setVoucherMemberId(String(id)); setVoucherDialog(true) }}
+            onAward={openAward}
+            onVoucher={openVoucher}
           />
           <LeaderboardSection
             title="Most Returning Customers"
@@ -666,8 +723,8 @@ export default function LoyaltyPage() {
             ).slice(0, 10)}
             valueKey="total_payments"
             valueFormat={v => v + " payments"}
-            onAward={(id) => { setAwardMemberId(String(id)); setAwardDialog(true) }}
-            onVoucher={(id) => { setVoucherMemberId(String(id)); setVoucherDialog(true) }}
+            onAward={openAward}
+            onVoucher={openVoucher}
           />
         </TabsContent>
 
@@ -689,40 +746,15 @@ export default function LoyaltyPage() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle>Expiry & Notifications</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Program</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <Label>Points Expiry Enabled</Label>
-                    <Switch checked={settingsForm.points_expiry_enabled ?? settings.points_expiry_enabled} onCheckedChange={v => setSettingsForm(p => ({ ...p, points_expiry_enabled: v }))} />
+                    <Label>Program Active</Label>
+                    <Switch checked={settingsForm.program_active ?? settings.program_active} onCheckedChange={v => setSettingsForm(p => ({ ...p, program_active: v }))} />
                   </div>
-                  <SettingField label="Expiry Window (months)" value={settingsForm.points_expiry_months ?? settings.points_expiry_months} onChange={v => setSettingsForm(p => ({ ...p, points_expiry_months: Number(v) }))} type="number" />
-                  <SettingField label="Expiry Warning (days before)" value={settingsForm.expiry_warning_days ?? settings.expiry_warning_days} onChange={v => setSettingsForm(p => ({ ...p, expiry_warning_days: Number(v) }))} type="number" />
-                  <div className="border-t pt-4 space-y-3">
-                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">SMS Notifications</p>
-                    {([
-                      ["notify_points_earned", "Points Earned"],
-                      ["notify_redemption", "Redemption"],
-                      ["notify_tier_upgrade", "Tier Upgrade"],
-                      ["notify_monthly_summary", "Monthly Summary"],
-                    ] as const).map(([key, label]) => (
-                      <div key={key} className="flex items-center justify-between">
-                        <Label className="text-sm">{label}</Label>
-                        <Switch
-                          checked={(settingsForm[key as keyof LoyaltySettings] as boolean) ?? (settings[key as keyof LoyaltySettings] as boolean)}
-                          onCheckedChange={v => setSettingsForm(p => ({ ...p, [key]: v }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t pt-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Program Active</Label>
-                      <Switch checked={settingsForm.program_active ?? settings.program_active} onCheckedChange={v => setSettingsForm(p => ({ ...p, program_active: v }))} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Auto-Enroll New Customers</Label>
-                      <Switch checked={settingsForm.auto_enroll_new_customers ?? settings.auto_enroll_new_customers} onCheckedChange={v => setSettingsForm(p => ({ ...p, auto_enroll_new_customers: v }))} />
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Auto-Enroll New Customers</Label>
+                    <Switch checked={settingsForm.auto_enroll_new_customers ?? settings.auto_enroll_new_customers} onCheckedChange={v => setSettingsForm(p => ({ ...p, auto_enroll_new_customers: v }))} />
                   </div>
                 </CardContent>
               </Card>
@@ -737,37 +769,28 @@ export default function LoyaltyPage() {
         </TabsContent>
       </Tabs>
 
-      {/* ── AWARD POINTS DIALOG ── */}
-      <Dialog open={awardDialog} onOpenChange={open => { if (!open) { setAwardDialog(false); setAwardMemberId(""); setAwardPointsValue(""); setAwardReason(""); setAwardSMS(true) } }}>
-        <DialogContent className="sm:max-w-[420px]">
+      {/* ── AWARD POINTS ── */}
+      <Dialog open={awardDialog} onOpenChange={open => { if (!open) closeAward() }}>
+        <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-warning" /> Award Points</DialogTitle>
-            <DialogDescription>Manually award loyalty points to a member</DialogDescription>
+            <DialogDescription>Search a PPPoE customer or hotspot user</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <div>
-              <Label className="text-sm mb-1.5 block">Member</Label>
-              <Select value={awardMemberId} onValueChange={setAwardMemberId}>
-                <SelectTrigger><SelectValue placeholder="Select a member…" /></SelectTrigger>
-                <SelectContent>
-                  {members.map(m => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name} ({m.customer_code}) — {m.current_points.toLocaleString()} pts
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-2">
+              {(["pppoe", "hotspot"] as const).map(c => (
+                <Button key={c} type="button" variant={awardCategory === c ? "default" : "outline"} size="sm"
+                  onClick={() => { setAwardCategory(c); setAwardPicked(null) }}>
+                  {c === "pppoe" ? "PPPoE" : "Hotspot"}
+                </Button>
+              ))}
             </div>
+            <MemberPicker category={awardCategory} picked={awardPicked}
+              onPick={r => setAwardPicked({ category: r.category, target_id: r.id, name: r.name, phone: r.phone })}
+              onClear={() => setAwardPicked(null)} />
             <div>
               <Label className="text-sm mb-1.5 block">Points to Award</Label>
               <Input type="number" min={1} placeholder="e.g. 100" value={awardPoints} onChange={e => setAwardPointsValue(e.target.value)} />
-              {awardPoints && Number(awardPoints) > 0 && awardMemberId && (
-                <p className="text-xs text-success mt-1">
-                  Member will have {(
-                    (members.find(m => String(m.id) === awardMemberId)?.current_points ?? 0) + Number(awardPoints)
-                  ).toLocaleString()} total points after award
-                </p>
-              )}
             </div>
             <div>
               <Label className="text-sm mb-1.5 block">Reason</Label>
@@ -790,38 +813,32 @@ export default function LoyaltyPage() {
               </div>
               <Switch checked={awardSMS} onCheckedChange={setAwardSMS} />
             </div>
-            <Button className="w-full" disabled={awardLoading || !awardMemberId || !awardPoints} onClick={handleAwardPoints}>
+            <Button className="w-full" disabled={awardLoading || !awardPicked || !awardPoints} onClick={handleAwardPoints}>
               {awardLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Awarding…</> : <><Zap className="w-4 h-4 mr-2" /> Award {awardPoints ? `${Number(awardPoints).toLocaleString()} Points` : "Points"}</>}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* ── AWARD VOUCHER DIALOG ── */}
-      <Dialog open={voucherDialog} onOpenChange={open => { if (!open) { setVoucherDialog(false); setVoucherMemberId(""); setVoucherBatchId(""); setVoucherSMS(true) } }}>
-        <DialogContent className="sm:max-w-[420px]">
+      {/* ── AWARD VOUCHER (hotspot only) ── */}
+      <Dialog open={voucherDialog} onOpenChange={open => { if (!open) closeVoucher() }}>
+        <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Award Voucher</DialogTitle>
-            <DialogDescription>Award a hotspot voucher to a loyalty member via SMS</DialogDescription>
+            <DialogDescription>Generate a hotspot plan voucher for a hotspot user</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
+            <MemberPicker category="hotspot" picked={voucherPicked}
+              onPick={r => setVoucherPicked({ category: "hotspot", target_id: r.id, name: r.name, phone: r.phone })}
+              onClear={() => setVoucherPicked(null)} />
             <div>
-              <Label className="text-sm mb-1.5 block">Member</Label>
-              <Select value={voucherMemberId} onValueChange={setVoucherMemberId}>
-                <SelectTrigger><SelectValue placeholder="Select a member…" /></SelectTrigger>
+              <Label className="text-sm mb-1.5 block">Hotspot Plan</Label>
+              <Select value={voucherPlanId} onValueChange={setVoucherPlanId}>
+                <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
                 <SelectContent>
-                  {members.map(m => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name} ({m.customer_code}) — {m.phone}
-                    </SelectItem>
-                  ))}
+                  {hsPlans.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label className="text-sm mb-1.5 block">Voucher Batch ID (optional)</Label>
-              <Input type="number" min={1} placeholder="Leave blank for default batch" value={voucherBatchId} onChange={e => setVoucherBatchId(e.target.value)} />
-              <p className="text-xs text-muted-foreground mt-1">Links to a specific voucher batch if configured</p>
             </div>
             <div className="flex items-center justify-between bg-primary/10 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
@@ -830,7 +847,7 @@ export default function LoyaltyPage() {
               </div>
               <Switch checked={voucherSMS} onCheckedChange={setVoucherSMS} />
             </div>
-            <Button className="w-full bg-primary hover:bg-primary" disabled={voucherLoading || !voucherMemberId} onClick={handleAwardVoucher}>
+            <Button className="w-full" disabled={voucherLoading || !voucherPicked || !voucherPlanId} onClick={handleAwardVoucher}>
               {voucherLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Awarding…</> : <><Ticket className="w-4 h-4 mr-2" /> Award Voucher</>}
             </Button>
           </div>
@@ -859,10 +876,14 @@ export default function LoyaltyPage() {
               </div>
               <div>
                 <Label className="text-sm mb-1.5 block">Category</Label>
-                <Select value={rewardForm.category ?? "other"} onValueChange={v => setRewardForm(p => ({ ...p, category: v as RewardCategory }))}>
+                <Select value={rewardForm.category ?? "hotspot"} onValueChange={v => setRewardForm(p => ({ ...p, category: v as RewardCategory }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    <SelectItem value="hotspot">Hotspot (free WiFi time)</SelectItem>
+                    <SelectItem value="pppoe">PPPoE (plan discount)</SelectItem>
+                    {rewardForm.category && !["hotspot", "pppoe"].includes(rewardForm.category) && (
+                      <SelectItem value={rewardForm.category}>{categoryLabels[rewardForm.category]} (legacy)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -885,42 +906,57 @@ export default function LoyaltyPage() {
             </div>
 
             {/* Hotspot reward fields */}
-            <div className="md:col-span-2 border-t pt-4">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3">
-                📡 Hotspot Redemption (leave blank for non-hotspot rewards)
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm mb-1.5 block">Free Minutes</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    placeholder="e.g. 30"
-                    value={rewardForm.hotspot_reward_minutes ?? ''}
-                    onChange={e => setRewardForm(p => ({
-                      ...p,
-                      hotspot_reward_minutes: e.target.value ? Number(e.target.value) : null
-                    }))}
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Minutes of free WiFi given on redemption</p>
-                </div>
-                <div>
-                  <Label className="text-sm mb-1.5 block">Speed (Mbps)</Label>
-                  <Input
-                    type="text"
-                    placeholder="e.g. 5"
-                    value={rewardForm.hotspot_reward_speed_mbps ?? '5'}
-                    onChange={e => setRewardForm(p => ({
-                      ...p,
-                      hotspot_reward_speed_mbps: e.target.value
-                    }))}
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Speed during the reward session</p>
+            {rewardForm.category !== "pppoe" && (
+              <div className="md:col-span-2 border-t pt-4">
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3">
+                  📡 Hotspot Redemption (leave blank for non-hotspot rewards)
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm mb-1.5 block">Free Minutes</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="e.g. 30"
+                      value={rewardForm.hotspot_reward_minutes ?? ''}
+                      onChange={e => setRewardForm(p => ({
+                        ...p,
+                        hotspot_reward_minutes: e.target.value ? Number(e.target.value) : null
+                      }))}
+                    />
+                    <p className="text-xs text-slate-400 mt-1">Minutes of free WiFi given on redemption</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm mb-1.5 block">Speed (Mbps)</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. 5"
+                      value={rewardForm.hotspot_reward_speed_mbps ?? '5'}
+                      onChange={e => setRewardForm(p => ({
+                        ...p,
+                        hotspot_reward_speed_mbps: e.target.value
+                      }))}
+                    />
+                    <p className="text-xs text-slate-400 mt-1">Speed during the reward session</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <Button className="w-full" disabled={rewardLoading || !rewardForm.name || !rewardForm.points_cost} onClick={handleSaveReward}>
+            {rewardForm.category === "pppoe" && (
+              <div className="border-t pt-4">
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3">🏷️ PPPoE plan discount</p>
+                <Label className="text-sm mb-1.5 block">Discount (%)</Label>
+                <Input type="number" min={1} max={100} placeholder="e.g. 20"
+                  value={rewardForm.discount_percent ?? ""}
+                  onChange={e => setRewardForm(p => ({ ...p, discount_percent: e.target.value ? Number(e.target.value) : null }))} />
+                <p className="text-xs text-slate-400 mt-1">Customers redeem points for a coupon that discounts their next renewal payment.</p>
+              </div>
+            )}
+
+            <Button className="w-full" disabled={rewardLoading || !rewardForm.name || !rewardForm.points_cost ||
+              (rewardForm.category === "pppoe" && !rewardForm.discount_percent) ||
+              (rewardForm.category === "hotspot" && !rewardForm.hotspot_reward_minutes)} onClick={handleSaveReward}>
               {rewardLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : "Save Reward"}
             </Button>
           </div>
@@ -972,8 +1008,8 @@ function LeaderboardSection({
   members: LoyaltyMember[]
   valueKey: keyof LoyaltyMember
   valueFormat: (v: number) => string
-  onAward: (memberId: number) => void
-  onVoucher: (memberId: number) => void
+  onAward: (m: LoyaltyMember) => void
+  onVoucher: (m: LoyaltyMember) => void
 }) {
   const colorMap = {
     violet: {
@@ -1076,12 +1112,14 @@ function LeaderboardSection({
 
                   {/* Quick actions */}
                   <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onAward(m.id)} title="Award Points">
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onAward(m)} title="Award Points">
                       <Zap className="w-3.5 h-3.5 text-warning" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onVoucher(m.id)} title="Award Voucher">
-                      <Ticket className="w-3.5 h-3.5 text-primary" />
-                    </Button>
+                    {!m.customer_id && (
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onVoucher(m)} title="Award Voucher">
+                        <Ticket className="w-3.5 h-3.5 text-primary" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               )
@@ -1099,6 +1137,125 @@ function SettingField({ label, hint, value, onChange, type = "text" }: { label: 
       <Label className="text-sm mb-1.5 block">{label}</Label>
       <Input type={type} value={value} onChange={e => onChange(e.target.value)} />
       {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
+    </div>
+  )
+}
+
+// ─── Hook + Picker (bottom of file) ──────────────────────────────────────────
+
+function useInfiniteList<T>(
+  fetchPage: (page: number) => Promise<{ results: T[]; next: string | null }>,
+  key: string
+) {
+  const [items, setItems] = useState<T[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null)
+  const pageRef = useRef(1)
+  const reqRef = useRef(0)
+  const busyRef = useRef(false)
+  const fetchRef = useRef(fetchPage)
+  fetchRef.current = fetchPage
+
+  const load = useCallback(async (reset: boolean) => {
+    if (!reset && busyRef.current) return
+    const req = ++reqRef.current
+    busyRef.current = true
+    const page = reset ? 1 : pageRef.current + 1
+    if (reset) setLoading(true); else setLoadingMore(true)
+    try {
+      const res = await fetchRef.current(page)
+      if (req !== reqRef.current) return
+      pageRef.current = page
+      setItems(prev => (reset ? res.results : [...prev, ...res.results]))
+      setHasMore(!!res.next)
+    } catch {
+      if (req === reqRef.current && reset) { setItems([]); setHasMore(false) }
+    } finally {
+      if (req === reqRef.current) { busyRef.current = false; setLoading(false); setLoadingMore(false) }
+    }
+  }, [])
+
+  useEffect(() => { load(true) }, [key, load])
+
+  useEffect(() => {
+    if (!sentinel || !hasMore) return
+    const io = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) load(false) },
+      { rootMargin: "300px" }
+    )
+    io.observe(sentinel)
+    return () => io.disconnect()
+  }, [sentinel, hasMore, items.length, load])
+
+  return { items, loading, loadingMore, hasMore, setSentinel, reload: () => load(true) }
+}
+
+function MemberPicker({ category, picked, onPick, onClear }: {
+  category: "pppoe" | "hotspot"
+  picked: { name: string; phone?: string } | null
+  onPick: (r: LoyaltySearchResult) => void
+  onClear: () => void
+}) {
+  const [q, setQ] = useState("")
+  const [results, setResults] = useState<LoyaltySearchResult[]>([])
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const term = q.trim()
+    if (term.length < 3) { setResults([]); return }
+    let cancelled = false
+    const t = setTimeout(async () => {
+      setBusy(true)
+      try {
+        const r = await adminApi.searchLoyaltyMembers(category, term)
+        if (!cancelled) setResults(r)
+      } catch {
+        if (!cancelled) setResults([])
+      } finally {
+        if (!cancelled) setBusy(false)
+      }
+    }, 350)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [q, category])
+
+  if (picked) {
+    return (
+      <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{picked.name}</p>
+          {picked.phone && <p className="text-xs text-muted-foreground">{picked.phone}</p>}
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onClear}>Change</Button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Label className="text-sm mb-1.5 block">{category === "pppoe" ? "Customer (name, phone, username)" : "Hotspot user (phone or username)"}</Label>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Input className="pl-9" placeholder="Type at least 3 characters…" value={q} onChange={e => setQ(e.target.value)} />
+        {busy && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
+      </div>
+      {results.length > 0 && (
+        <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border divide-y">
+          {results.map(r => (
+            <button key={`${r.category}-${r.id}`} type="button" onClick={() => onPick(r)}
+              className="w-full text-left px-3 py-2 hover:bg-muted transition-colors">
+              <p className="text-sm font-medium">{r.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {[r.phone, r.username || r.code].filter(Boolean).join(" · ")} · {r.points.toLocaleString()} pts
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
+      {q.trim().length >= 3 && !busy && results.length === 0 && (
+        <p className="text-xs text-muted-foreground mt-2">No matches found.</p>
+      )}
     </div>
   )
 }

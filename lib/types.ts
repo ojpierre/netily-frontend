@@ -3657,7 +3657,7 @@ export interface CustomerPlan {
 
 export type TierLevel = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
 export type RewardStatus = 'active' | 'inactive' | 'expired'
-export type RewardCategory = 'internet' | 'credit' | 'voucher' | 'discount' | 'hardware' | 'other'
+export type RewardCategory = 'hotspot' | 'pppoe' | 'internet' | 'credit' | 'voucher' | 'discount' | 'hardware' | 'other'
 export type TransactionType = 'earned' | 'redeemed' | 'expired' | 'bonus' | 'adjusted'
 export type RuleTrigger = 'payment' | 'signup' | 'referral' | 'tenure_monthly' | 'plan_upgrade' | 'manual'
 
@@ -3726,6 +3726,7 @@ export interface LoyaltyReward {
   is_available: boolean
   hotspot_reward_minutes?: number | null
   hotspot_reward_speed_mbps?: string
+  discount_percent?: string | number | null
 }
 
 export interface PointsTransaction {
@@ -3874,4 +3875,19 @@ export interface ExpenseSummary {
   series: { month: string; label: string; spent: number; budget: number }[]
   categories: { category: string; total: number }[]
   inventory: { total: number; available: number; assigned: number; in_use: number; maintenance: number; faulty: number }
+}
+
+
+// ==========================================
+// LOYALTY SEARCH (Admin — picker for award points/voucher)
+// ==========================================
+
+export interface LoyaltySearchResult {
+  id: number
+  category: 'pppoe' | 'hotspot'
+  name: string
+  phone: string
+  code: string
+  username: string
+  points: number
 }

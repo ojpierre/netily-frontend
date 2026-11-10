@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Package,
   ChevronLeft,
+  Gift,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Invoices", href: "/customer/invoices", icon: FileText },
   { name: "Usage", href: "/customer/usage", icon: BarChart3 },
   { name: "Receipts", href: "/customer/receipts", icon: Receipt },
+  { name: "Rewards", href: "/customer/rewards", icon: Gift },
   { name: "Profile", href: "/customer/profile", icon: User },
   { name: "Support", href: "/customer/support", icon: HelpCircle },
 ]
