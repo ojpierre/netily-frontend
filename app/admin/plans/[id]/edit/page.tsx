@@ -774,15 +774,17 @@ export default function EditPlanPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="burst_threshold">Threshold (KB)</Label>
+                      <Label htmlFor="burst_threshold">Burst Threshold (Kbps)</Label>
                       <Input
                         id="burst_threshold"
                         type="number"
                         value={formData.burst_threshold}
                         onChange={(e) => handleChange("burst_threshold", e.target.value)}
-                        placeholder="2048"
+                        placeholder="1000"
                       />
-                      <p className="text-xs text-slate-500">Burst stops after this many KB transferred</p>
+                      <p className="text-xs text-slate-500">
+                        Burst only applies while average speed is below this. Leave blank for auto (75% of normal speed).
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="burst_time">Duration (sec)</Label>

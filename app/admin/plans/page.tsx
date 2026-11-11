@@ -2197,14 +2197,17 @@ export default function PlansPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Burst Threshold (KB)</Label>
+                    <Label className="text-xs">Burst Threshold (Kbps)</Label>
                     <Input
                       type="number"
                       value={planForm.burst_threshold}
                       onChange={(e) => setPlanForm({ ...planForm, burst_threshold: e.target.value })}
-                      placeholder="e.g., 2048"
+                      placeholder="e.g., 1000"
                       className="h-8 text-sm"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Burst only applies while average speed is below this. Leave blank for auto (75% of normal speed).
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Burst Time (sec)</Label>
@@ -2485,10 +2488,13 @@ export default function PlansPage() {
                       placeholder="50" className="h-9" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Threshold (KB)</Label>
+                    <Label className="text-xs">Burst Threshold (Kbps)</Label>
                     <Input type="number" value={planForm.burst_threshold}
                       onChange={(e) => setPlanForm({ ...planForm, burst_threshold: e.target.value })}
-                      placeholder="2048" className="h-9" />
+                      placeholder="1000" className="h-9" />
+                    <p className="text-xs text-muted-foreground">
+                      Burst only applies while average speed is below this. Leave blank for auto (75% of normal speed).
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Burst Time (sec)</Label>
