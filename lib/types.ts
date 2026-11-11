@@ -3893,3 +3893,38 @@ export interface LoyaltySearchResult {
   username: string
   points: number
 }
+
+
+// ==========================================
+// LOAD BALANCING (Multi-WAN)
+// ==========================================
+
+export type LoadBalanceMode = 'dhcp' | 'pppoe' | 'static'
+
+export interface LoadBalanceUplink {
+  name: string
+  mode: LoadBalanceMode
+  port: string
+  vlan_id: string | number | null
+  monitor_ip: string
+  weight: number
+  pppoe_username?: string
+  pppoe_password?: string
+  has_password?: boolean
+  address?: string
+  prefix?: string | number
+  gateway?: string
+  slug?: string
+}
+
+export interface LoadBalanceState {
+  configured: boolean
+  is_enabled: boolean
+  uplinks: LoadBalanceUplink[]
+  script_hash?: string
+  applied_hash?: string
+  in_sync: boolean
+  last_applied_at?: string | null
+  magic_link?: string
+  script_preview?: string
+}

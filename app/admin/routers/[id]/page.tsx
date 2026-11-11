@@ -52,6 +52,7 @@ import {
   Cable,
   Palette,
   DollarSign,
+  Scale,
 } from "lucide-react"
 import {
   RouterOverviewTab,
@@ -66,6 +67,7 @@ import {
   RouterPortManagerTab,
   RouterPortalSettingsTab,
   RouterDiagnoseTab,
+  RouterLoadBalanceTab,
 } from "./components"
 import { RouterReachabilityChart } from "./components/router-reachability-chart"
 import { Button } from "@/components/ui/button"
@@ -1197,6 +1199,10 @@ export default function RouterDetailPage() {
             <ShieldCheck className="w-4 h-4" />
             <span className="hidden sm:inline">Diagnose</span>
           </TabsTrigger>
+          <TabsTrigger value="load-balance" className="gap-2">
+            <Scale className="w-4 h-4" />
+            <span className="hidden sm:inline">Load Balancing</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Live Status Tab - UPDATED with Reachability Chart */}
@@ -1992,6 +1998,11 @@ export default function RouterDetailPage() {
         {/* Diagnose Tab */}
         <TabsContent value="diagnose" className="mt-6">
           <RouterDiagnoseTab routerId={parseInt(routerId)} />
+        </TabsContent>
+
+        {/* Load Balancing Tab */}
+        <TabsContent value="load-balance" className="mt-6">
+          <RouterLoadBalanceTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
       </Tabs>
 

@@ -59,6 +59,10 @@ import type {
   RouterReachabilityResponse,
   RouterDashboardStats,
   RouterVPNStatus,
+  // Load Balancing
+  LoadBalanceMode,
+  LoadBalanceUplink,
+  LoadBalanceState,
   // Router Live Management types
   RouterLiveStatus,
   RouterSystemHealth,
@@ -5460,6 +5464,27 @@ async activateService(
     if (sessionTokenLooksAdmin && !localTokenLooksAdmin) return sessionStorage
 
     return sessionStorage
+  }
+
+  // ------------------------------------------
+  // LOAD BALANCING - /network/routers/{id}/load-balance/
+  // ------------------------------------------
+
+  async getLoadBalance(id: number): Promise<LoadBalanceState> {
+    return this.request<LoadBalanceState>(`/network/routers/${id}/load-balance/`)
+  }
+
+  async saveLoadBalance(id: number, uplinks: LoadBalanceUplink[]): Promise<LoadBalanceState> {
+    return this.request<LoadBalanceState>(`/network/routers/${id}/load-balance/`, {
+      method: 'PUT',
+      body: JSON.stringify({ uplinks }),
+    })
+  }
+
+  async disableLoadBalance(id: number): Promise<LoadBalanceState> {
+    return this.request<LoadBalanceState>(`/network/routers/${id}/load-balance/`, {
+      method: 'DELETE',
+    })
   }
 }
 
