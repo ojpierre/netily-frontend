@@ -162,7 +162,6 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
   const hddFree = (parseInt(liveStatus.free_hdd) / 1024 / 1024).toFixed(1)
 
   const cpuColor = cpuLoad >= 85 ? 'red' : cpuLoad >= 65 ? 'amber' : 'blue'
-  const memColor = memory.usedPercent >= 85 ? 'red' : memory.usedPercent >= 65 ? 'amber' : 'purple'
 
   return (
     <div className="space-y-6">
@@ -187,16 +186,6 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
         </Button>
       </div>
 
-      <MatrixStatusBoard
-        meta={lastUpdated ? `UPDATED ${lastUpdated.toLocaleTimeString()}` : undefined}
-        rows={[
-          { label: "STATUS", value: liveStatus.online ? "ONLINE" : "OFFLINE", tone: liveStatus.online ? "ok" : "bad" },
-          { label: "CPU", value: `${cpuLoad}%`, tone: cpuLoad >= 85 ? "bad" : cpuLoad >= 65 ? "warn" : "ok" },
-          { label: "MEMORY", value: `${Math.round(memory.usedPercent)}%`, tone: memory.usedPercent >= 85 ? "bad" : memory.usedPercent >= 65 ? "warn" : "ok" },
-          { label: "UPTIME", value: String(liveStatus.uptime ?? "-") },
-        ]}
-      />
-
       {/* Identity Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -219,81 +208,47 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
         ))}
       </div>
 
-      {/* Resource Gauges */}
-      <div className="grid md:grid-cols-2 gap-5">
-        {/* CPU */}
+      {/* Live status board + combined CPU / Memory */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <MatrixStatusBoard
+          className="h-full"
+          meta={lastUpdated ? `UPDATED ${lastUpdated.toLocaleTimeString()}` : undefined}
+          rows={[
+            { label: "STATUS", value: liveStatus.online ? "ONLINE" : "OFFLINE", tone: liveStatus.online ? "ok" : "bad" },
+            { label: "CPU", value: `${cpuLoad}%`, tone: cpuLoad >= 85 ? "bad" : cpuLoad >= 65 ? "warn" : "ok" },
+            { label: "MEMORY", value: `${Math.round(memory.usedPercent)}%`, tone: memory.usedPercent >= 85 ? "bad" : memory.usedPercent >= 65 ? "warn" : "ok" },
+            { label: "UPTIME", value: String(liveStatus.uptime ?? "-") },
+          ]}
+        />
+
         <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-          <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 90% -10%, ${cpuLoad >= 85 ? 'rgba(239,68,68,0.2)' : cpuLoad >= 65 ? 'rgba(245,158,11,0.2)' : 'rgba(59,130,246,0.15)'}, transparent 60%)` }} />
           <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${cpuLoad >= 85 ? 'from-red-400 to-rose-500' : cpuLoad >= 65 ? 'from-amber-400 to-orange-500' : 'from-blue-400 to-indigo-500'}`} />
-          <div className="relative flex items-center gap-6">
-            <ArcGauge value={cpuLoad} color={cpuColor} size={120} />
-            <div className="flex-1 space-y-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${cpuLoad >= 85 ? 'from-red-400 to-rose-500' : cpuLoad >= 65 ? 'from-amber-400 to-orange-500' : 'from-blue-400 to-indigo-500'}`}>
-                    <Cpu className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">CPU Usage</p>
-                </div>
-                <p className="text-xs text-slate-400">{cpuLoad}% utilization</p>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                  <span>0%</span><span>50%</span><span>100%</span>
-                </div>
-                <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${cpuLoad >= 85 ? 'bg-gradient-to-r from-red-400 to-rose-500' : cpuLoad >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}
-                    style={{ width: `${cpuLoad}%` }}
-                  />
-                </div>
-                <div className="flex gap-3">
-                  {[{ label: 'Normal', dot: 'bg-primary/40' }, { label: 'High', dot: 'bg-warning' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
-                    <div key={t.label} className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
-                      <span className="text-[10px] text-slate-400">{t.label}</span>
-                    </div>
-                  ))}
-                </div>
+          <div className="relative flex h-full items-center gap-6">
+            {/* CPU — circle */}
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <ArcGauge value={cpuLoad} color={cpuColor} size={120} />
+              <div className="flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-sm font-semibold text-foreground">CPU</span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Memory */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-          <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 90% -10%, ${memory.usedPercent >= 85 ? 'rgba(239,68,68,0.2)' : memory.usedPercent >= 65 ? 'rgba(245,158,11,0.2)' : 'rgba(139,92,246,0.15)'}, transparent 60%)` }} />
-          <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${memory.usedPercent >= 85 ? 'from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'from-amber-400 to-orange-500' : 'from-purple-400 to-violet-500'}`} />
-          <div className="relative flex items-center gap-6">
-            <ArcGauge value={memory.usedPercent} color={memColor} size={120} />
-            <div className="flex-1 space-y-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${memory.usedPercent >= 85 ? 'from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'from-amber-400 to-orange-500' : 'from-purple-400 to-violet-500'}`}>
-                    <HardDrive className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">Memory Usage</p>
-                </div>
-                <p className="text-xs text-slate-400">{memory.freeMB} MB free of {memory.totalMB} MB</p>
+            {/* Memory — bar */}
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="flex items-center gap-2">
+                <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                <p className="text-sm font-semibold text-foreground">Memory Usage</p>
+                <span className="ml-auto text-sm font-bold tabular-nums text-foreground">{Math.round(memory.usedPercent)}%</span>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                  <span>0%</span><span>50%</span><span>100%</span>
-                </div>
-                <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${memory.usedPercent >= 85 ? 'bg-gradient-to-r from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-purple-400 to-violet-500'}`}
-                    style={{ width: `${Math.min(100, memory.usedPercent)}%` }}
-                  />
-                </div>
-                <div className="flex gap-3">
-                  {[{ label: 'Normal', dot: 'bg-purple-400' }, { label: 'High', dot: 'bg-warning' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
-                    <div key={t.label} className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
-                      <span className="text-[10px] text-slate-400">{t.label}</span>
-                    </div>
-                  ))}
-                </div>
+              <p className="text-xs text-slate-400">{memory.freeMB} MB free of {memory.totalMB} MB</p>
+              <div className="relative h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${memory.usedPercent >= 85 ? 'bg-gradient-to-r from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-purple-400 to-violet-500'}`}
+                  style={{ width: `${Math.min(100, memory.usedPercent)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+                <span>0%</span><span>50%</span><span>100%</span>
               </div>
             </div>
           </div>

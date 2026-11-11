@@ -69,10 +69,10 @@ const PATHS: Record<string, string> = Object.fromEntries(
 )
 
 const TONE: Record<MatrixTone, string> = {
-  ok: "text-emerald-400",
-  warn: "text-amber-400",
-  bad: "text-red-400",
-  neutral: "text-zinc-100",
+  ok: "text-emerald-600 dark:text-emerald-400",
+  warn: "text-amber-600 dark:text-amber-400",
+  bad: "text-red-600 dark:text-red-400",
+  neutral: "text-foreground",
 }
 
 const Glyph = memo(function Glyph({ ch }: { ch: string }) {
@@ -86,7 +86,7 @@ const Glyph = memo(function Glyph({ ch }: { ch: string }) {
 
 const Cell = memo(function Cell({ ch, index, reduce }: { ch: string; index: number; reduce: boolean }) {
   return (
-    <span aria-hidden className="relative inline-block w-[clamp(9px,3vw,16px)] shrink-0 overflow-hidden">
+    <span aria-hidden className="relative inline-block w-[clamp(8px,1.4vw,14px)] shrink-0 overflow-hidden">
       <span className="invisible block">
         <Glyph ch="0" />
       </span>
@@ -126,17 +126,11 @@ export function MatrixStatusBoard({
   return (
     <section
       aria-label={title}
-      className={cn("w-full overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-sm", className)}
+      className={cn("w-full overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm", className)}
     >
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-2.5 sm:px-5">
-        <p className="flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
-            <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          </span>
-          {title}
-        </p>
-        {meta && <p className="font-mono text-[9px] tracking-[0.12em] text-zinc-600">{meta}</p>}
+      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 sm:px-5">
+        <p className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground">{title}</p>
+        {meta && <p className="font-mono text-[9px] tracking-[0.12em] text-muted-foreground/70">{meta}</p>}
       </header>
       <ul className="m-0 list-none p-0">
         {rows.map((row) => {
@@ -146,9 +140,9 @@ export function MatrixStatusBoard({
           return (
             <li
               key={row.label}
-              className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 border-b border-zinc-800/70 px-4 py-2.5 last:border-0 sm:grid-cols-[120px_minmax(0,1fr)] sm:px-5"
+              className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 border-b border-border/60 px-4 py-3 last:border-0 sm:grid-cols-[100px_minmax(0,1fr)] sm:px-5"
             >
-              <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">{row.label}</span>
+              <span className="font-mono text-[10px] tracking-[0.14em] text-muted-foreground">{row.label}</span>
               <span className="sr-only">{`${row.label}: ${row.value}`}</span>
               <div className={cn("inline-flex items-center gap-[2px]", TONE[row.tone ?? "neutral"])}>
                 {chars.map((ch, i) => (

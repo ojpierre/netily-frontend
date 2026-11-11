@@ -2,21 +2,22 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-  Activity,
   CheckCircle2,
-  Clock3,
   Edit3,
   Loader2,
   Map as MapIcon,
+  Maximize2,
   MoreVertical,
   Plus,
   Radio,
   RefreshCw,
   Router,
-  Save,
   Search,
   Trash2,
   Wifi,
+  WifiOff,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -57,6 +58,12 @@ type ApFormState = {
 const DIRECT_PARENT = "__router__"
 const CANVAS_WIDTH = 1040
 const CANVAS_HEIGHT = 620
+const NODE_W = 184
+const NODE_H = 64
+const ROUTER_W = 232
+const ROUTER_H = 64
+const ROUTER_X = CANVAS_WIDTH / 2 - ROUTER_W / 2
+const ROUTER_Y = 28
 
 const emptyForm: ApFormState = {
   name: "",
@@ -220,22 +227,33 @@ function formatRelativeTime(value?: string | null) {
 
 function layoutAccessPoints(items: AccessPoint[]) {
   const byId = new Map(items.map((ap) => [ap.id, ap]))
-  return items.map((ap, index) => {
-    const hasPosition = Number(ap.pos_x) > 0 || Number(ap.pos_y) > 0
-    if (hasPosition) return ap
+  const depthOf = (ap: AccessPoint) => {
+    let depth = 1
+    let cur = ap
+    const seen = new Set<string>([cur.id])
+    while (cur.parent && byId.has(cur.parent) && !seen.has(cur.parent)) {
+      cur = byId.get(cur.parent)!
+      seen.add(cur.id)
+      depth++
+    }
+    return depth
+  }
+  const rows = new Map<number, AccessPoint[]>()
+  items.forEach((ap) => {
+    const d = depthOf(ap)
+    rows.set(d, [...(rows.get(d) || []), ap])
+  })
 
-    const siblings = items.filter((item) => (item.parent || DIRECT_PARENT) === (ap.parent || DIRECT_PARENT))
-    const siblingIndex = Math.max(0, siblings.findIndex((item) => item.id === ap.id))
-    const parent = ap.parent ? byId.get(ap.parent) : null
-    const depth = parent ? 2 : 1
-    const spread = Math.max(1, siblings.length)
-    const x = parent ? Number(parent.pos_x || 360) + 230 : 250 + ((index % 3) * 250)
-    const y = parent ? Number(parent.pos_y || 220) - 80 + siblingIndex * 150 : 150 + (siblingIndex % spread) * 130
-
+  return items.map((ap) => {
+    if (Number(ap.pos_x) > 0 || Number(ap.pos_y) > 0) return ap
+    const d = depthOf(ap)
+    const row = rows.get(d) || [ap]
+    const index = row.findIndex((item) => item.id === ap.id)
+    const slot = CANVAS_WIDTH / (row.length + 1)
     return {
       ...ap,
-      pos_x: Math.min(CANVAS_WIDTH - 220, Math.max(40, x + depth * 40)),
-      pos_y: Math.min(CANVAS_HEIGHT - 130, Math.max(60, y)),
+      pos_x: Math.round(slot * (index + 1) - NODE_W / 2),
+      pos_y: Math.min(CANVAS_HEIGHT - NODE_H - 24, ROUTER_Y + ROUTER_H + 90 + (d - 1) * 140),
     }
   })
 }
@@ -256,9 +274,19 @@ export default function AccessPointsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [checkingId, setCheckingId] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [zoom, setZoom] = useState(1)
+  const [lastSync, setLastSync] = useState<number | null>(null)
   const canvasRef = useRef<HTMLDivElement | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
   const dragOffsetRef = useRef({ x: 0, y: 0 })
   const previousStatuses = useRef<Record<string, AccessPointStatus>>({})
+
+  const zoomBy = (delta: number) =>
+    setZoom((z) => Math.min(1.6, Math.max(0.5, Number((z + delta).toFixed(2)))))
+  const fitToView = () => {
+    const w = scrollRef.current?.clientWidth
+    if (w) setZoom(Math.min(1.6, Math.max(0.5, Number((w / CANVAS_WIDTH).toFixed(2)))))
+  }
 
   const selectedRouter = useMemo(
     () => routers.find((router) => String(router.id) === selectedRouterId) || null,
@@ -313,6 +341,7 @@ export default function AccessPointsPage() {
       const response = await adminApi.getAccessPoints({ router_id: routerId })
       const list = listFromResponse(response)
       setAccessPoints(layoutAccessPoints(list))
+      setLastSync(Date.now())
       previousStatuses.current = Object.fromEntries(list.map((ap) => [ap.id, ap.status]))
     } catch {
       const router = routers.find((item) => String(item.id) === routerId) || previewRouters[0]
@@ -367,6 +396,7 @@ export default function AccessPointsPage() {
     const timer = window.setInterval(async () => {
       try {
         const statusMap = await adminApi.getAccessPointStatusMap(selectedRouterId)
+        setLastSync(Date.now())
         setAccessPoints((current) =>
           current.map((ap) => {
             const update = statusMap[ap.id]
@@ -482,13 +512,13 @@ export default function AccessPointsPage() {
   }
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>, ap: AccessPoint) => {
-    if ((event.target as HTMLElement).closest("button")) return
+    if ((event.target as HTMLElement).closest('button, [role="menu"], [role="menuitem"]')) return
     const rect = canvasRef.current?.getBoundingClientRect()
     if (!rect) return
     setDraggingId(ap.id)
     dragOffsetRef.current = {
-      x: event.clientX - rect.left - Number(ap.pos_x || 0),
-      y: event.clientY - rect.top - Number(ap.pos_y || 0),
+      x: (event.clientX - rect.left) / zoom - Number(ap.pos_x || 0),
+      y: (event.clientY - rect.top) / zoom - Number(ap.pos_y || 0),
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -497,8 +527,8 @@ export default function AccessPointsPage() {
     if (!draggingId) return
     const rect = canvasRef.current?.getBoundingClientRect()
     if (!rect) return
-    const x = Math.min(CANVAS_WIDTH - 210, Math.max(24, event.clientX - rect.left - dragOffsetRef.current.x))
-    const y = Math.min(CANVAS_HEIGHT - 120, Math.max(24, event.clientY - rect.top - dragOffsetRef.current.y))
+    const x = Math.min(CANVAS_WIDTH - NODE_W - 12, Math.max(12, (event.clientX - rect.left) / zoom - dragOffsetRef.current.x))
+    const y = Math.min(CANVAS_HEIGHT - NODE_H - 12, Math.max(ROUTER_Y + ROUTER_H + 24, (event.clientY - rect.top) / zoom - dragOffsetRef.current.y))
     setAccessPoints((current) => current.map((ap) => (ap.id === draggingId ? { ...ap, pos_x: x, pos_y: y } : ap)))
   }
 
@@ -668,137 +698,159 @@ export default function AccessPointsPage() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-auto">
-                <div
-                  ref={canvasRef}
-                  className="relative min-h-[620px] min-w-[1040px] bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[length:28px_28px]"
-                  style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
-                  onPointerMove={moveDrag}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
-                >
-                  <div className="absolute left-8 top-1/2 z-10 flex w-48 -translate-y-1/2 items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4 shadow-sm backdrop-blur">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      <Router className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-foreground">{selectedRouter?.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">MikroTik source</p>
-                    </div>
-                  </div>
+              <div className="relative">
+                <style>{`@keyframes ap-flow{to{stroke-dashoffset:-16}}.ap-flow{animation:ap-flow 1.2s linear infinite}@media (prefers-reduced-motion:reduce){.ap-flow{animation:none}}`}</style>
 
-                  <svg className="pointer-events-none absolute inset-0 h-full w-full">
-                    <defs>
-                      <linearGradient id="ap-edge" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.75" />
-                        <stop offset="100%" stopColor="hsl(var(--muted-foreground))" stopOpacity="0.35" />
-                      </linearGradient>
-                    </defs>
-                    {visibleAccessPoints.map((ap) => {
-                      const parent = ap.parent ? visibleAccessPoints.find((item) => item.id === ap.parent) : null
-                      const x1 = parent ? Number(parent.pos_x) + 190 : 224
-                      const y1 = parent ? Number(parent.pos_y) + 44 : CANVAS_HEIGHT / 2
-                      const x2 = Number(ap.pos_x)
-                      const y2 = Number(ap.pos_y) + 44
-                      return (
-                        <line
-                          key={`${ap.id}-edge`}
-                          x1={x1}
-                          y1={y1}
-                          x2={x2}
-                          y2={y2}
-                          stroke="url(#ap-edge)"
-                          strokeWidth="2.5"
-                          strokeDasharray={ap.status === "online" ? "8 8" : "4 8"}
-                        />
-                      )
-                    })}
-                  </svg>
+                {/* overlays */}
+                <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-lg border border-border bg-card/90 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground shadow-sm backdrop-blur">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  Live topology
+                  <span className="font-medium normal-case tracking-normal opacity-70">
+                    · {lastSync ? `updated ${formatRelativeTime(new Date(lastSync).toISOString())}` : "—"}
+                  </span>
+                </div>
 
-                  {visibleAccessPoints.map((ap) => (
+                <div className="absolute bottom-3 left-3 z-30 flex overflow-hidden rounded-lg border border-border bg-card/90 shadow-sm backdrop-blur">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none" onClick={() => zoomBy(-0.1)} aria-label="Zoom out"><ZoomOut className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none border-x border-border" onClick={fitToView} aria-label="Fit to view"><Maximize2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none" onClick={() => zoomBy(0.1)} aria-label="Zoom in"><ZoomIn className="h-4 w-4" /></Button>
+                </div>
+
+                <div className="pointer-events-none absolute bottom-3 right-3 z-30 flex items-center gap-4 rounded-lg border border-border bg-card/90 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm backdrop-blur">
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Online</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" />Unknown</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-500" />Offline</span>
+                </div>
+
+                <div ref={scrollRef} className="overflow-auto bg-muted/30 dark:bg-black/20" style={{ height: CANVAS_HEIGHT }}>
+                  <div style={{ width: CANVAS_WIDTH * zoom, height: CANVAS_HEIGHT * zoom }}>
                     <div
-                      key={ap.id}
-                      role="button"
-                      tabIndex={0}
-                      onPointerDown={(event) => startDrag(event, ap)}
+                      ref={canvasRef}
+                      className="relative text-foreground"
+                      style={{
+                        width: CANVAS_WIDTH,
+                        height: CANVAS_HEIGHT,
+                        transform: `scale(${zoom})`,
+                        transformOrigin: "0 0",
+                        backgroundImage: "radial-gradient(circle at 1px 1px, color-mix(in srgb, currentColor 14%, transparent) 1px, transparent 0)",
+                        backgroundSize: "28px 28px",
+                      }}
                       onPointerMove={moveDrag}
                       onPointerUp={endDrag}
                       onPointerCancel={endDrag}
-                      className={cn(
-                        "absolute z-20 w-52 cursor-grab rounded-xl border bg-card p-3 shadow-lg shadow-black/5 backdrop-blur transition active:cursor-grabbing",
-                        ap.status === "offline" && "opacity-75 grayscale",
-                        draggingId === ap.id && "scale-[1.02] ring-2 ring-primary",
-                      )}
-                      style={{ left: Number(ap.pos_x), top: Number(ap.pos_y) }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className={cn("h-3 w-3 shrink-0 rounded-full", statusDotClasses(ap.status))} />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-foreground">{ap.name}</p>
-                            <p className="truncate font-mono text-[11px] text-muted-foreground">{ap.mac_address}</p>
-                          </div>
+                      {/* edges (behind cards) */}
+                      <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full">
+                        {visibleAccessPoints.map((ap) => {
+                          const parent = ap.parent ? visibleAccessPoints.find((item) => item.id === ap.parent) : null
+                          const x1 = parent ? Number(parent.pos_x) + NODE_W / 2 : ROUTER_X + ROUTER_W / 2
+                          const y1 = parent ? Number(parent.pos_y) + NODE_H / 2 : ROUTER_Y + ROUTER_H / 2
+                          const x2 = Number(ap.pos_x) + NODE_W / 2
+                          const y2 = Number(ap.pos_y) + NODE_H / 2
+                          const online = ap.status === "online"
+                          return (
+                            <line
+                              key={`${ap.id}-edge`}
+                              x1={x1} y1={y1} x2={x2} y2={y2}
+                              strokeLinecap="round"
+                              strokeWidth={online ? 2.5 : 1.5}
+                              strokeDasharray={online ? "8 8" : ap.status === "offline" ? "3 6" : undefined}
+                              className={cn(
+                                online && "ap-flow stroke-primary",
+                                ap.status === "offline" && "stroke-rose-500/50",
+                                ap.status === "unknown" && "stroke-muted-foreground/40",
+                              )}
+                            />
+                          )
+                        })}
+                      </svg>
+
+                      {/* router node */}
+                      <div
+                        className="absolute z-20 flex items-center gap-3 rounded-xl border border-primary/50 bg-primary px-3.5 text-primary-foreground shadow-[0_0_36px_-6px] shadow-primary/60"
+                        style={{ left: ROUTER_X, top: ROUTER_Y, width: ROUTER_W, height: ROUTER_H }}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/20">
+                          <Router className="h-5 w-5" />
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleCheckNow(ap)}>
-                              {checkingId === ap.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                              Check now
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEditDialog(ap)}>
-                              <Edit3 className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(ap)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Remove
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black leading-tight">{selectedRouter?.name}</p>
+                          <p className="truncate font-mono text-[10px] opacity-80">
+                            {stats.total} APs · {stats.online} online
+                          </p>
+                        </div>
                       </div>
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <Badge variant="outline" className={cn("capitalize", statusClasses(ap.status))}>{ap.status}</Badge>
-                        <span className="text-[11px] text-muted-foreground">{formatRelativeTime(ap.last_seen)}</span>
-                      </div>
-                      {ap.ip_address && <p className="mt-2 truncate font-mono text-xs text-muted-foreground">{ap.ip_address}</p>}
+
+                      {/* AP nodes */}
+                      {visibleAccessPoints.map((ap) => (
+                        <div
+                          key={ap.id}
+                          role="button"
+                          tabIndex={0}
+                          onPointerDown={(event) => startDrag(event, ap)}
+                          onPointerMove={moveDrag}
+                          onPointerUp={endDrag}
+                          onPointerCancel={endDrag}
+                          className={cn(
+                            "absolute z-20 flex cursor-grab touch-none select-none items-center gap-2.5 rounded-xl border bg-card/95 px-2.5 shadow-md backdrop-blur transition-[box-shadow,transform,opacity] active:cursor-grabbing",
+                            ap.status === "online" && "border-emerald-500/40 shadow-[0_0_24px_-8px_rgba(16,185,129,0.6)]",
+                            ap.status === "offline" && "border-rose-500/40 opacity-80 shadow-[0_0_24px_-10px_rgba(244,63,94,0.5)]",
+                            ap.status === "unknown" && "border-border",
+                            draggingId === ap.id && "scale-[1.03] ring-2 ring-primary shadow-xl",
+                          )}
+                          style={{ left: Number(ap.pos_x), top: Number(ap.pos_y), width: NODE_W, height: NODE_H }}
+                        >
+                          <div
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                              ap.status === "online" && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+                              ap.status === "offline" && "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+                              ap.status === "unknown" && "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {ap.status === "offline" ? <WifiOff className="h-4 w-4" /> : <Wifi className="h-4 w-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-extrabold leading-tight text-foreground">{ap.name}</p>
+                            <p className="mt-0.5 flex items-center gap-1.5 truncate font-mono text-[10px] text-muted-foreground">
+                              <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDotClasses(ap.status))} />
+                              <span className="truncate">
+                                {ap.status === "online" ? ap.ip_address || "online" : ap.status === "offline" ? `offline · ${formatRelativeTime(ap.last_seen)}` : "unknown"}
+                              </span>
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleCheckNow(ap)}>
+                                {checkingId === ap.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                Check now
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditDialog(ap)}>
+                                <Edit3 className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(ap)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle>Monitoring Experience</CardTitle>
-          <CardDescription>Keep field teams focused on AP health, topology and quick follow-up actions.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <Activity className="mb-3 h-5 w-5 text-primary" />
-            <p className="font-bold">Live health</p>
-            <p className="mt-1 text-sm text-muted-foreground">Status colors make online, offline and unknown APs easy to scan at a glance.</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <Clock3 className="mb-3 h-5 w-5 text-primary" />
-            <p className="font-bold">Calm alerts</p>
-            <p className="mt-1 text-sm text-muted-foreground">Short router blips stay calm, so teams focus on confirmed AP changes.</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <Save className="mb-3 h-5 w-5 text-primary" />
-            <p className="font-bold">Clear topology</p>
-            <p className="mt-1 text-sm text-muted-foreground">Canvas coordinates and parent chains remain consistent when the topology changes.</p>
-          </div>
-        </CardContent>
-      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">

@@ -92,7 +92,6 @@ export function RouterLoadBalanceTab({ routerId }: { routerId: number; isDemo?: 
   const [ups, setUps] = useState<LoadBalanceUplink[]>([])
   const [saving, setSaving] = useState(false)
   const [showPw, setShowPw] = useState<Record<number, boolean>>({})
-  const [showScript, setShowScript] = useState(false)
   const wasSynced = useRef(true)
   const reduce = useReducedMotion()
   const prevStep = useRef(0)
@@ -253,9 +252,7 @@ export function RouterLoadBalanceTab({ routerId }: { routerId: number; isDemo?: 
                 <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-slate-900 p-4 font-mono text-xs text-success">{lb.magic_link}</pre>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => copy(lb.magic_link)}><Copy className="mr-2 h-4 w-4" />Copy command</Button>
-                  <Button size="sm" variant="outline" onClick={() => setShowScript((v) => !v)}>{showScript ? "Hide" : "View"} script</Button>
                 </div>
-                {showScript && <pre className="max-h-80 overflow-auto rounded-md bg-slate-900 p-4 font-mono text-[11px] text-slate-100">{lb.script_preview}</pre>}
                 <p className="text-xs text-slate-500">This page updates automatically as soon as the router confirms.</p>
               </div>
             )}
