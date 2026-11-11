@@ -5,6 +5,7 @@ import {
   Check, CheckCircle2, ChevronLeft, ChevronRight, Copy, Eye, EyeOff, Loader2,
   Minus, Pencil, Plus, Power, Radio, Scale, ShieldAlert,
 } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Stepper, type Step } from "@/components/ui/stepper"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { LoadBalanceMode, LoadBalanceState, LoadBalanceUplink } from "@/lib/types"
@@ -19,6 +21,7 @@ import type { LoadBalanceMode, LoadBalanceState, LoadBalanceUplink } from "@/lib
 const MONITORS = ["8.8.4.4", "8.8.8.8", "1.1.1.1", "9.9.9.9", "208.67.222.222", "94.140.14.14"]
 const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"]
 const STEPS = ["Uplinks", "ISP Setup", "Traffic", "Review"]
+const STEP_DEFS: Step[] = STEPS.map((title) => ({ title }))
 const MODES: { id: LoadBalanceMode; label: string; hint: string }[] = [
   { id: "dhcp", label: "DHCP", hint: "Automatic: the ISP hands out an address. Most home and business fibre." },
   { id: "pppoe", label: "PPPoE", hint: "You were given a username and password to dial with." },
@@ -91,6 +94,12 @@ export function RouterLoadBalanceTab({ routerId }: { routerId: number; isDemo?: 
   const [showPw, setShowPw] = useState<Record<number, boolean>>({})
   const [showScript, setShowScript] = useState(false)
   const wasSynced = useRef(true)
+  const reduce = useReducedMotion()
+  const prevStep = useRef(0)
+  const dir = step >= prevStep.current ? 1 : -1
+  useEffect(() => {
+    prevStep.current = step
+  }, [step])
 
   const refresh = useCallback(async (silent = false) => {
     try {
@@ -263,22 +272,17 @@ export function RouterLoadBalanceTab({ routerId }: { routerId: number; isDemo?: 
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="flex items-center justify-between py-4">
-          {STEPS.map((label, i) => (
-            <React.Fragment key={label}>
-              <div className="flex flex-col items-center">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${i < step ? "bg-success text-white" : i === step ? "scale-110 bg-primary text-white" : "bg-slate-200 text-slate-500"}`}>
-                  {i < step ? <Check className="h-5 w-5" /> : i + 1}
-                </div>
-                <span className={`mt-1 text-xs ${i === step ? "font-semibold text-primary" : "text-slate-500"}`}>{label}</span>
-              </div>
-              {i < STEPS.length - 1 && <div className={`mx-2 h-1 flex-1 rounded transition-colors duration-500 ${i < step ? "bg-success" : "bg-slate-200"}`} />}
-            </React.Fragment>
-          ))}
+        <CardContent className="py-5">
+          <Stepper steps={STEP_DEFS} current={step} onStepChange={setStep} />
         </CardContent>
       </Card>
 
-      <div key={step} className={fade}>
+      <motion.div
+        key={step}
+        initial={reduce ? false : { x: dir * 24, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+      >
         {step === 0 && (
           <Card>
             <CardHeader>
@@ -465,7 +469,7 @@ export function RouterLoadBalanceTab({ routerId }: { routerId: number; isDemo?: 
             </CardFooter>
           </Card>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MatrixStatusBoard } from "@/components/ui/matrix-status-board"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { RouterLiveStatus } from "@/lib/types"
@@ -185,6 +186,16 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
           Refresh
         </Button>
       </div>
+
+      <MatrixStatusBoard
+        meta={lastUpdated ? `UPDATED ${lastUpdated.toLocaleTimeString()}` : undefined}
+        rows={[
+          { label: "STATUS", value: liveStatus.online ? "ONLINE" : "OFFLINE", tone: liveStatus.online ? "ok" : "bad" },
+          { label: "CPU", value: `${cpuLoad}%`, tone: cpuLoad >= 85 ? "bad" : cpuLoad >= 65 ? "warn" : "ok" },
+          { label: "MEMORY", value: `${Math.round(memory.usedPercent)}%`, tone: memory.usedPercent >= 85 ? "bad" : memory.usedPercent >= 65 ? "warn" : "ok" },
+          { label: "UPTIME", value: String(liveStatus.uptime ?? "-") },
+        ]}
+      />
 
       {/* Identity Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

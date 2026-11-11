@@ -106,7 +106,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TabsList } from "@/components/ui/tabs"
+import {
+  AnimatedTabs as Tabs,
+  AnimatedTabsTrigger as TabsTrigger,
+  AnimatedTabsContent as TabsContent,
+} from "@/components/ui/animated-tabs"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -114,6 +119,7 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { Router as RouterData, RouterType, RouterStatus, RouterEvent, RouterVPNStatus } from "@/lib/types"
 import { Separator } from "@/components/ui/separator"
+import { RouterDetailSkeleton } from "./components/router-detail-skeleton"
 
 // Demo data generator
 const generateDemoRouterData = (id: string): RouterData => {
@@ -466,7 +472,6 @@ export default function RouterDetailPage() {
   }
 
   const handleRefresh = async () => {
-    setIsLoading(true)
     await fetchData()
     // Also refresh income data
     adminApi.getRouterIncome(parseInt(routerId))
@@ -798,24 +803,7 @@ export default function RouterDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="admin-theme-route admin-router-detail-route space-y-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-20" />
-          <Skeleton className="h-12 w-12" />
-          <div className="flex-1">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-5 w-48 mt-2" />
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
-        </div>
-        <Skeleton className="h-96" />
-      </div>
-    )
+    return <RouterDetailSkeleton />
   }
 
   if (!routerData) {
