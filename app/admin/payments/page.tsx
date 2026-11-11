@@ -782,7 +782,14 @@ export default function PaymentsPage() {
                     {payment.customer_name || 'Anonymous Client'}
                   </TableCell>
                   
-                  <TableCell>{getMethodBadge(payment.payment_method as string || "Unknown")}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-start gap-1">
+                      {getMethodBadge(payment.payment_method as string || "Unknown")}
+                      {payment.is_portal && (
+                        <span className="text-[11px] font-medium text-primary">(Portal)</span>
+                      )}
+                    </div>
+                  </TableCell>
                   
                   {/* Service Cell */}
                   <TableCell>
@@ -883,6 +890,7 @@ export default function PaymentsPage() {
                 {getStatusBadge(selectedPayment.status)}
                 {getMethodBadge(selectedPayment.payment_method as string)}
                 {getServiceTypeBadge(selectedPayment.service_type)}
+                {selectedPayment.is_portal && <Badge variant="outline">Portal</Badge>}
               </div>
 
               <div className="text-center py-6 bg-muted rounded-lg">

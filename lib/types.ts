@@ -1024,6 +1024,7 @@ export interface Payment {
   payment_method: number | string  // Can be ID or method name string from backend
   payment_method_name?: string     // New field: friendly payment method name
   service_type?: 'Hotspot' | 'PPPoE' | 'Other'  // NEW FIELD - determines service type
+  is_portal?: boolean       // true when paid from the customer portal
   payment_date: string
   reference_number?: string
   reference?: string        // Alias for reference_number (from payment_reference)

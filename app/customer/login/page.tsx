@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Info } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -144,6 +144,9 @@ export default function CustomerLoginPage() {
                 <AlertCircle className="w-4 h-4" />
                 <AlertDescription>
                   Your subscription has expired. Sign in to renew and restore your internet instantly.
+                  <span className="block mt-1 font-medium">
+                    Use your phone number as both username and password.
+                  </span>
                 </AlertDescription>
               </Alert>
             )}
@@ -154,6 +157,15 @@ export default function CustomerLoginPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+
+            <div className="flex items-start gap-2.5 rounded-lg border border-blue-100 bg-blue-50 px-3.5 py-3 text-[13px] leading-relaxed text-blue-900">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+              <p>
+                <span className="font-semibold">First time here?</span> Your{" "}
+                <span className="font-semibold">username and password are both your phone number</span>{" "}
+                (e.g. <span className="font-mono">0712345678</span>).
+              </p>
+            </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="identifier" className="text-slate-700 text-sm font-medium">
@@ -171,6 +183,9 @@ export default function CustomerLoginPage() {
                 required
                 className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               />
+              <p className="text-xs text-slate-400">
+                Your username is your phone number. Extra accounts add a letter, e.g. 0712345678B.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -182,13 +197,16 @@ export default function CustomerLoginPage() {
                 type="password"
                 inputMode="numeric"
                 autoComplete="current-password"
-                placeholder="Enter your password"
+                placeholder="Enter your phone number again"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 required
                 className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               />
+              <p className="text-xs text-slate-400">
+                Your password is the same phone number.
+              </p>
             </div>
 
             <div className="flex items-center space-x-2">
