@@ -3082,6 +3082,8 @@ export interface SMSGatewayConfig {
 export interface SMSNotificationSettings {
   use_inbuilt_system: boolean
   hotspot_welcome: boolean
+  hotspot_chat_alert_enabled?: boolean
+  hotspot_chat_alert_numbers?: string[]
   pppoe_welcome: boolean
   pppoe_payment_confirmation: boolean  // MERGED: handles both payment AND renewal confirmations
   pppoe_expiry_reminder: boolean

@@ -49,6 +49,8 @@ const EMPTY_STATS = {
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
   hotspot_welcome: true,
+  hotspot_chat_alert_enabled: false,
+  hotspot_chat_alert_numbers: [],
   pppoe_welcome: true,
   pppoe_payment_confirmation: true,
   pppoe_expiry_reminder: true,
@@ -669,6 +671,18 @@ export default function SMSPage() {
     handleSaveNotifSettings(patch)
   }
 
+  const [chatAlertInput, setChatAlertInput] = useState('')
+
+  const addChatAlertNumber = () => {
+    const n = chatAlertInput.replace(/[\s-]/g, '')
+    if (!/^\+?\d{9,15}$/.test(n)) { toast.error('Enter a valid phone number'); return }
+    const current = notifSettings.hotspot_chat_alert_numbers ?? []
+    if (current.includes(n)) { toast.error('Number already added'); return }
+    if (current.length >= 5) { toast.error('Maximum 5 numbers'); return }
+    handleToggleNotif('hotspot_chat_alert_numbers', [...current, n])
+    setChatAlertInput('')
+  }
+
   // UPDATED: handleGatewaySave with 404 fallback
   const handleGatewaySave = async () => {
     setGwSaving(true)
@@ -1077,6 +1091,46 @@ export default function SMSPage() {
                     checked={notifSettings.hotspot_welcome}
                     onCheckedChange={v => handleToggleNotif('hotspot_welcome', v)}
                   />
+                  <Separator />
+                  <NotifToggle
+                    label="Customer Chat Alerts"
+                    description="SMS the admin when a captive-portal customer starts a chat or replies"
+                    checked={!!notifSettings.hotspot_chat_alert_enabled}
+                    onCheckedChange={v => handleToggleNotif('hotspot_chat_alert_enabled', v)}
+                  >
+                    <div className="mt-3 space-y-2">
+                      <Label className="text-xs text-muted-foreground">Send alerts to:</Label>
+                      {(notifSettings.hotspot_chat_alert_numbers ?? []).map(n => (
+                        <div key={n} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm">
+                          <span className="font-mono">{n}</span>
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6 text-destructive"
+                            onClick={() => handleToggleNotif(
+                              'hotspot_chat_alert_numbers',
+                              (notifSettings.hotspot_chat_alert_numbers ?? []).filter(x => x !== n)
+                            )}
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2">
+                        <Input
+                          className="h-8 text-sm"
+                          placeholder="0712345678"
+                          value={chatAlertInput}
+                          onChange={e => setChatAlertInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && addChatAlertNumber()}
+                        />
+                        <Button size="sm" variant="outline" className="h-8" onClick={addChatAlertNumber}>
+                          <Plus className="w-3.5 h-3.5 mr-1" />Add
+                        </Button>
+                      </div>
+                      {(notifSettings.hotspot_chat_alert_numbers ?? []).length === 0 && (
+                        <p className="text-xs text-warning">Add at least one number or no alerts will be sent.</p>
+                      )}
+                    </div>
+                  </NotifToggle>
                 </CardContent>
               </Card>
 
