@@ -1275,7 +1275,7 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {/* Processing Step */}
+          {/* Processing Steps */}
           {paymentStep === 'processing' && (
             <div className="py-8 flex flex-col items-center justify-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
