@@ -255,9 +255,6 @@ export default function FUPPage() {
   const [analytics, setAnalytics] = useState<FupAnalyticsOverviewDto | null>(null)
   const [usageWindows, setUsageWindows] = useState<FupUsageWindowDto[]>([])
 
-  // 🆕 FUP rework: live impact preview for the create-policy sheet
-  const [impactPreview, setImpactPreview] = useState<{ affected: number; would_throttle_now: number } | null>(null)
-
   // 🆕 FUP rework: tick counter to refresh the "synced X ago" indicator
   const [nowTick, setNowTick] = useState(Date.now())
 
@@ -290,7 +287,7 @@ export default function FUPPage() {
     name: "",
     description: "",
     data_limit_gb: 100,
-    reset_period: "MONTHLY",
+    reset_period: "SUBSCRIPTION",
     throttle_download_mbps: 2,
     throttle_upload_mbps: 1,
     auto_enforce: true,
@@ -354,35 +351,6 @@ export default function FUPPage() {
     const interval = setInterval(() => setNowTick(Date.now()), 1000)
     return () => clearInterval(interval)
   }, [])
-
-  // 🆕 FUP rework: debounced impact preview when the create-policy form changes.
-  // Only fires when we're editing an existing policy (policyForm.id present),
-  // because a brand new unsaved policy has no linked plans yet — the backend
-  // returns {affected: 0, would_throttle_now: 0} in that case, which we skip.
-  useEffect(() => {
-    if (!isCreateOpen) return
-    if (!policyForm.data_limit_gb || !policyForm.reset_period) {
-      setImpactPreview(null)
-      return
-    }
-    const t = setTimeout(async () => {
-      try {
-        const preview = await adminApi.rawRequest<{ affected: number; would_throttle_now: number }>(
-          '/fup/policies/preview_impact/',
-          { method: 'POST', body: JSON.stringify(policyForm) }
-        )
-        setImpactPreview(preview)
-      } catch {
-        // non-blocking — leave previous preview or null
-      }
-    }, 400)
-    return () => clearTimeout(t)
-  }, [
-    isCreateOpen,
-    policyForm.data_limit_gb,
-    policyForm.reset_period,
-    policyForm.throttle_download_mbps,
-  ])
 
   // --- ACTIONS ---
   // ─── FIX 2a: open the sheet pre-filled for editing ───
@@ -671,7 +639,7 @@ export default function FUPPage() {
             onClick={() => {
               setEditingPolicyId(null)
               setPolicyForm({
-                name: "", description: "", data_limit_gb: 100, reset_period: "MONTHLY",
+                name: "", description: "", data_limit_gb: 100, reset_period: "SUBSCRIPTION",
                 throttle_download_mbps: 2, throttle_upload_mbps: 1,
                 auto_enforce: true, notify_on_violation: true, status: "ACTIVE",
                 peak_hour_start: "19:00", peak_hour_end: "22:00",
@@ -802,7 +770,7 @@ export default function FUPPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
-                    <div><span className="text-muted-foreground block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
+                    <div><span className="text-muted-foreground block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / subscription</span></div>
                     <div><span className="text-muted-foreground block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
                     <div><span className="text-muted-foreground block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
                     <div><span className="text-muted-foreground block">Status Overview</span><span className="font-semibold">{policy.users_count || 0} Users • {policy.currently_throttled_count || 0} Throttled</span></div>
@@ -1011,71 +979,15 @@ export default function FUPPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Data Limit (GB)</Label>
-                  {/* FIX: value uses '' when 0 so user can clear it */}
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 100"
-                    value={policyForm.data_limit_gb || ""}
-                    onChange={e =>
-                      setPolicyForm({
-                        ...policyForm,
-                        data_limit_gb: e.target.value === "" ? 0 : Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Reset Period</Label>
-                  <Select
-                    value={policyForm.reset_period}
-                    onValueChange={(v: FupResetPeriod) => setPolicyForm({ ...policyForm, reset_period: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DAILY">Daily</SelectItem>
-                      <SelectItem value="WEEKLY">Weekly</SelectItem>
-                      <SelectItem value="MONTHLY">Monthly</SelectItem>
-                      <SelectItem value="SUBSCRIPTION">Subscription Period</SelectItem>
-                      <SelectItem value="PEAK_HOURS">⏱ Peak Hours Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Data Limit (GB per subscription period)</Label>
+                <Input
+                  type="number" min="1" placeholder="e.g. 100"
+                  value={policyForm.data_limit_gb || ""}
+                  onChange={e => setPolicyForm({ ...policyForm, data_limit_gb: e.target.value === "" ? 0 : Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">Usage resets automatically when the customer renews.</p>
               </div>
-
-              {/* Peak hours time picker — only shown when PEAK_HOURS selected */}
-              {policyForm.reset_period === "PEAK_HOURS" && (
-                <div className="rounded-lg border border-warning/20 bg-warning/10 p-4 space-y-3">
-                  <p className="text-xs font-medium text-amber-800">
-                    ⏱ Peak Hours (Nairobi EAT time) — Usage only tracked during this window
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-amber-800">Start Time</Label>
-                      <Input
-                        type="time"
-                        value={policyForm.peak_hour_start || "19:00"}
-                        onChange={e => setPolicyForm({ ...policyForm, peak_hour_start: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-amber-800">End Time</Label>
-                      <Input
-                        type="time"
-                        value={policyForm.peak_hour_end || "22:00"}
-                        onChange={e => setPolicyForm({ ...policyForm, peak_hour_end: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-warning">
-                    Default: 7:00 PM – 10:00 PM EAT (Nairobi)
-                  </p>
-                </div>
-              )}
 
               <Separator className="my-2" />
               <h3 className="text-sm font-semibold text-slate-500">Throttle Speeds After Limit</h3>
@@ -1129,21 +1041,6 @@ export default function FUPPage() {
                   onCheckedChange={v => setPolicyForm({ ...policyForm, notify_on_violation: v })}
                 />
               </div>
-
-              {/* 🆕 FUP rework: live impact preview above the Save button.
-                  Backend returns {affected, would_throttle_now}. For a brand
-                  new unsaved policy both are 0 (no linked plans yet), so we
-                  only render when there's something meaningful to show. */}
-              {impactPreview && (impactPreview.affected > 0 || impactPreview.would_throttle_now > 0) && (
-                <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-1">
-                  <p><strong>{impactPreview.affected}</strong> users would fall under this policy.</p>
-                  {impactPreview.would_throttle_now > 0 && (
-                    <p className="text-warning">
-                      <strong>{impactPreview.would_throttle_now}</strong> are already over this limit and would be throttled immediately on save.
-                    </p>
-                  )}
-                </div>
-              )}
 
               {/* ─── FIX 2a: button label reflects edit mode, calls unified save handler ─── */}
               <Button className="w-full mt-6" onClick={handleSavePolicy}>
