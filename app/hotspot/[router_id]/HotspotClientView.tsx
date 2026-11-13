@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo, useRef } from "react"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone } from "lucide-react"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone, Wrench } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 import dynamic from "next/dynamic"
 import { getTheme, type ThemeStyles } from "./theme-engine"
@@ -69,6 +69,8 @@ export interface PortalConfig {
   router_logo_url?: string | null
   hide_plan_speed?: boolean
   portal_font?: string
+  maintenance_mode?: boolean
+  maintenance_message?: string
 }
 
 export interface BrandingConfig {
@@ -1559,6 +1561,39 @@ export default function HotspotClientView({
           ) : (
             <p className="text-xs text-gray-400">Please contact the hotspot owner.</p>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // RENDER: Router under maintenance
+  // ==========================================
+  if (portalConfig?.maintenance_mode && paymentStatus === "idle") {
+    return (
+      <div className={`${theme.pageBg} flex items-center justify-center p-4`} style={{ fontFamily: portalFontFamily }}>
+        <div className={`${theme.cardClass} p-8 max-w-sm w-full text-center`}>
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Wrench className="w-8 h-8 text-amber-600" />
+          </div>
+          <h1 className={`text-lg font-bold mb-2 ${theme.planTitle}`}>Under Maintenance</h1>
+          <p className={`text-sm mb-6 ${theme.mutedText}`}>
+            {portalConfig.maintenance_message ||
+              `${displayName} is currently doing maintenance. Purchases are temporarily unavailable. Please try again later.`}
+          </p>
+          {supportPhone ? (
+            <>
+              <p className={`text-xs mb-3 ${theme.mutedText}`}>Need help? Reach us on</p>
+              <a
+                href={`tel:${supportPhone}`}
+                className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold ${theme.ctaBg} ${theme.ctaText}`}
+                style={brandingCtaStyle}
+              >
+                <Phone className="w-4 h-4" />
+                {supportPhone}
+              </a>
+            </>
+          ) : null}
         </div>
       </div>
     )

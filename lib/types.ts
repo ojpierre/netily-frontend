@@ -547,6 +547,8 @@ export interface Router {
   logo?: string  // URL to the uploaded logo
   hide_plan_speed?: boolean  // If true, hide download/upload speed info on captive portal plan cards
   portal_font?: string
+  maintenance_mode?: boolean
+  maintenance_message?: string
   // Remote Access (HAProxy managed)
   winbox_remote_port?: number | null
   api_remote_port?: number | null

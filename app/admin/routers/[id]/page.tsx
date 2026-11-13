@@ -603,7 +603,7 @@ export default function RouterDetailPage() {
     try {
       if (isUsingDemoData) {
         await new Promise(r => setTimeout(r, 1000))
-        setRouterData(prev => prev ? { ...prev, status: enabled ? "maintenance" : "online" } : null)
+        setRouterData(prev => prev ? { ...prev, maintenance_mode: enabled } : null)
         toast.success(`Maintenance mode ${enabled ? "enabled" : "disabled"} (Demo Mode)`)
       } else {
         await adminApi.setRouterMaintenance(parseInt(routerId), enabled, maintenanceReason)
@@ -822,6 +822,8 @@ export default function RouterDetailPage() {
     )
   }
 
+  const isMaintenance = !!routerData.maintenance_mode
+
   return (
     <div className="admin-theme-route admin-router-detail-route space-y-6">
       {/* Header */}
@@ -1014,6 +1016,11 @@ export default function RouterDetailPage() {
                 )}
                 Reboot
               </Button>
+              {isMaintenance && (
+                <Badge variant="outline" className="px-3 py-1 bg-warning/15 text-warning border-amber-300">
+                  <Settings className="w-4 h-4 mr-2" />Maintenance
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={`px-3 py-1 ${
@@ -1289,12 +1296,12 @@ export default function RouterDetailPage() {
                   variant="outline"
                   onClick={() => setIsMaintenanceDialogOpen(true)}
                 >
-                  {routerData.status === "maintenance" ? (
+                  {isMaintenance ? (
                     <PlayCircle className="w-4 h-4 mr-2" />
                   ) : (
                     <PauseCircle className="w-4 h-4 mr-2" />
                   )}
-                  {routerData.status === "maintenance" ? "Exit Maintenance" : "Enter Maintenance"}
+                  {isMaintenance ? "Exit Maintenance" : "Enter Maintenance"}
                 </Button>
                 <Button 
                   className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10" 
@@ -2024,22 +2031,22 @@ export default function RouterDetailPage() {
         <DialogContent className="admin-theme-dialog">
           <DialogHeader>
             <DialogTitle>
-              {routerData.status === "maintenance" ? "Exit Maintenance Mode" : "Enter Maintenance Mode"}
+              {isMaintenance ? "Exit Maintenance Mode" : "Enter Maintenance Mode"}
             </DialogTitle>
             <DialogDescription>
-              {routerData.status === "maintenance" 
+              {isMaintenance 
                 ? "This will take the router out of maintenance mode and mark it as available."
                 : "This will put the router in maintenance mode. Users will not be able to connect during maintenance."}
             </DialogDescription>
           </DialogHeader>
-          {routerData.status !== "maintenance" && (
+          {!isMaintenance && (
             <div className="space-y-2">
-              <Label htmlFor="maintenance_reason">Reason (optional)</Label>
+              <Label htmlFor="maintenance_reason">Message shown to customers (optional)</Label>
               <Textarea
                 id="maintenance_reason"
                 value={maintenanceReason}
                 onChange={(e) => setMaintenanceReason(e.target.value)}
-                placeholder="Scheduled maintenance, firmware upgrade, etc."
+                placeholder="We are upgrading the network. Back shortly."
                 rows={2}
               />
             </div>
@@ -2049,17 +2056,17 @@ export default function RouterDetailPage() {
               Cancel
             </Button>
             <Button 
-              onClick={() => handleSetMaintenance(routerData.status !== "maintenance")} 
+              onClick={() => handleSetMaintenance(!isMaintenance)} 
               disabled={isMaintenanceLoading}
             >
               {isMaintenanceLoading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : routerData.status === "maintenance" ? (
+              ) : isMaintenance ? (
                 <PlayCircle className="w-4 h-4 mr-2" />
               ) : (
                 <PauseCircle className="w-4 h-4 mr-2" />
               )}
-              {routerData.status === "maintenance" ? "Exit Maintenance" : "Enter Maintenance"}
+              {isMaintenance ? "Exit Maintenance" : "Enter Maintenance"}
             </Button>
           </DialogFooter>
         </DialogContent>
