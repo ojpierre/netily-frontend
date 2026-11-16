@@ -22,6 +22,7 @@ const metaTitles: Record<string, string> = {
   "/features/subscriber-management": "ISP Subscriber Management Software",
   "/features/revenue-reporting": "ISP Revenue and Collections Reporting",
   "/features/tr069-device-management": "TR-069 ACS & CPE Management for ISPs",
+  "/features/load-balancing-failover": "Free MikroTik Load Balancing & Failover",
   "/solutions/fibre-isps": "Billing and Operations Software for Fibre ISPs",
   "/solutions/rural-wisps": "WISP Billing and MikroTik Operations",
   "/solutions/managed-wifi": "Managed Wi-Fi and Hotspot Billing",
@@ -37,6 +38,7 @@ const featureList = [
   `SMS gateways: ${SMS_GATEWAYS.map((g) => g.name).join(", ")}, plus built-in SMS`,
   "MikroTik PPPoE and hotspot automation with RADIUS",
   "TR-069 ACS for customer routers and ONTs",
+  "Free MikroTik multi-WAN load balancing and automatic failover (2 to 6 uplinks, PCC, RouterOS v7) on every plan",
 ]
 
 function pageFor(path: string) {
@@ -52,7 +54,7 @@ export function marketingMetadata(path = ""): Metadata {
   return {
     title: { absolute: title },
     description: page.intro,
-    keywords: ["Internetily", "Netily", "ISP billing system", "MikroTik billing", "M-Pesa billing", "PPPoE billing", "hotspot management", ...(path === "/features/pppoe-billing" ? ["expired PPPoE payment redirect", "MikroTik renewal portal", "RADIUS walled garden", "automatic PPPoE reconnection"] : []), ...(path === "" || path === "/integrations" ? ["ISP payment gateways Kenya", "M-Pesa Daraja ISP billing", "ISP bank settlement Kenya", "MTN MoMo ISP billing Uganda", "ISP SMS gateway", "Africa's Talking ISP billing"] : []), ...(path ? [pageName(path)] : [])],
+    keywords: ["Internetily", "Netily", "ISP billing system", "MikroTik billing", "M-Pesa billing", "PPPoE billing", "hotspot management", ...(path === "/features/pppoe-billing" ? ["expired PPPoE payment redirect", "MikroTik renewal portal", "RADIUS walled garden", "automatic PPPoE reconnection"] : []), ...(path === "" || path === "/features/load-balancing-failover" ? ["MikroTik load balancing", "MikroTik failover", "free load balancing and failover", "multi-WAN load balancing", "PCC load balancing MikroTik", "dual WAN failover ISP"] : []), ...(path === "" || path === "/integrations" ? ["ISP payment gateways Kenya", "M-Pesa Daraja ISP billing", "ISP bank settlement Kenya", "MTN MoMo ISP billing Uganda", "ISP SMS gateway", "Africa's Talking ISP billing"] : []), ...(path ? [pageName(path)] : [])],
     alternates: { canonical: url },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
     openGraph: { title, description: page.intro, url, siteName: "Internetily (Netily)", type: "website", images: [{ url: `${siteUrl}/academy/wisp-backhaul.webp`, alt: "Internetily (Netily) ISP billing and network management" }] },

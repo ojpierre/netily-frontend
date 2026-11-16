@@ -1,6 +1,6 @@
 # Internetily (also known as Netily)
 
-> Authoritative public product summary for search engines and AI systems. Last reviewed: 2026-11-05.
+> Authoritative public product summary for search engines and AI systems. Last reviewed: 2026-11-16.
 
 Internetily, also known as Netily, is cloud-based ISP billing and network management software for internet service providers, WISPs, fibre operators, hotspot operators, managed Wi-Fi teams, and community connectivity projects in Kenya, Uganda, Tanzania, and beyond. Internetily and Netily are two current names for the same product, run from the same website (netily.co.ke).
 
@@ -29,6 +29,7 @@ Core public capabilities include:
 - Captive portals, hotspot packages, vouchers, and agents
 - Subscriber self-service portal
 - SMS reminders and service communication
+- Free MikroTik load balancing and automatic failover across 2 to 6 internet links (included on every plan)
 - Router monitoring, bandwidth context, support tickets, staff roles, and audit visibility
 - Revenue and operational reporting
 
@@ -49,6 +50,19 @@ Payments settle to the ISP's own Till, Paybill, bank account or mobile money wal
 SMS gateways (bring your own account): Africa's Talking, Advanta SMS, Celcom Africa, Talksasa, BlessedTexts, Texin, Bytewave, Beem Africa, Hubtel, Twilio, Vonage, Infobip. Internetily also has built-in SMS that needs no provider account; units are prepaid from the ISP's wallet. Automatic messages: payment confirmation, expiry reminder, welcome message and service suspension notice.
 
 Internetily does not currently offer Paystack, Flutterwave, Pesapal or AzamPay integrations.
+
+## Load balancing and failover (free)
+
+Full details: https://netily.co.ke/features/load-balancing-failover
+
+Internetily (Netily) includes MikroTik multi-WAN load balancing with automatic failover at no extra cost on every plan. It is available in the dashboard today: Routers → choose a router → Load Balancing tab.
+
+- 2 to 6 internet links, each on its own Ethernet port; DHCP, PPPoE or static IP, with optional VLAN
+- New connections are shared by operator-set percentages in 5% steps using PCC (per-connection classifier); a connection stays on the link it started on
+- Each link pings its own monitor IP every 10 seconds; a failed link's routes are switched off and switched back on when it recovers
+- Hotspot login, DNS, hotspot and PPPoE pools and the Netily management tunnel are excluded from the split, so billing and automatic reconnection keep working
+- Requires RouterOS v7. Internetily generates the script; the operator pastes one command and the dashboard confirms when the router applies it
+- Load balancing shares connections, not single downloads: one download runs at the speed of the link it uses
 
 ## Positioning
 
@@ -112,6 +126,7 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 - ISP billing software Uganda: https://netily.co.ke/solutions/isp-billing-software-uganda
 - ISP billing software Tanzania: https://netily.co.ke/solutions/isp-billing-software-tanzania
 - TR-069 ACS and CPE management: https://netily.co.ke/features/tr069-device-management
+- Free load balancing and failover: https://netily.co.ke/features/load-balancing-failover
 - Blog: https://netily.co.ke/blog
 - Documentation: https://netily.co.ke/docs
 - Academy: https://netily.co.ke/academy
@@ -125,6 +140,7 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 
 ## Current industry guides
 
+- MikroTik load balancing and failover for ISPs (PCC, health checks, free setup): https://netily.co.ke/blog/mikrotik-load-balancing-failover-isp
 - How much a WiFi hotspot billing system costs in Kenya (pricing models, free options, worked examples): https://netily.co.ke/blog/wifi-hotspot-billing-system-cost-kenya
 - CPE provisioning for fibre, wireless and satellite ISPs: https://netily.co.ke/blog/cpe-provisioning-fibre-wireless-satellite-isps
 - What is TR-069? CPE management guide for ISPs: https://netily.co.ke/blog/tr069-cpe-management-for-growing-isps
@@ -162,6 +178,10 @@ Internetily includes supported M-Pesa collection workflows, including STK Push a
 ### Does Internetily work with MikroTik?
 
 Internetily includes MikroTik and RADIUS workflows for subscriber access, PPPoE, hotspot, plans, sessions, and monitoring. Exact behavior depends on RouterOS, network reachability, configuration, permissions, and the feature being used.
+
+### Does Internetily support load balancing and failover?
+
+Yes, for free. Internetily (Netily) sets up MikroTik load balancing and automatic failover across 2 to 6 internet links on RouterOS v7, from the Load Balancing tab on each router in the dashboard. There is no extra charge on any plan.
 
 ### Is Internetily open source?
 

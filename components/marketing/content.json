@@ -233,6 +233,26 @@
     ]
   },
   {
+    "path": "/features/load-balancing-failover",
+    "title": "Free MikroTik load balancing and failover. Keep subscribers online when an upstream link fails.",
+    "intro": "Combine 2 to 6 internet links on a MikroTik router with automatic failover. Free on every Internetily (Netily) plan and set up from your dashboard with one command.",
+    "problem": "Your upstream fibre goes down at 8pm. Every subscriber is offline, the phone will not stop ringing, and the backup link you pay for sits idle because switching to it means someone opening Winbox and editing routes by hand.",
+    "points": [
+      "Free on every plan  -  Load balancing and failover cost nothing extra. Open a router in your dashboard, choose the Load Balancing tab and follow four short steps.",
+      "Automatic failover  -  Each link is checked every 10 seconds against its own monitor IP. When a link stops answering, its routes are switched off and traffic uses the remaining links. When it recovers, it is switched back on.",
+      "Split by your percentages  -  New connections are shared across 2 to 6 links in 5% steps using per-connection classification (PCC). A connection stays on the link it started on, so sessions and banking apps are not interrupted.",
+      "Any uplink type  -  DHCP fibre, PPPoE with a username and password, or static IP, each on its own Ethernet port with optional VLAN tagging.",
+      "Billing keeps working  -  Hotspot login, DNS, your hotspot and PPPoE pools and the Netily management tunnel are kept out of the split, so payments, captive portal and automatic reconnection behave as before.",
+      "One command, confirmed  -  Internetily generates the RouterOS v7 script. Paste one line into the MikroTik terminal and the dashboard updates when the router confirms. Disabling it gives you a clean removal command."
+    ],
+    "steps": [
+      "Open Routers, choose the router and select the Load Balancing tab",
+      "Pick how many links, then enter each link's name, port and type (DHCP, PPPoE or static)",
+      "Set the connection split, review and save",
+      "Paste the generated command into the MikroTik terminal and wait for the router to confirm"
+    ]
+  },
+  {
     "path": "/features/ip-mac-bindings",
     "title": "One device. One subscriber. No sharing.",
     "intro": "Lock each PPPoE or hotspot session to a specific IP and MAC address. One subscriber, one connection. No workarounds.",

@@ -144,6 +144,13 @@ export const SALES_TOPICS: SalesTopic[] = [
     followUps: ["Is my bank supported?", "Which SMS gateways work?", "What does it cost?"],
   },
   {
+    id: "load-balancing",
+    keywords: ["load balancing", "load balance", "loadbalancing", "failover", "fail over", "dual wan", "multi wan", "multiwan", "two isps", "backup link", "backup internet", "pcc", "uplink", "redundancy"],
+    answer: "Yes, and it's **free on every plan**. Combine **2 to 6 internet links** on one MikroTik router (DHCP, PPPoE or static). New connections are shared by your percentages, and if a link goes down, traffic moves to the others automatically. Set it up from **Routers → your router → Load Balancing**, then paste one command. Needs RouterOS v7.",
+    link: { href: "/features/load-balancing-failover", label: "See load balancing and failover" },
+    followUps: ["Does it work with MikroTik?", "What does it cost?", "Is there a free trial?"],
+  },
+  {
     id: "markets",
     keywords: ["kenya", "uganda", "tanzania", "rwanda", "nigeria", "south africa", "country", "momo", "mtn", "airtel", "flutterwave", "currency", "outside kenya"],
     answer: "Internetily serves ISPs across **Kenya, Uganda, Tanzania** and beyond. In Kenya it's M-Pesa native, with settlement straight into 22 banks and SACCOs; in Uganda customers can pay with **MTN MoMo or Airtel Money** through iotec. Operating somewhere else? The team will confirm the right payment option for your market.",

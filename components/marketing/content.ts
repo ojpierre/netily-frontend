@@ -23,7 +23,7 @@ export type DetailPage = (typeof pages)[number]
 const names: Record<string, string> = {
   "mpesa-billing": "M-Pesa billing", "mikrotik-provisioning": "MikroTik provisioning",
   "pppoe-billing": "PPPoE billing", "hotspot-billing": "Hotspot billing",
-  "tr069-device-management": "TR-069 device management", "ip-mac-bindings": "IP / MAC bindings",
+  "tr069-device-management": "TR-069 device management", "load-balancing-failover": "Load balancing & failover", "ip-mac-bindings": "IP / MAC bindings",
   "sms-reminders": "SMS reminders", "vouchers-agents": "Vouchers & agents",
   "fibre-isps": "Fibre ISPs", "rural-wisps": "Rural WISPs", "managed-wifi": "Managed Wi-Fi",
 }
@@ -35,7 +35,7 @@ export function pageName(path: string) {
 
 export const featureGroups = [
   { title: "Get paid on time", slugs: ["mpesa-billing", "payment-reconciliation", "recurring-invoicing", "vouchers-agents"] },
-  { title: "Run your network", slugs: ["mikrotik-provisioning", "pppoe-billing", "hotspot-billing", "router-monitoring", "captive-portals", "tr069-device-management", "ip-mac-bindings"] },
+  { title: "Run your network", slugs: ["mikrotik-provisioning", "pppoe-billing", "hotspot-billing", "router-monitoring", "load-balancing-failover", "captive-portals", "tr069-device-management", "ip-mac-bindings"] },
   { title: "Support your subscribers", slugs: ["subscriber-management", "subscriber-portal", "support-tickets", "sms-reminders", "customer-wallet"] },
   { title: "See what's working", slugs: ["revenue-reporting", "staff-roles", "customer-referrals", "multi-branch-management"] },
 ]
@@ -87,6 +87,19 @@ export const answerEngineContent: Record<string, AnswerEngineContent> = {
     questions: [
       ["Can a Smart TV buy a hotspot plan?", "A TV plan lets a customer pay from a phone while the TV connects using its MAC address, provided the TV is already on the Wi-Fi network and the operator has configured a TV plan."],
       ["Can operators reply to messages from the hotspot login page?", "Yes. Operators can open Tickets, choose Hotspot Chats, and reply to the customer conversation from the admin workspace."],
+    ],
+  },
+  "/features/load-balancing-failover": {
+    answer: "Internetily (Netily) includes free MikroTik load balancing and failover on every plan. From the dashboard, open a router, choose Load Balancing, add 2 to 6 internet links (DHCP, PPPoE or static) and set each link's share. Internetily generates a RouterOS v7 script you paste once. Each link is checked every 10 seconds, and if one fails, traffic moves to the links that are still up.",
+    questions: [
+      ["Is load balancing and failover free in Internetily?", "Yes. Load balancing and failover is included on every Internetily (Netily) plan at no extra cost. There is no add-on to buy; it is available from the Load Balancing tab on each router in your dashboard."],
+      ["Where do I find load balancing in the Netily dashboard?", "Open Routers, select the MikroTik router that has your internet links connected, and choose the Load Balancing tab. A four-step wizard covers links, ISP setup, traffic split and review."],
+      ["How does MikroTik failover work in Internetily?", "Every link pings its own monitor IP, such as 8.8.8.8 or 1.1.1.1, every 10 seconds. If a link stops answering, the router switches off that link's routes and new traffic uses the remaining links. When the link answers again, its routes are switched back on automatically."],
+      ["Does load balancing combine the speed of my internet links?", "It shares connections, not single downloads. Each new connection goes to one link based on your percentages, using per-connection classification (PCC). Many users together use the combined capacity, but one file download still runs at the speed of the link it started on."],
+      ["How many internet links can I load balance?", "Between 2 and 6 links, each on its own Ethernet port. Each link can use DHCP, PPPoE with a username and password, or a static IP, with optional VLAN tagging."],
+      ["Which RouterOS version do I need?", "RouterOS v7. The generated script checks the version first and stops without changes on older routers."],
+      ["Will load balancing break my hotspot or PPPoE billing?", "No. Hotspot login, DNS, the hotspot and PPPoE address pools and the Netily management tunnel are kept out of the split, so the captive portal, payments and automatic reconnection keep working."],
+      ["How do I turn load balancing off?", "Choose Disable on the Load Balancing tab. Internetily gives you a removal command that deletes only the rules it created. You then configure your WAN ports manually."],
     ],
   },
   "/features/tr069-device-management": {

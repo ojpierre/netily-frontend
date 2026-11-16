@@ -82,6 +82,7 @@ import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
 import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
 import { WhatsNewPopup } from "@/components/whats-new-popup"
+import { AdminAnniversaryBar, AdminAnniversaryConfetti } from "@/components/admin-anniversary"
 import { AdminProfileMenu } from "@/components/admin-profile-menu"
 import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
@@ -1539,6 +1540,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="min-w-0 overflow-x-hidden px-3 pb-3 pt-17 sm:px-4 sm:pb-4 sm:pt-20 lg:px-6 lg:pb-6 lg:pt-28">
+          <AdminAnniversaryBar disabled={isDemoMode || isPublicPage || loading} />
           {isDemoMode && (
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">
@@ -1803,6 +1805,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         <NetilySupportChat />
         <AdminOnboardingTour user={user} country={country} disabled={isDemoMode || isPublicPage || loading || localeLoading} />
         <WhatsNewPopup user={user} disabled={isDemoMode || isPublicPage || loading || pathname === "/admin/whats-new"} />
+      <AdminAnniversaryConfetti user={user} disabled={isDemoMode || isPublicPage || loading} />
       </div>
     </div>
   )
