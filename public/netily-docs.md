@@ -523,7 +523,7 @@ Click **Add Router**. The only required field is the Router Name (e.g., "Main Ga
 
 ### Router Detail Page
 
-Click any router to open its full management page. It has 16 tabs:
+Click any router to open its full management page. It has 17 tabs:
 
 #### 1. Live Status
 Real-time info: online/offline status, router identity, model, firmware version, uptime, CPU usage, memory usage, and system details.
@@ -620,7 +620,31 @@ Create and manage configuration backups. Download backups at any time.
 #### 16. Configuration (Read-Only)
 View current router settings: name, type, IP, API port, credentials, model, SLA target, location, and notes.
 
+#### 17. Load Balancing (free)
+Combine 2 to 6 internet links on this MikroTik router with automatic failover. Load balancing and failover is **free on every Netily plan** and is configured entirely from this tab. You do not need to write PCC mangle rules or routing tables by hand.
+
+1. **Uplinks** — choose how many internet links (2 to 6). Each must be cabled into its own Ethernet port.
+2. **ISP Setup** — for each link, enter a name, pick the port, and choose **DHCP**, **PPPoE** (username and password) or **Static** (IP, prefix and gateway). Optionally add a VLAN ID. Each link gets a monitor IP (for example 8.8.8.8 or 1.1.1.1) that must be different for every link.
+3. **Traffic** — set the connection split in 5% steps (minimum 5% per link, total 100%). Give a faster link a bigger share: for a 100 Mbps and a 50 Mbps link, use 65 / 35.
+4. **Review** — save and generate the command.
+
+Paste the generated command into the MikroTik terminal (Winbox → New Terminal). The tab shows **Waiting for router** until the router confirms, then **Applied on router**.
+
+How it works:
+- New connections are shared using PCC (per-connection classifier). A connection stays on the link it started on.
+- Each link pings its monitor IP every 10 seconds. If it stops answering, that link's routes are switched off and traffic uses the other links. They switch back on when it recovers.
+- Hotspot login, DNS, your hotspot and PPPoE pools and the Netily VPN tunnel are excluded from the split, so the captive portal, payments, RADIUS and automatic reconnection keep working.
+- Every rule is labelled `NLB:`. **Disable** gives you a removal command that deletes only those rules.
+
+> **Requirements:** RouterOS v7. Hotspot bridge ports cannot be used as uplinks. Run the command from a stable connection (Winbox over LAN).
+
 ### FAQ
+
+**Can Netily do load balancing and failover for my MikroTik?**
+Yes, for free. Open Routers → choose the router → **Load Balancing** tab, add 2 to 6 internet links, set the split and paste the generated command. Failover is automatic.
+
+**Does load balancing combine the speed of my links?**
+It shares connections, not single downloads. Many users together use the combined capacity, but one download runs at the speed of the link it started on.
 
 **What's the difference between Online and Offline?**
 Online means the router is reachable via VPN and responding to API calls. Offline means it can't be reached.
