@@ -5153,7 +5153,11 @@ async activateService(
     duration_amount?: number;
     duration_unit?: 'MINUTES' | 'HOURS' | 'DAYS';
     expiry_date?: string;
-  }): Promise<{ status: string; session_id: string; new_expiry: string; message: string }> {
+    send_sms?: boolean;
+  }): Promise<{
+    status: string; session_id: string; new_expiry: string; message: string;
+    reactivated?: boolean; sms?: 'queued' | 'no_phone' | 'disabled'
+  }> {
     return this.request(`/hotspot/admin/sessions/${sessionId}/extend/`, {
       method: 'POST',
       body: JSON.stringify(data),

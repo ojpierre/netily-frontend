@@ -443,6 +443,7 @@ export default function UsersPage() {
   const [hotspotExtendManualTime, setHotspotExtendManualTime] = useState("23:59")
   const [hotspotExtendMode, setHotspotExtendMode] = useState<"duration" | "date">("duration")
   const [extendingHotspot, setExtendingHotspot] = useState(false)
+  const [hotspotExtendSendSms, setHotspotExtendSendSms] = useState(true)
   
   const [activating, setActivating] = useState(false)
   const [togglingRadius, setTogglingRadius] = useState(false)
@@ -1656,6 +1657,7 @@ export default function UsersPage() {
     setHotspotExtendManualDate("")
     setHotspotExtendManualTime("23:59")
     setHotspotExtendMode("duration")
+    setHotspotExtendSendSms(true)
     setShowExtendHotspotDialog(true)
   }
 
@@ -1663,7 +1665,7 @@ export default function UsersPage() {
     if (!hotspotSessionToExtend?.session_id) return
     try {
       setExtendingHotspot(true)
-      let payload: any = {}
+      let payload: any = { send_sms: hotspotExtendSendSms }
       if (hotspotExtendMode === "date" && hotspotExtendManualDate) {
         const iso = `${hotspotExtendManualDate}T${hotspotExtendManualTime || "23:59"}:00`
         if (new Date(iso) <= new Date()) { 
@@ -1677,6 +1679,9 @@ export default function UsersPage() {
       }
       const result = await adminApi.extendHotspotSession(hotspotSessionToExtend.session_id, payload)
       toast.success(result.message || "Hotspot session extended")
+      if (hotspotExtendSendSms && result.sms === 'no_phone') {
+        toast.warning("Extended, but no valid phone number on file — SMS not sent")
+      }
       setShowExtendHotspotDialog(false)
       setHotspotSessionToExtend(null)
       await loadActiveSubscriptions()
@@ -3933,7 +3938,7 @@ export default function UsersPage() {
                                 </TableCell>
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                   <div className="flex items-center justify-end gap-1">
-                                    {isActive && item.session_id && (
+                                    {item.session_id && (
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -4951,6 +4956,21 @@ export default function UsersPage() {
                   )}
                 </div>
               )}
+              {hotspotSessionToExtend && !(hotspotSessionToExtend.is_active_sub) && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
+                  This subscription has expired. Extending re-activates it from now, and the client auto-reconnects if they are on the same device.
+                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="hotspot_extend_sms"
+                  checked={hotspotExtendSendSms}
+                  onCheckedChange={(c) => setHotspotExtendSendSms(!!c)}
+                />
+                <Label htmlFor="hotspot_extend_sms" className="cursor-pointer text-sm dark:text-slate-200">
+                  Send SMS with extension notice and login details
+                </Label>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowExtendHotspotDialog(false)} disabled={extendingHotspot}>
