@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   CreditCard,
   Search,
@@ -21,8 +21,6 @@ import {
   AlertCircle,
   RotateCcw,
   Undo,
-  ChevronLeft,
-  ChevronRight,
   FileDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -182,6 +180,10 @@ export default function PaymentsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [processingId, setProcessingId] = useState<number | null>(null)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const observerTarget = useRef<HTMLDivElement | null>(null)
+  const requestIdRef = useRef(0) // ignores stale responses
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("")
@@ -245,41 +247,95 @@ export default function PaymentsPage() {
   const [pollingPaymentId, setPollingPaymentId] = useState<number | null>(null)
   const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'instructions'>('form')
 
-  // Fetch data - always filter to COMPLETED only
-  const fetchData = useCallback(async () => {
+  // Fetch a page of COMPLETED payments (append = infinite scroll)
+  const fetchPayments = useCallback(async (pageNum: number, append: boolean) => {
+    const reqId = ++requestIdRef.current
     try {
-      // Always send status='COMPLETED' to only get completed payments
-      const params: Record<string, string> = { 
-        ordering: '-created_at', 
-        page: String(page), 
+      if (append) setIsLoadingMore(true)
+
+      const params: Record<string, string> = {
+        ordering: '-created_at',
+        page: String(pageNum),
         page_size: String(pageSize),
-        status: 'COMPLETED'  // always filter to completed only
+        status: 'COMPLETED',
       }
-      
-      // Removed method filter
-      if (searchQuery) {
-        params.search = searchQuery
+      if (searchQuery) params.search = searchQuery
+
+      const res = await adminApi.getPayments(params)
+      if (reqId !== requestIdRef.current) return // a newer request superseded this one
+
+      const results = res.results || []
+      setPayments(prev => {
+        if (!append) return results
+        const seen = new Set(prev.map(p => p.id))
+        return [...prev, ...results.filter(p => !seen.has(p.id))]
+      })
+      setTotalCount(res.count || 0)
+      setPage(pageNum)
+      setHasMore(pageNum * pageSize < (res.count || 0))
+    } catch (error: any) {
+      if (reqId !== requestIdRef.current) return
+      const invalidPage = error?.message?.toLowerCase?.().includes('invalid page')
+      if (append) {
+        setHasMore(false) // stop the observer from re-firing on a broken page
+        if (!invalidPage) toast.error("Couldn't load more payments")
+      } else {
+        console.error('Failed to fetch payments:', error)
+        toast.error('Failed to load payments')
       }
-
-      const [paymentsRes, statsRes] = await Promise.all([
-        adminApi.getPayments(params),
-        adminApi.getPaymentDashboardStats().catch(() => null),
-      ])
-
-      setPayments(paymentsRes.results || [])
-      setTotalCount(paymentsRes.count || 0)
-      if (statsRes) setStats(statsRes)
-    } catch (error) {
-      console.error('Failed to fetch payments:', error)
-      toast.error('Failed to load payments')
     } finally {
-      setIsLoading(false)
+      if (reqId === requestIdRef.current) {
+        setIsLoading(false)
+        setIsLoadingMore(false)
+      }
     }
-  }, [searchQuery, page])
+  }, [searchQuery])
+
+  // Stats don't depend on search/page, so fetch them separately
+  const fetchStats = useCallback(async () => {
+    try {
+      const statsRes = await adminApi.getPaymentDashboardStats()
+      if (statsRes) setStats(statsRes)
+    } catch {
+      /* non-fatal */
+    }
+  }, [])
+
+  // Existing handlers (markCompleted, refund, refresh...) keep calling fetchData()
+  const fetchData = useCallback(async () => {
+    setHasMore(true)
+    await Promise.all([fetchPayments(1, false), fetchStats()])
+  }, [fetchPayments, fetchStats])
+
+  // Initial load + search (debounced) -> always restart from page 1
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setHasMore(true)
+      fetchPayments(1, false)
+    }, searchQuery ? 350 : 0)
+    return () => clearTimeout(t)
+  }, [fetchPayments, searchQuery])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchStats()
+  }, [fetchStats])
+
+  // Infinite scroll
+  const loadMore = useCallback(() => {
+    if (isLoadingMore || isLoading || !hasMore) return
+    fetchPayments(page + 1, true)
+  }, [isLoadingMore, isLoading, hasMore, page, fetchPayments])
+
+  useEffect(() => {
+    const target = observerTarget.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMore() },
+      { threshold: 0.1, rootMargin: '200px' }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [loadMore, payments.length, isLoading])
 
   // Refresh
   const handleRefresh = async () => {
@@ -742,7 +798,7 @@ export default function PaymentsPage() {
                 <Input
                   placeholder="Search..."
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 w-[220px]"
                 />
               </div>
@@ -841,37 +897,18 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalCount > pageSize && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="text-sm font-medium px-2">
-                  Page {page} of {Math.ceil(totalCount / pageSize)}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= Math.ceil(totalCount / pageSize)}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+          {/* Infinite scroll sentinel */}
+          <div ref={observerTarget} className="flex items-center justify-center py-6">
+            {isLoadingMore && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more payments...
               </div>
-            </div>
-          )}
+            )}
+            {!hasMore && payments.length > 0 && (
+              <p className="text-xs text-muted-foreground">You've reached the end</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
