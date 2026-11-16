@@ -37,16 +37,16 @@ export const alternativePages: AlternativePage[] = [
     competitor: "Iterative Billing",
     searchNames: ["Iterative billing alternative", "Iterative vs Internetily", "ISP billing app Kenya", "M-Pesa ISP billing software"],
     headline: "Iterative Billing vs Internetily: which workflow fits your ISP?",
-    metaTitle: "Iterative Billing Alternative for ISPs | Internetily",
+    metaTitle: "Iterative Billing System Alternative for Kenyan ISPs",
     metaDescription:
-      "Compare Iterative Billing and Internetily for Kenyan ISP operations, including mobile administration, M-Pesa workflows, MikroTik access, hotspot billing, analytics, and customer self-service.",
+      "Comparing Iterative Billing? See how Internetily (Netily) handles M-Pesa auto-reconnection, MikroTik PPPoE, hotspot vouchers and bank settlement side by side. Free trial.",
     intro:
       "Iterative presents a mobile operator app for billing, renewals, payments, and staff permissions. Internetily is worth comparing when you also want payment-linked network access, hotspot operations, customer self-service, router analytics, inbuilt SMS, and a broader web dashboard.",
     bestFor:
       "ISP teams comparing a mobile-first billing app with a wider operating platform for payments, subscriber access, routers, hotspot locations, support, and reporting.",
     netilyAngle:
       "Internetily connects billing to PPPoE and hotspot access, supports regional payment methods, provides customer and captive portals, and brings router-level revenue, staff controls, reminders, and support into one workflow.",
-    keywords: ["Iterative billing alternative", "Iterative vs Internetily", "Iterative ISP billing", "ISP billing app Kenya", ...sharedKeywords],
+    keywords: ["Iterative billing system", "Iterative billing alternative", "Iterative vs Internetily", "Iterative ISP billing", "ISP billing app Kenya", ...sharedKeywords],
   },
   {
     slug: "centipid-billing",

@@ -9,7 +9,7 @@ import { BRAND_ALTERNATE_NAMES, BRAND_NAME, BRAND_PROFILES, PARENT_ORGANIZATION,
 const siteUrl = SITE_URL
 const home = {
   title: "ISP Billing System for MikroTik & WiFi | Internetily (Netily)",
-  intro: "Internetily (Netily) automates MikroTik PPPoE and hotspot billing, M-Pesa payments, invoices and renewals for ISPs. Explore pricing or book a demo.",
+  intro: "ISP billing system for Kenya and East Africa. Internetily (Netily) automates MikroTik PPPoE and hotspot billing, M-Pesa auto-reconnection and renewals. Try it free.",
 }
 
 const servedMarkets = ["Kenya", "Uganda", "Tanzania", "South Africa", "United Kingdom", "United States", "Australia", "New Zealand"]

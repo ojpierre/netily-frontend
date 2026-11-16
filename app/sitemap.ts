@@ -107,6 +107,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
+      url: `${BASE}/one-year`,
+      lastModified: new Date("2026-11-16"),
+      changeFrequency: "yearly",
+      priority: 0.6,
+    },
+    {
       url: `${BASE}/blog`,
       lastModified: new Date(),
       changeFrequency: "weekly",

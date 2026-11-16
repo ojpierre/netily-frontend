@@ -368,8 +368,8 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
       "Voucher, session, and user-state management in one tool",
       "Payment-aware hotspot operations for day-to-day control",
     ],
-    seoTitle: "Hotspot Billing Software Kenya | Netily",
-    seoDescription: "Netily helps Kenyan hotspot operators manage captive portals, vouchers, session control, and payment-linked hotspot billing workflows.",
+    seoTitle: "Hotspot & WiFi Billing System Kenya with M-Pesa | Netily",
+    seoDescription: "WiFi hotspot billing for Kenya: M-Pesa captive portal, vouchers and agents, auto-reconnect. 3% of hotspot revenue, KSh 500 monthly minimum. Try it free.",
   },
   "mikrotik-billing-software": {
     title: "MikroTik Billing Software",

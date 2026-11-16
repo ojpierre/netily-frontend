@@ -81,6 +81,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
 import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
+import { WhatsNewPopup } from "@/components/whats-new-popup"
 import { AdminProfileMenu } from "@/components/admin-profile-menu"
 import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
@@ -1801,6 +1802,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         )}
         <NetilySupportChat />
         <AdminOnboardingTour user={user} country={country} disabled={isDemoMode || isPublicPage || loading || localeLoading} />
+        <WhatsNewPopup user={user} disabled={isDemoMode || isPublicPage || loading || pathname === "/admin/whats-new"} />
       </div>
     </div>
   )

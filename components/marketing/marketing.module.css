@@ -375,6 +375,27 @@
   .motionRoot [data-marketing-reveal] { opacity: 1 !important; transform: none !important; }
   .previewFlow i::after { animation: none; }
 }
+/* First-anniversary announcement bar */
+.anniversaryBar { background: linear-gradient(90deg, #075faa, #0874cf 55%, #16a34a); color: #fff; }
+.anniversaryInner { max-width: 1440px; margin: 0 auto; min-height: 42px; padding: 6px 16px 6px 32px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; text-align: center; }
+.site .anniversaryInner p { margin: 0; color: #fff; }
+.anniversaryInner strong { font-weight: 700; }
+.anniversaryInner a { display: inline-flex; align-items: center; gap: 4px; color: #fff; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.anniversaryInner button { display: grid; place-items: center; width: 32px; height: 32px; margin-left: 4px; border: 0; border-radius: 6px; background: transparent; color: #fff; }
+.anniversaryInner button:hover { background: #ffffff26; }
+@media (max-width: 640px) {
+  .anniversaryInner { padding-left: 12px; justify-content: flex-start; text-align: left; font-size: 12px; }
+  .anniversaryInner > svg, .anniversaryInner p span { display: none; }
+  .anniversaryInner button { margin-left: auto; }
+}
+
+/* Milestone page */
+.milestoneStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.milestoneStats div { padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.milestoneStats dt { font-size: 13px; color: var(--muted); }
+.milestoneStats dd { margin: 6px 0 0; font-family: var(--font-outfit), Arial, sans-serif; font-size: 30px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+@media (max-width: 920px) { .milestoneStats { grid-template-columns: 1fr 1fr; } }
+
 /* Integrations: payment routes, bank finder, SMS gateways */
 .logoSm, .logoMd { display: block; object-fit: contain; background: #fff; border-radius: 8px; flex-shrink: 0; }
 .logoSm { width: 40px; height: 40px; padding: 4px; }

@@ -6,6 +6,7 @@ import { DetailCards, Hero, PricingSummary, SectionHeading } from "./sections"
 import { ContactForm } from "./contact-form"
 import { HeroAssistant } from "./hero-assistant"
 import { PaymentGateways, SmsGateways } from "./integrations-showcase"
+import { AnniversaryConfetti } from "./anniversary"
 import { ProductProof } from "./product-preview"
 import s from "./marketing.module.css"
 
@@ -15,6 +16,7 @@ const googleReviewUrl = process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "https://g.
 
 export default function MarketingHomePage() {
   return <>
+    <AnniversaryConfetti />
     <Hero home label="Internetily (Netily) ISP billing system" title="Paid subscribers stay online. Automatically." intro="Internetily (Netily) makes sure paid subscribers stay online automatically, with M-Pesa, MikroTik and hotspot billing in one workflow."><HeroAssistant /></Hero>
     <section className={s.compatibility}><div className={s.container}><p>Works with the routers you already own.</p><div>{["MikroTik", "Ubiquiti", "TP-Link", "Tenda", "Cambium", "Huawei", "Starlink", "FreeRADIUS"].map((name) => <span key={name}>{name}</span>)}</div><Link href={marketingHref("/integrations")}>Find the right connection for your setup <ArrowRight size={15} /></Link></div></section>
     <ProductProof variant="overview" />

@@ -125,6 +125,11 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 
 ## Current industry guides
 
+- How much a WiFi hotspot billing system costs in Kenya (pricing models, free options, worked examples): https://netily.co.ke/blog/wifi-hotspot-billing-system-cost-kenya
+- CPE provisioning for fibre, wireless and satellite ISPs: https://netily.co.ke/blog/cpe-provisioning-fibre-wireless-satellite-isps
+- What is TR-069? CPE management guide for ISPs: https://netily.co.ke/blog/tr069-cpe-management-for-growing-isps
+- Internetily (Netily) turns one (November 2026): https://netily.co.ke/one-year
+
 - Kenya ISP licensing framework 2026: https://netily.co.ke/blog/kenya-isp-licensing-framework-2026
 - ISP quality-of-service monitoring in Kenya: https://netily.co.ke/blog/isp-quality-of-service-monitoring-kenya-2026
 - ISP cybersecurity for MikroTik, M-Pesa, and subscriber data: https://netily.co.ke/blog/isp-cybersecurity-mikrotik-mpesa-data-2026
