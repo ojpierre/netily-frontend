@@ -42,6 +42,7 @@ import {
   Settings,
   Wallet,
   WifiOff,
+  Gift,
   Router as RouterIcon,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
@@ -2647,6 +2648,16 @@ export default function UsersPage() {
             <FileUp className="w-4 h-4 mr-2" />
             Bulk Import
           </Button>
+          {perms.canEdit && (
+            <Button
+              variant="outline"
+              onClick={() => router.push('/admin/users/compensation')}
+              className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Gift className="w-4 h-4 mr-2" />
+              Compensation
+            </Button>
+          )}
           {perms.canAdd && (
             <>
               <Dialog open={showAddUserDialog} onOpenChange={(open) => {

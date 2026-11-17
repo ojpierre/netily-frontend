@@ -4730,6 +4730,40 @@ async activateService(
     return this.request<T>(`/radius/usage/consumers/?${qs.toString()}`)
   }
 
+    // ── Compensation (bulk add time) ──────────────────────────────
+  async getCompensationPreview(params: { type: string; router_id?: number | string; search?: string }): Promise<{
+    counts: { pppoe: number; hotspot: number; total: number }
+    sample: Array<{ key: string; kind: 'pppoe' | 'hotspot'; name: string; username: string; phone: string; router: string; expires_at: string | null }>
+    sample_limit: number
+  }> {
+    const qs = new URLSearchParams({ type: params.type })
+    if (params.router_id) qs.set('router_id', String(params.router_id))
+    if (params.search) qs.set('search', params.search)
+    return this.request(`/radius/compensation/preview/?${qs.toString()}`, { cache: 'no-store' })
+  }
+
+  async startCompensation(payload: {
+    type: string
+    router_id?: number | null
+    search?: string
+    exclude?: string[]
+    duration_amount: number
+    duration_unit: 'MINUTES' | 'HOURS' | 'DAYS'
+    send_sms: boolean
+    message?: string
+  }): Promise<{ job_id: string }> {
+    return this.request('/radius/compensation/execute/', { method: 'POST', body: JSON.stringify(payload) })
+  }
+
+  async getCompensationJob(jobId: string): Promise<{
+    job_id: string
+    state: 'queued' | 'running' | 'done' | 'failed'
+    total: number; processed: number; compensated: number; skipped: number; failed: number
+    sms_recipients: number; sms_queued: number; error?: string | null
+  }> {
+    return this.request(`/radius/compensation/jobs/${jobId}/`, { cache: 'no-store' })
+  }
+
   // ------------------------------------------
   // RADIUS CUSTOMER CREDENTIALS - /radius/credentials/
   // NEW: Auto-sync customer RADIUS credentials
