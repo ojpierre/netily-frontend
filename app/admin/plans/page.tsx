@@ -41,6 +41,7 @@ import {
   Info,
   Database,
   Monitor,
+  ChevronDown,
 } from "lucide-react"
 import {
   Table,
@@ -245,6 +246,40 @@ const HOTSPOT_PRESETS: HotspotPreset[] = [
   },
 ]
 
+// ─── Collapsible Disclosure ─────────────────────────────────
+function Disclosure({
+  icon: Icon,
+  title,
+  hint,
+  open,
+  onToggle,
+  children,
+}: {
+  icon: React.ComponentType<any>
+  title: string
+  hint?: string
+  open: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-lg border">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+      >
+        <Icon className="h-4 w-4 shrink-0 text-primary" />
+        <span className="text-sm font-medium">{title}</span>
+        <span className="ml-auto min-w-0 truncate text-xs text-muted-foreground">{hint}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="space-y-3 border-t p-3">{children}</div>}
+    </div>
+  )
+}
+
 // Reusable PlanCard component
 function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, togglingId, deletingId, canEdit = true, canDelete = true }: {
   plan: Plan
@@ -264,13 +299,11 @@ function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, toggling
 
   return (
     <motion.div
-      layout="position"
       variants={fadeUp}
       exit="exit"
-      whileHover={{ y: -4, transition: spring }}
       className="relative"
     >
-    <Card className={`relative h-full ${plan.is_popular ? "ring-2 ring-ring" : ""}`}>
+    <Card className={`relative h-full transition-transform hover:-translate-y-1 ${plan.is_popular ? "ring-2 ring-ring" : ""}`}>
       {plan.is_popular && !isFreeTrial && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-primary text-white">
@@ -465,7 +498,7 @@ function PlanGrid({ children, resetKey }: { children: React.ReactNode; resetKey:
       animate="show"
       className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6"
     >
-      <AnimatePresence mode="popLayout">{children}</AnimatePresence>
+      <AnimatePresence>{children}</AnimatePresence>
     </motion.div>
   )
 }
@@ -533,6 +566,9 @@ export default function PlansPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isPlanTypePickerOpen, setIsPlanTypePickerOpen] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [showOptional, setShowOptional] = useState(false)
 
   // Form state - Enhanced with all fields
   // 🟢 FIXED: Updated speed_unit type to include GBPS
@@ -592,12 +628,8 @@ export default function PlansPage() {
   const fetchHotspotStatsCount = useCallback(async () => {
     if (routers.length === 0) return
     try {
-      let count = 0
-      for (const r of routers) {
-        const hPlans = await adminApi.getHotspotPlans(r.id)
-        count += hPlans.length
-      }
-      setHotspotTotalCount(count)
+      const lists = await Promise.all(routers.map((r) => adminApi.getHotspotPlans(r.id)))
+      setHotspotTotalCount(lists.reduce((sum, l) => sum + l.length, 0))
     } catch (error) {
       console.error('Failed to fetch hotspot stats count:', error)
     }
@@ -853,6 +885,12 @@ export default function PlansPage() {
     )
   }, [plans, hotspotPlans, activeTab, selectedRouterId, searchQuery])
 
+  const scheduleSummary = useMemo(() => {
+    const plan: Record<string, unknown> = { valid_time_windows: hotspotForm.valid_time_windows }
+    Object.entries(hotspotForm.valid_days).forEach(([d, v]) => { plan[`valid_${d}`] = v })
+    return summarizeSchedule(plan) ?? "Every day · all hours"
+  }, [hotspotForm.valid_days, hotspotForm.valid_time_windows])
+
   // Stats - use dashboard stats if available, otherwise calculate from loaded data
   // Use hotspotTotalCount which is loaded independently on mount
   const stats = useMemo(() => {
@@ -972,6 +1010,8 @@ export default function PlansPage() {
     })
     setIsEditingHotspot(false)
     setEditingHotspotPlan(null)
+    setShowSchedule(false)
+    setShowOptional(false)
   }
 
   // Create plan
@@ -1101,6 +1141,8 @@ export default function PlansPage() {
       })
       setEditingHotspotPlan(plan)
       setIsEditingHotspot(true)
+      setShowSchedule(false)
+      setShowOptional(!!(plan.description || plan.features?.length))
       setIsHotspotCreateOpen(true)
       return
     }
@@ -1529,8 +1571,8 @@ export default function PlansPage() {
                 }`}
               >
                 <motion.div
-                  animate={{ scale: isActive ? 1.08 : 1, rotate: isActive ? [0, -8, 8, 0] : 0 }}
-                  transition={{ duration: 0.4 }}
+                  animate={{ scale: isActive ? 1.08 : 1 }}
+                  transition={{ duration: 0.2 }}
                   className={`p-2 rounded-lg ${isActive ? tab.activeIconBg : tab.inactiveIconBg}`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? tab.activeIconColor : "text-muted-foreground"}`} />
@@ -1712,56 +1754,56 @@ export default function PlansPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Create Presets — only shown when router is selected, updated description */}
+          {/* Quick Create Presets — collapsed by default */}
           {selectedRouterId && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="w-5 h-5 text-warning" />
-                Quick Create Hotspot Plans
-              </CardTitle>
-              <CardDescription>
-                One-click to create industry-standard hotspot packages for{' '}
-                <span className="font-semibold">
-                  {selectedRouterId === 'all'
-                    ? `all ${routers.length} routers`
-                    : routers.find(r => r.id === selectedRouterId)?.name || 'Unknown'}
-                </span>.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-                {HOTSPOT_PRESETS.map((preset) => {
-                  const Icon = preset.icon
-                  return (
-                    <motion.button
-                      key={preset.id}
-                      type="button"
-                      whileHover={{ y: -4, scale: 1.03 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={spring}
-                      onClick={() => handleHotspotPresetCreate(preset)}
-                      disabled={hotspotCreating || localeLoading || (country === 'UG' && preset.config.base_price < 500)}
-                      className="group relative flex flex-col items-center p-4 rounded-xl border-2 border-dashed border-muted hover:border-primary/50 hover:bg-primary/5 transition-colors text-center disabled:opacity-50"
-                    >
-                      <div className={`w-10 h-10 rounded-full ${preset.color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="font-semibold text-sm">{preset.name}</span>
-                      <span className="text-xs text-muted-foreground mt-0.5">{preset.description}</span>
-                      <span className="text-sm font-bold text-primary mt-1">
-                        {formatCurrency(preset.config.base_price, baseCurrency)}
-                      </span>
-                      <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
-                        <Gauge className="w-3 h-3" />
-                        {preset.config.download_speed}/{preset.config.upload_speed} Mbps
-                      </div>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="gap-0 py-0">
+              <button
+                type="button"
+                onClick={() => setShowPresets((v) => !v)}
+                aria-expanded={showPresets}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <Zap className="h-4 w-4 shrink-0 text-warning" />
+                  <span className="text-sm font-semibold">Quick create</span>
+                  <span className="hidden truncate text-xs text-muted-foreground sm:inline">
+                    · one-tap packages for{" "}
+                    {selectedRouterId === "all"
+                      ? `all ${routers.length} routers`
+                      : routers.find((r) => r.id === selectedRouterId)?.name || "router"}
+                  </span>
+                </span>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${showPresets ? "rotate-180" : ""}`} />
+              </button>
+              {showPresets && (
+                <CardContent className="border-t p-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                    {HOTSPOT_PRESETS.map((preset) => {
+                      const Icon = preset.icon
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleHotspotPresetCreate(preset)}
+                          disabled={hotspotCreating || localeLoading || (country === "UG" && preset.config.base_price < 500)}
+                          className="flex items-center gap-2 rounded-lg border border-dashed p-2 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98] disabled:opacity-50"
+                        >
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${preset.color}`}>
+                            <Icon className="h-4 w-4 text-white" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-semibold">{preset.name}</span>
+                            <span className="block truncate text-[11px] font-bold text-primary">
+                              {formatCurrency(preset.config.base_price, baseCurrency)}
+                            </span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
           )}
 
           {/* No router selected prompt */}
@@ -2794,28 +2836,26 @@ export default function PlansPage() {
               )}
             </div>
 
-            {/* Speed */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Speed + devices */}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Download (Mbps)</Label>
+                <Label className="text-sm font-medium">Down (Mbps)</Label>
                 <Input type="number" value={hotspotForm.download_speed}
                   onChange={(e) => setHotspotForm({ ...hotspotForm, download_speed: e.target.value })}
                   placeholder="10" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Upload (Mbps)</Label>
+                <Label className="text-sm font-medium">Up (Mbps)</Label>
                 <Input type="number" value={hotspotForm.upload_speed}
                   onChange={(e) => setHotspotForm({ ...hotspotForm, upload_speed: e.target.value })}
                   placeholder="5" />
               </div>
-            </div>
-
-            {/* Max Devices */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Max Devices</Label>
-              <Input type="number" min={1} value={hotspotForm.max_sessions}
-                onChange={(e) => setHotspotForm({ ...hotspotForm, max_sessions: e.target.value })}
-                placeholder="1" />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Devices</Label>
+                <Input type="number" min={1} value={hotspotForm.max_sessions}
+                  onChange={(e) => setHotspotForm({ ...hotspotForm, max_sessions: e.target.value })}
+                  placeholder="1" />
+              </div>
             </div>
 
             {/* Data Limit — NEW SECTION */}
@@ -2832,16 +2872,7 @@ export default function PlansPage() {
                 />
               </div>
 
-              <AnimatePresence initial={false}>
-                {hotspotForm.limitation_type === 'DATA' && (
-                  <motion.div
-                    key="data-cap"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={spring}
-                    className="overflow-hidden"
-                  >
+              {hotspotForm.limitation_type === 'DATA' && (
                 <div className="grid gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-warning">Data Cap</Label>
@@ -2860,9 +2891,7 @@ export default function PlansPage() {
                       value={hotspotForm.data_limit_unit}
                       onValueChange={(v) => setHotspotForm({ ...hotspotForm, data_limit_unit: v as 'MB' | 'GB' })}
                     >
-                      <SelectTrigger className="h-9 w-24">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="h-9 w-24"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="MB">MB</SelectItem>
                         <SelectItem value="GB">GB</SelectItem>
@@ -2870,9 +2899,7 @@ export default function PlansPage() {
                     </Select>
                   </div>
                 </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              )}
 
               {hotspotForm.limitation_type === 'UNLIMITED' && (
                 <p className="text-xs text-muted-foreground">
@@ -2895,13 +2922,21 @@ export default function PlansPage() {
             </div>
 
             {/* ─── SCHEDULE EDITOR (Days + Time Windows) ─── */}
-            <HotspotScheduleEditor
-              validDays={hotspotForm.valid_days}
-              windows={hotspotForm.valid_time_windows}
-              onChange={({ validDays, windows }) =>
-                setHotspotForm((prev) => ({ ...prev, valid_days: validDays, valid_time_windows: windows }))
-              }
-            />
+            <Disclosure
+              icon={Clock}
+              title="Availability"
+              hint={scheduleSummary}
+              open={showSchedule}
+              onToggle={() => setShowSchedule((v) => !v)}
+            >
+              <HotspotScheduleEditor
+                validDays={hotspotForm.valid_days}
+                windows={hotspotForm.valid_time_windows}
+                onChange={({ validDays, windows }) =>
+                  setHotspotForm((prev) => ({ ...prev, valid_days: validDays, valid_time_windows: windows }))
+                }
+              />
+            </Disclosure>
 
             {/* ─── FREE TRIAL TOGGLE WITH DISABLED STATE FOR EDITING ─── */}
             {(() => {
@@ -2944,21 +2979,20 @@ export default function PlansPage() {
               )
             })()}
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Description</Label>
-              <Textarea rows={2} value={hotspotForm.description}
-                onChange={(e) => setHotspotForm({ ...hotspotForm, description: e.target.value })}
-                placeholder="Describe the plan benefits..." />
-            </div>
-
-            {/* Features */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Features (one per line)</Label>
-              <Textarea rows={3} value={hotspotForm.features}
-                onChange={(e) => setHotspotForm({ ...hotspotForm, features: e.target.value })}
-                placeholder={`e.g., 10 Mbps Speed\n1 Hour Access\nSingle Device`} />
-            </div>
+            <Disclosure
+              icon={Info}
+              title="Description"
+              hint="Optional"
+              open={showOptional}
+              onToggle={() => setShowOptional((v) => !v)}
+            >
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Description <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+                <Textarea rows={2} value={hotspotForm.description}
+                  onChange={(e) => setHotspotForm({ ...hotspotForm, description: e.target.value })}
+                  placeholder="Describe the plan benefits..." />
+              </div>
+            </Disclosure>
 
             {/* Active / Popular toggles */}
             <div className="flex flex-wrap items-center gap-6 p-3 bg-muted/30 rounded-lg">
