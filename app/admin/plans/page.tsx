@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { AnimatePresence, MotionConfig, motion } from "framer-motion"
 import {
   Package,
   Plus,
@@ -109,6 +110,14 @@ import { adminApi } from "@/lib/admin-api"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { formatPaymentAmount } from "@/lib/tenant-locale"
+import { AnimatedPills } from "@/components/ui/animated-pills"
+import { AnimatedNumber } from "@/components/ui/animated-number"
+import {
+  HotspotScheduleEditor,
+  summarizeSchedule,
+  type TimeWindows,
+} from "@/components/admin/plans/hotspot-schedule-editor"
+import { fadeUp, listContainer, spring } from "@/lib/plans-motion"
 import type { Plan, PlanType, PlanDashboardStats, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse, Router } from "@/lib/types"
 
 const formatCurrency = (amount: string | number, currency: string) => formatPaymentAmount(amount, currency)
@@ -251,9 +260,17 @@ function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, toggling
 }) {
   const hp = plan as any
   const isFreeTrial = hp.is_free_trial === true
+  const scheduleLabel = hp._isHotspotPlan ? summarizeSchedule(hp) : null
 
   return (
-    <Card className={`relative ${plan.is_popular ? "ring-2 ring-ring" : ""}`}>
+    <motion.div
+      layout="position"
+      variants={fadeUp}
+      exit="exit"
+      whileHover={{ y: -4, transition: spring }}
+      className="relative"
+    >
+    <Card className={`relative h-full ${plan.is_popular ? "ring-2 ring-ring" : ""}`}>
       {plan.is_popular && !isFreeTrial && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-primary text-white">
@@ -288,6 +305,12 @@ function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, toggling
                 <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5">
                   <Signal className="w-3 h-3 mr-1" />
                   Router: {hp._routerName}
+                </Badge>
+              )}
+              {scheduleLabel && (
+                <Badge variant="outline" className="border-warning/30 text-warning bg-warning/10">
+                  <Clock className="w-3 h-3 mr-1" />
+                  {scheduleLabel}
                 </Badge>
               )}
             </CardDescription>
@@ -429,6 +452,21 @@ function PlanCard({ plan, currency, onView, onEdit, onToggle, onDelete, toggling
         </div>
       </CardFooter>
     </Card>
+    </motion.div>
+  )
+}
+
+function PlanGrid({ children, resetKey }: { children: React.ReactNode; resetKey: string }) {
+  return (
+    <motion.div
+      key={resetKey}
+      variants={listContainer}
+      initial="hidden"
+      animate="show"
+      className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6"
+    >
+      <AnimatePresence mode="popLayout">{children}</AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -468,6 +506,8 @@ export default function PlansPage() {
       monday: true, tuesday: true, wednesday: true, thursday: true,
       friday: true, saturday: true, sunday: true,
     } as Record<string, boolean>,
+    // NEW: Time-of-day windows per day (empty = all day)
+    valid_time_windows: {} as TimeWindows,
   })
 
   // Loading states
@@ -665,6 +705,8 @@ export default function PlansPage() {
           valid_friday: hp.valid_friday ?? true,
           valid_saturday: hp.valid_saturday ?? true,
           valid_sunday: hp.valid_sunday ?? true,
+          // NEW TIME WINDOWS
+          valid_time_windows: hp.valid_time_windows ?? {},
         })) as any[]
         allPlans.push(...mapped)
       }
@@ -723,6 +765,8 @@ export default function PlansPage() {
         valid_friday: hp.valid_friday ?? true,
         valid_saturday: hp.valid_saturday ?? true,
         valid_sunday: hp.valid_sunday ?? true,
+        // NEW TIME WINDOWS
+        valid_time_windows: hp.valid_time_windows ?? {},
       })) as any[]
       setHotspotPlans(mapped)
     } catch (error) {
@@ -923,6 +967,8 @@ export default function PlansPage() {
         monday: true, tuesday: true, wednesday: true, thursday: true,
         friday: true, saturday: true, sunday: true,
       },
+      // NEW TIME WINDOWS
+      valid_time_windows: {},
     })
     setIsEditingHotspot(false)
     setEditingHotspotPlan(null)
@@ -1050,6 +1096,8 @@ export default function PlansPage() {
           saturday: hp.valid_saturday ?? true,
           sunday: hp.valid_sunday ?? true,
         },
+        // NEW: restore valid_time_windows from the plan
+        valid_time_windows: (hp.valid_time_windows ?? {}) as TimeWindows,
       })
       setEditingHotspotPlan(plan)
       setIsEditingHotspot(true)
@@ -1305,6 +1353,13 @@ export default function PlansPage() {
       toast.error('Mobile Money requires a minimum hotspot plan price of UGX 500.')
       return
     }
+    const badWindow = Object.entries(hotspotForm.valid_time_windows).find(
+      ([, w]) => w && (!w.start || !w.end || w.start === w.end)
+    )
+    if (badWindow) {
+      toast.error(`Set different start and end times for ${badWindow[0]}`)
+      return
+    }
     setHotspotCreating(true)
     try {
       const validityType = hotspotForm.validity_type as 'MINUTES' | 'HOURS' | 'DAYS' | 'UNLIMITED'
@@ -1335,6 +1390,12 @@ export default function PlansPage() {
         is_tv_plan: hotspotForm.is_tv_plan || false,   // <-- ADD THIS
         // NEW VALID DAYS
         valid_days: hotspotForm.valid_days,
+        // NEW TIME WINDOWS
+        valid_time_windows: Object.fromEntries(
+          Object.entries(hotspotForm.valid_time_windows).filter(
+            ([day, w]) => hotspotForm.valid_days[day] !== false && w && w.start && w.end
+          )
+        ),
       } as any
 
       if (isEditingHotspot && editingHotspotPlan) {
@@ -1411,7 +1472,13 @@ export default function PlansPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+    <MotionConfig reducedMotion="user">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={spring}
+      className="flex min-w-0 flex-col gap-4 sm:gap-6"
+    >
       {/* Header */}
       <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -1422,22 +1489,15 @@ export default function PlansPage() {
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           
-          <div className="flex w-fit items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm sm:mr-2">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-full transition-all ${viewMode === "grid" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-              title="Grid View"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-full transition-all ${viewMode === "table" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-              title="Table View"
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
+          <AnimatedPills
+            className="sm:mr-2"
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              { value: "grid", label: <LayoutGrid className="w-4 h-4" />, ariaLabel: "Grid view" },
+              { value: "table", label: <List className="w-4 h-4" />, ariaLabel: "Table view" },
+            ]}
+          />
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -1456,30 +1516,41 @@ export default function PlansPage() {
             const Icon = tab.icon
             const isActive = activeTab === tab.value
             return (
-              <button
+              <motion.button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                transition={spring}
+                className={`relative flex items-center gap-3 p-4 rounded-xl border-2 transition-colors text-left ${
                   isActive
                     ? `${tab.activeBorder} ${tab.activeBg} shadow-sm`
                     : "border-transparent bg-muted/40 hover:bg-muted/70 hover:border-muted-foreground/20"
                 }`}
               >
-                <div className={`p-2 rounded-lg ${isActive ? tab.activeIconBg : tab.inactiveIconBg}`}>
+                <motion.div
+                  animate={{ scale: isActive ? 1.08 : 1, rotate: isActive ? [0, -8, 8, 0] : 0 }}
+                  transition={{ duration: 0.4 }}
+                  className={`p-2 rounded-lg ${isActive ? tab.activeIconBg : tab.inactiveIconBg}`}
+                >
                   <Icon className={`w-5 h-5 ${isActive ? tab.activeIconColor : "text-muted-foreground"}`} />
-                </div>
+                </motion.div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                     {tab.label}
                   </p>
                   <p className={`text-2xl font-bold ${isActive ? tab.activeCountColor : "text-foreground"}`}>
-                    {tab.count}
+                    <AnimatedNumber value={tab.count} />
                   </p>
                 </div>
                 {isActive && (
-                  <div className={`absolute bottom-0 left-4 right-4 h-0.5 ${tab.bottomBar} rounded-full`} />
+                  <motion.div
+                    layoutId="plans-tab-underline"
+                    transition={spring}
+                    className={`absolute bottom-0 left-4 right-4 h-0.5 ${tab.bottomBar} rounded-full`}
+                  />
                 )}
-              </button>
+              </motion.button>
             )
           })}
         </div>
@@ -1663,12 +1734,15 @@ export default function PlansPage() {
                 {HOTSPOT_PRESETS.map((preset) => {
                   const Icon = preset.icon
                   return (
-                    <button
+                    <motion.button
                       key={preset.id}
                       type="button"
+                      whileHover={{ y: -4, scale: 1.03 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={spring}
                       onClick={() => handleHotspotPresetCreate(preset)}
                       disabled={hotspotCreating || localeLoading || (country === 'UG' && preset.config.base_price < 500)}
-                      className="group relative flex flex-col items-center p-4 rounded-xl border-2 border-dashed border-muted hover:border-primary/50 hover:bg-primary/5 transition-all text-center disabled:opacity-50"
+                      className="group relative flex flex-col items-center p-4 rounded-xl border-2 border-dashed border-muted hover:border-primary/50 hover:bg-primary/5 transition-colors text-center disabled:opacity-50"
                     >
                       <div className={`w-10 h-10 rounded-full ${preset.color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
                         <Icon className="w-5 h-5 text-white" />
@@ -1682,7 +1756,7 @@ export default function PlansPage() {
                         <Gauge className="w-3 h-3" />
                         {preset.config.download_speed}/{preset.config.upload_speed} Mbps
                       </div>
-                    </button>
+                    </motion.button>
                   )
                 })}
               </div>
@@ -1711,11 +1785,11 @@ export default function PlansPage() {
               </CardContent>
             </Card>
           ) : viewMode === "grid" ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6">
+            <PlanGrid resetKey={`${activeTab}-${selectedRouterId}`}>
               {filteredPlans.map(plan => (
                 <PlanCard key={plan.id} plan={plan} currency={baseCurrency} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
-            </div>
+            </PlanGrid>
           ) : (
             <Card>
               <CardContent className="p-0">
@@ -1827,11 +1901,11 @@ export default function PlansPage() {
               </CardContent>
             </Card>
           ) : viewMode === "grid" ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6">
+            <PlanGrid resetKey={`${activeTab}-${selectedRouterId}`}>
               {filteredPlans.map(plan => (
                 <PlanCard key={plan.id} plan={plan} currency={baseCurrency} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
-            </div>
+            </PlanGrid>
           ) : (
             <Card>
               <CardContent className="p-0">
@@ -2748,33 +2822,26 @@ export default function PlansPage() {
             <div className="space-y-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Label className="text-sm font-medium">Data Limit</Label>
-                <div className="grid grid-cols-2 overflow-hidden rounded-lg border text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'UNLIMITED' })}
-                    className={`px-3 py-1.5 transition-colors ${
-                      hotspotForm.limitation_type === 'UNLIMITED'
-                        ? 'bg-primary text-white font-semibold'
-                        : 'bg-card text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    Unlimited
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'DATA' })}
-                    className={`px-3 py-1.5 transition-colors ${
-                      hotspotForm.limitation_type === 'DATA'
-                        ? 'bg-primary text-white font-semibold'
-                        : 'bg-card text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    Limited
-                  </button>
-                </div>
+                <AnimatedPills
+                  value={hotspotForm.limitation_type}
+                  onChange={(v) => setHotspotForm({ ...hotspotForm, limitation_type: v })}
+                  options={[
+                    { value: "UNLIMITED", label: "Unlimited" },
+                    { value: "DATA", label: "Limited" },
+                  ]}
+                />
               </div>
 
-              {hotspotForm.limitation_type === 'DATA' && (
+              <AnimatePresence initial={false}>
+                {hotspotForm.limitation_type === 'DATA' && (
+                  <motion.div
+                    key="data-cap"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={spring}
+                    className="overflow-hidden"
+                  >
                 <div className="grid gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-warning">Data Cap</Label>
@@ -2803,7 +2870,9 @@ export default function PlansPage() {
                     </Select>
                   </div>
                 </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {hotspotForm.limitation_type === 'UNLIMITED' && (
                 <p className="text-xs text-muted-foreground">
@@ -2825,40 +2894,14 @@ export default function PlansPage() {
               </Label>
             </div>
 
-            {/* ─── VALID DAYS — NEW SECTION ─── */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Valid Days</Label>
-              <div className="flex flex-wrap gap-2">
-                {([
-                  ['monday', 'Mon'], ['tuesday', 'Tue'], ['wednesday', 'Wed'],
-                  ['thursday', 'Thu'], ['friday', 'Fri'], ['saturday', 'Sat'], ['sunday', 'Sun'],
-                ] as const).map(([key, label]) => {
-                  const active = hotspotForm.valid_days[key]
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() =>
-                        setHotspotForm({
-                          ...hotspotForm,
-                          valid_days: { ...hotspotForm.valid_days, [key]: !active },
-                        })
-                      }
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                        active
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-card text-muted-foreground border-muted hover:bg-muted'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                This plan will only appear on the WiFi portal on the selected days.
-              </p>
-            </div>
+            {/* ─── SCHEDULE EDITOR (Days + Time Windows) ─── */}
+            <HotspotScheduleEditor
+              validDays={hotspotForm.valid_days}
+              windows={hotspotForm.valid_time_windows}
+              onChange={({ validDays, windows }) =>
+                setHotspotForm((prev) => ({ ...prev, valid_days: validDays, valid_time_windows: windows }))
+              }
+            />
 
             {/* ─── FREE TRIAL TOGGLE WITH DISABLED STATE FOR EDITING ─── */}
             {(() => {
@@ -3114,6 +3157,7 @@ export default function PlansPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
+    </MotionConfig>
   )
 }

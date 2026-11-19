@@ -2771,6 +2771,8 @@ export interface HotspotPlan {
   valid_saturday: boolean
   valid_sunday: boolean
   valid_days_list?: string[]
+
+   valid_time_windows?: Partial<Record<'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday', { start: string; end: string }>>
   
   // MikroTik
   mikrotik_profile?: string
@@ -2899,6 +2901,8 @@ export interface CaptivePortalPlan {
   // NEW FREE TRIAL FIELDS
   is_free_trial?: boolean
   trial_duration_minutes?: number
+  // NEW SCHEDULE FIELD (backend filters before serializing — frontend never needs to re-check)
+  schedule?: { days: Record<string, boolean>; windows: Record<string, { start: string; end: string }> }
 }
 
 /** @deprecated Use CaptivePortalResponse instead */
