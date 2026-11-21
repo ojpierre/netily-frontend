@@ -7,6 +7,7 @@ import dynamic from "next/dynamic"
 import { getTheme, type ThemeStyles } from "./theme-engine"
 import { fetchWithRetry } from "./fetchWithRetry"
 import { getPaymentLocale, normalizePaymentPhone, isValidPaymentPhone, formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
+import TvPayGuide from "./TvPayGuide"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -818,6 +819,7 @@ export default function HotspotClientView({
   const [adGranting, setAdGranting] = useState(false)
   const [adError, setAdError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const tvGuideRef = useRef<HTMLDivElement>(null)
   const preloadVideoRef = useRef<HTMLVideoElement | null>(null)
 
   // ── Loyalty state ──────────────────────────────────────────────────────────
@@ -1139,7 +1141,7 @@ export default function HotspotClientView({
   const handleConfirmManualMac = () => {
     const mac = normalizeMac(tvMacInput)
     if (!mac) {
-      setTvMacError("Enter a valid 12-character MAC address (e.g. AA:BB:CC:DD:EE:FF)")
+      setTvMacError("The MAC address needs 12 letters/numbers, like AA:BB:CC:DD:EE:FF. Check your TV's Settings → Network.")
       return
     }
     setTvMacInput(mac)
@@ -1149,17 +1151,17 @@ export default function HotspotClientView({
 
   const handleVerifyMacDigits = () => {
     if (!tvSelectedDevice) {
-      setTvMacError("Please select a device first")
+      setTvMacError("Tap your TV in the list first.")
       return
     }
     const full = tvSelectedDevice.mac.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
     const input = tvMacLastDigits.replace(/[^a-fA-F0-9]/g, "").toUpperCase()
     if (input.length < 3) {
-      setTvMacError("Enter the hidden characters of the MAC address")
+      setTvMacError("Type the hidden characters shown on your TV (at least 3).")
       return
     }
     if (!full.endsWith(input)) {
-      setTvMacError("MAC digits don't match. Check your TV's Settings → About → MAC Address")
+      setTvMacError("That doesn't match this TV. Check the Wi-Fi MAC address on your TV (not Ethernet), or pick a different TV in the list.")
       return
     }
     setTvMacVerified(true)
@@ -1212,6 +1214,11 @@ export default function HotspotClientView({
   }
 
   const selectPlanAndPay = (plan: HotspotPlan) => {
+    if (targetDevice === "tv" && !tvMacVerified) {
+      setTvMacError("First confirm your TV above, then choose a plan.")
+      tvGuideRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+      return
+    }
     if (plan.is_free_trial) {
       handleClaimFreeTrial(plan)
       return
@@ -2012,137 +2019,76 @@ export default function HotspotClientView({
           )}
 
           {/* DEVICE TARGET TOGGLE */}
-          <div className="mb-6 bg-gray-100 p-1.5 rounded-xl flex items-center">
-            <button 
-                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                onClick={() => setTargetDevice('this')}
+          <div className="mb-2 bg-gray-100 p-1.5 rounded-xl flex items-center">
+            <button
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setTargetDevice('this')}
             >
-                <Smartphone className="w-4 h-4" /> This Device
+              <Smartphone className="w-4 h-4" /> This Device
             </button>
-            <button 
-                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'tv' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                onClick={() => setTargetDevice('tv')}
+            <button
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'tv' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setTargetDevice('tv')}
             >
-                <Monitor className="w-4 h-4" /> Pay for TV
+              <Monitor className="w-4 h-4" /> Pay for my TV
             </button>
           </div>
+          <p className={`mb-5 text-center text-xs ${theme.mutedText}`}>
+            {targetDevice === 'this'
+              ? "Want internet on your Smart TV? Tap “Pay for my TV”."
+              : "You pay from your phone and your TV gets the internet. Follow the steps below."}
+          </p>
 
-          {/* TV MAC VERIFICATION BLOCK */}
+          {/* TV GUIDED VERIFICATION */}
           {targetDevice === 'tv' && (
-            <div className="mb-6 p-4 border rounded-xl bg-blue-50 border-blue-200 text-gray-900">
-              {!tvMacVerified ? (
-                <>
-                  <div className="flex gap-2 mb-3">
-                    <button
-                      onClick={() => { setTvPayMode("scan"); setTvSelectedDevice(null); setTvMacVerified(false); setTvMacError(null) }}
-                      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${tvPayMode === 'scan' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-gray-600'}`}
-                    >
-                      Scan for TV
-                    </button>
-                    <button
-                      onClick={() => { setTvPayMode("manual"); setTvSelectedDevice(null); setTvMacVerified(false); setTvMacError(null) }}
-                      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${tvPayMode === 'manual' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-gray-600'}`}
-                    >
-                      Enter MAC
-                    </button>
-                  </div>
-
-                  {tvPayMode === 'scan' ? (
-                    <div>
-                      <button
-                        onClick={handleScanDevices}
-                        disabled={tvScanLoading}
-                        className="w-full mb-3 py-2.5 text-sm font-medium bg-white text-gray-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-                      >
-                        {tvScanLoading ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Scanning network...</>
-                        ) : (
-                          <><Monitor className="w-4 h-4" /> Scan for devices on this WiFi</>
-                        )}
-                      </button>
-                      {tvScannedDevices.length > 0 && (
-                        <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
-                          {tvScannedDevices.map((d, i) => (
-                            <button
-                              key={i}
-                              onClick={() => handleSelectScannedDevice(d)}
-                              className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${tvSelectedDevice?.mac === d.mac ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
-                            >
-                              <div className="font-medium text-gray-800">{d.label || `Device ${i+1}`}</div>
-                              <div className="text-xs text-gray-400 font-mono">{d.ip} · {d.mac_masked || d.mac}</div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mb-3">
-                      <label className="block text-xs text-gray-500 mb-1">
-                        TV MAC address (found in TV Settings → Network → MAC Address)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. AA:BB:CC:DD:EE:FF"
-                        value={tvMacInput}
-                        onChange={(e) => { setTvMacInput(e.target.value); setTvMacError(null) }}
-                        className="w-full px-3 py-2 border border-blue-200 rounded-lg font-mono text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 placeholder-gray-400"
-                      />
-                    </div>
-                  )}
-
-                  {tvPayMode === "scan" && tvSelectedDevice && (
-                    <div className="mt-3">
-                      <label className="block text-xs text-gray-600 mb-1 font-medium">
-                        Confirm: enter the hidden characters shown as **** on your TV&apos;s Settings → Network
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          maxLength={5}
-                          placeholder="Hidden chars"
-                          value={tvMacLastDigits}
-                          onChange={(e) => { setTvMacLastDigits(e.target.value.toUpperCase()); setTvMacError(null) }}
-                          className="flex-1 px-3 py-2 border border-blue-200 rounded-lg font-mono text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 placeholder-gray-400"
-                        />
-                        <button
-                          onClick={handleVerifyMacDigits}
-                          disabled={tvMacLastDigits.replace(/[^a-fA-F0-9]/g, "").length < 2}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                          Verify
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {tvPayMode === "manual" && (
-                    <button
-                      onClick={handleConfirmManualMac}
-                      disabled={!tvMacInput.trim()}
-                      className="w-full mt-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      Use this MAC
-                    </button>
-                  )}
-
-                  {tvMacError && (
-                    <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> {tvMacError}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
-                  <CheckCircle2 className="w-4 h-4" />
-                  TV device verified — internet will connect to this device after payment
-                </div>
-              )}
+            <div ref={tvGuideRef}>
+              <TvPayGuide
+                verified={tvMacVerified}
+                mode={tvPayMode}
+                onModeChange={(m) => {
+                  setTvPayMode(m)
+                  setTvSelectedDevice(null)
+                  setTvMacVerified(false)
+                  setTvMacError(null)
+                }}
+                scanLoading={tvScanLoading}
+                devices={tvScannedDevices}
+                selected={tvSelectedDevice}
+                onScan={handleScanDevices}
+                onSelect={handleSelectScannedDevice}
+                macInput={tvMacInput}
+                onMacInputChange={(v) => { setTvMacInput(v); setTvMacError(null) }}
+                onConfirmManual={handleConfirmManualMac}
+                lastDigits={tvMacLastDigits}
+                onLastDigitsChange={(v) => {
+                  setTvMacLastDigits(v.toUpperCase().replace(/[^A-F0-9:\-]/g, ""))
+                  setTvMacError(null)
+                }}
+                onVerifyDigits={handleVerifyMacDigits}
+                error={tvMacError}
+                onReset={() => {
+                  setTvMacVerified(false)
+                  setTvSelectedDevice(null)
+                  setTvMacLastDigits("")
+                  setTvMacInput("")
+                  setTvMacError(null)
+                }}
+                supportPhone={supportPhone}
+                swahili={/^(KE|KEN|KENYA)$/i.test(String(paymentLocale.country || ""))}
+              />
             </div>
           )}
 
           <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
             {welcomeMessage || `Select a plan and pay with ${paymentLocale.provider} to get connected`}
           </p>
+
+          {/* Confirm-TV reminder */}
+          {targetDevice === 'tv' && !tvMacVerified && (
+            <p className="mb-3 text-center text-xs font-semibold text-amber-600">
+              Confirm your TV above first, then choose a plan.
+            </p>
+          )}
 
           {/* Plan Cards - Layout varies by theme */}
           {targetDevice === 'tv' && paidPlans.length === 0 ? (
