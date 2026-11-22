@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSubscriptionPaymentRecovery } from "@/hooks/use-subscription-payment-recovery"
-import { motion } from "framer-motion"
+import { motion, MotionConfig } from "framer-motion"
 import { MjengoFooter } from "@/components/mjengo-footer"
 import {
   LayoutDashboard,
@@ -88,6 +88,13 @@ import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
 import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
 import { toast } from "sonner"                            // ← ADDED
+import {
+  HoverLift,
+  MotionIcon,
+  HeaderSearchButton,
+  AnimatedThemeToggle,
+  AnimatedBellBadge,
+} from "@/components/admin-header-motion"
 import {
   ADMIN_ROLES,
   ENGAGEMENT_ROLES,
@@ -1210,604 +1217,611 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="netily-admin-shell min-h-screen bg-background" suppressHydrationWarning>
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card/95 shadow-xl shadow-black/10 backdrop-blur-xl transition-all duration-300 dark:shadow-black/35 lg:inset-y-4 lg:left-4 lg:rounded-2xl lg:border ${
-          sidebarCollapsed ? "w-16" : "w-64"
-        } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
-      >
-        {/* Sidebar header */}
-        <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-slate-800 lg:h-[4.25rem]">
-          {!sidebarCollapsed && (
-            <Link href="/admin" className="flex min-w-0 items-center gap-2">
-              {companyLogo ? (
-                <img src={companyLogo} alt="Company Logo" className="h-8 w-8 shrink-0 rounded-lg object-contain bg-white border border-slate-200" />
-              ) : (
-                <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-sm">
-                  N
-                </div>
-              )}
-              <span className="block w-40 whitespace-normal wrap-break-word text-sm font-bold leading-tight text-foreground tracking-tight">
-                {companyName}
-              </span>
-            </Link>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+    <MotionConfig reducedMotion="user">
+      <div className="netily-admin-shell min-h-screen bg-background" suppressHydrationWarning>
+        {/* Mobile sidebar backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
             onClick={() => setSidebarOpen(false)}
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+          />
+        )}
 
-        {/* Navigation */}
-        <nav className="sidebar-nav flex-1 overflow-y-auto py-4 px-2">
-          {!sidebarCollapsed && breadcrumbSections.length > 0 && (
-            <div className="sticky top-0 z-20 mb-4 rounded-xl border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
-              <div role="navigation" aria-label="Sidebar section breadcrumb" className="mb-2">
-                <ol className="flex min-w-0 items-center gap-1 text-[11px] font-semibold text-muted-foreground">
-                  <li className="shrink-0">Admin</li>
-                  <li className="shrink-0 text-muted-foreground/60">
-                    <ChevronRight className="h-3 w-3" />
-                  </li>
-                  <li className="truncate text-foreground">{activeSection?.title || "Dashboard"}</li>
-                  {activeNavItem && (
-                    <>
-                      <li className="shrink-0 text-muted-foreground/60">
-                        <ChevronRight className="h-3 w-3" />
-                      </li>
-                      <li className="truncate text-primary">{activeNavItem.name}</li>
-                    </>
-                  )}
-                </ol>
-              </div>
-              <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {breadcrumbSections.map((section) => {
-                  const isSectionActive = section.title === activeSection?.title
-                  return (
-                    <button
-                      key={section.title}
-                      type="button"
-                      onClick={() => handleSidebarSectionJump(section.title)}
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
-                        isSectionActive
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                      }`}
-                    >
-                      {section.title}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-          {filteredSections.map((section, sectionIndex) => (
-            <Collapsible
-              key={section.title}
-              open={
-                sidebarCollapsed ||
-                section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS ||
-                section.title === activeSection?.title ||
-                openSidebarSections[section.title] === true
-              }
-              onOpenChange={(open) => {
-                if (section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS || section.title === activeSection?.title) return
-                setOpenSidebarSections((current) => ({ ...current, [section.title]: open }))
-              }}
-              id={sidebarSectionId(section.title)}
-              className={sectionIndex > 0 ? "scroll-mt-24 mt-5" : "scroll-mt-24"}
+        {/* Sidebar */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card/95 shadow-xl shadow-black/10 backdrop-blur-xl transition-all duration-300 dark:shadow-black/35 lg:inset-y-4 lg:left-4 lg:rounded-2xl lg:border ${
+            sidebarCollapsed ? "w-16" : "w-64"
+          } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        >
+          {/* Sidebar header */}
+          <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-slate-800 lg:h-[4.25rem]">
+            {!sidebarCollapsed && (
+              <Link href="/admin" className="flex min-w-0 items-center gap-2">
+                {companyLogo ? (
+                  <img src={companyLogo} alt="Company Logo" className="h-8 w-8 shrink-0 rounded-lg object-contain bg-white border border-slate-200" />
+                ) : (
+                  <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-sm">
+                    N
+                  </div>
+                )}
+                <span className="block w-40 whitespace-normal wrap-break-word text-sm font-bold leading-tight text-foreground tracking-tight">
+                  {companyName}
+                </span>
+              </Link>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={() => setSidebarOpen(false)}
             >
-              {!sidebarCollapsed && section.items.length >= SIDEBAR_BREADCRUMB_MIN_ITEMS && (
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
-                  >
-                    <span>{section.title}</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform ${
-                        section.title === activeSection?.title || openSidebarSections[section.title] === true ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-              )}
-              {!sidebarCollapsed && section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS && (
-                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  {section.title}
-                </p>
-              )}
-              {sidebarCollapsed && sectionIndex > 0 && <Separator className="my-2 bg-border" />}
-              <CollapsibleContent>
-                <ul className="space-y-0.5">
-                  {section.items.map((item) => {
-                    const isActive = isNavItemActive(item.href)
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="sidebar-nav flex-1 overflow-y-auto py-4 px-2">
+            {!sidebarCollapsed && breadcrumbSections.length > 0 && (
+              <div className="sticky top-0 z-20 mb-4 rounded-xl border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
+                <div role="navigation" aria-label="Sidebar section breadcrumb" className="mb-2">
+                  <ol className="flex min-w-0 items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+                    <li className="shrink-0">Admin</li>
+                    <li className="shrink-0 text-muted-foreground/60">
+                      <ChevronRight className="h-3 w-3" />
+                    </li>
+                    <li className="truncate text-foreground">{activeSection?.title || "Dashboard"}</li>
+                    {activeNavItem && (
+                      <>
+                        <li className="shrink-0 text-muted-foreground/60">
+                          <ChevronRight className="h-3 w-3" />
+                        </li>
+                        <li className="truncate text-primary">{activeNavItem.name}</li>
+                      </>
+                    )}
+                  </ol>
+                </div>
+                <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {breadcrumbSections.map((section) => {
+                    const isSectionActive = section.title === activeSection?.title
                     return (
-                      <AnimatedNavItem key={item.name} isActive={isActive}>
-                        <Link
-                          href={item.href}
-                          data-onboarding={onboardingNavTarget(item.href)}
-                          className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                            isActive
-                              ? "text-white shadow-sm"
-                              : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
-                          title={sidebarCollapsed ? item.name : undefined}
-                        >
-                          {isActive && (
-                            <motion.span
-                              layoutId="admin-active-nav"
-                              className="absolute inset-0 rounded-lg bg-primary"
-                              transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                            />
-                          )}
-                          <item.icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
-                          {!sidebarCollapsed && (
-                            <span className="relative z-10 font-medium">{item.name}</span>
-                          )}
-                        </Link>
-                      </AnimatedNavItem>
+                      <button
+                        key={section.title}
+                        type="button"
+                        onClick={() => handleSidebarSectionJump(section.title)}
+                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+                          isSectionActive
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                        }`}
+                      >
+                        {section.title}
+                      </button>
                     )
                   })}
-                </ul>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-
-          {/* Bottom navigation items (Community features) - always at the bottom */}
-          <Separator className="my-4 bg-border" />
-          <div>
-            {!sidebarCollapsed && (
-              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Netily Community
-              </p>
+                </div>
+              </div>
             )}
-            <ul className="space-y-0.5">
-              {bottomNavItems.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <AnimatedNavItem key={item.name} isActive={isActive}>
-                    <Link
-                      href={item.href}
-                      data-onboarding={onboardingNavTarget(item.href)}
-                      className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                        isActive
-                          ? "text-white shadow-sm"
-                          : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      }`}
-                      title={sidebarCollapsed ? item.name : undefined}
+            {filteredSections.map((section, sectionIndex) => (
+              <Collapsible
+                key={section.title}
+                open={
+                  sidebarCollapsed ||
+                  section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS ||
+                  section.title === activeSection?.title ||
+                  openSidebarSections[section.title] === true
+                }
+                onOpenChange={(open) => {
+                  if (section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS || section.title === activeSection?.title) return
+                  setOpenSidebarSections((current) => ({ ...current, [section.title]: open }))
+                }}
+                id={sidebarSectionId(section.title)}
+                className={sectionIndex > 0 ? "scroll-mt-24 mt-5" : "scroll-mt-24"}
+              >
+                {!sidebarCollapsed && section.items.length >= SIDEBAR_BREADCRUMB_MIN_ITEMS && (
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
                     >
-                      {isActive && (
-                        <motion.span
-                          layoutId="admin-active-nav"
-                          className="absolute inset-0 rounded-lg bg-primary"
-                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                        />
-                      )}
-                      <item.icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
-                      {!sidebarCollapsed && (
-                        <span className="relative z-10 font-medium">{item.name}</span>
-                      )}
-                    </Link>
-                  </AnimatedNavItem>
-                )
-              })}
-            </ul>
-          </div>
-        </nav>
+                      <span>{section.title}</span>
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 transition-transform ${
+                          section.title === activeSection?.title || openSidebarSections[section.title] === true ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                )}
+                {!sidebarCollapsed && section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS && (
+                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    {section.title}
+                  </p>
+                )}
+                {sidebarCollapsed && sectionIndex > 0 && <Separator className="my-2 bg-border" />}
+                <CollapsibleContent>
+                  <ul className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const isActive = isNavItemActive(item.href)
+                      return (
+                        <AnimatedNavItem key={item.name} isActive={isActive}>
+                          <Link
+                            href={item.href}
+                            data-onboarding={onboardingNavTarget(item.href)}
+                            className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                              isActive
+                                ? "text-white shadow-sm"
+                                : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                            title={sidebarCollapsed ? item.name : undefined}
+                          >
+                            {isActive && (
+                              <motion.span
+                                layoutId="admin-active-nav"
+                                className="absolute inset-0 rounded-lg bg-primary"
+                                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                              />
+                            )}
+                            <item.icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
+                            {!sidebarCollapsed && (
+                              <span className="relative z-10 font-medium">{item.name}</span>
+                            )}
+                          </Link>
+                        </AnimatedNavItem>
+                      )
+                    })}
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
 
-        {/* Sidebar footer */}
-        <div className="space-y-3 border-t border-slate-100 p-4 dark:border-slate-800">
-          <SidebarRenewNow collapsed={sidebarCollapsed} />
-
-          {/* Trial countdown for sidebar (compact) */}
-          {!sidebarCollapsed && (
-            <div className="lg:hidden">
-              <TrialCountdownCompact />
+            {/* Bottom navigation items (Community features) - always at the bottom */}
+            <Separator className="my-4 bg-border" />
+            <div>
+              {!sidebarCollapsed && (
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Netily Community
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {bottomNavItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <AnimatedNavItem key={item.name} isActive={isActive}>
+                      <Link
+                        href={item.href}
+                        data-onboarding={onboardingNavTarget(item.href)}
+                        className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                          isActive
+                            ? "text-white shadow-sm"
+                            : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        }`}
+                        title={sidebarCollapsed ? item.name : undefined}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="admin-active-nav"
+                            className="absolute inset-0 rounded-lg bg-primary"
+                            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                          />
+                        )}
+                        <item.icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
+                        {!sidebarCollapsed && (
+                          <span className="relative z-10 font-medium">{item.name}</span>
+                        )}
+                      </Link>
+                    </AnimatedNavItem>
+                  )
+                })}
+              </ul>
             </div>
-          )}
-          <Button
-            variant="ghost"
-            size={sidebarCollapsed ? "icon" : "default"}
-            className="w-full text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          >
-            <Menu className="w-5 h-5" />
-            {!sidebarCollapsed && <span className="ml-2">Collapse</span>}
-          </Button>
-        </div>
-      </aside>
+          </nav>
 
-      {/* Main content */}
-      <div
-        className={`min-w-0 transition-all duration-300 ${
-          sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"
-        }`}
-      >
-        {/* Top navigation bar */}
-        <header className={`fixed inset-x-0 top-0 z-40 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:right-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25 ${sidebarCollapsed ? "lg:left-24" : "lg:left-72"}`}>
-          {/* Mobile menu button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
+          {/* Sidebar footer */}
+          <div className="space-y-3 border-t border-slate-100 p-4 dark:border-slate-800">
+            <SidebarRenewNow collapsed={sidebarCollapsed} />
 
-          {/* Search */}
-          <div className="min-w-0 flex-1 sm:max-w-md">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="relative flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 sm:h-10 sm:px-3"
+            {/* Trial countdown for sidebar (compact) */}
+            {!sidebarCollapsed && (
+              <div className="lg:hidden">
+                <TrialCountdownCompact />
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size={sidebarCollapsed ? "icon" : "default"}
+              className="w-full text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
-              <Search className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1 truncate sm:hidden">Search...</span>
-              <span className="hidden min-w-0 flex-1 truncate sm:block">Search pages, customers, routers...</span>
-              <kbd className="hidden shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">
-                Ctrl K
-              </kbd>
-            </button>
+              <Menu className="w-5 h-5" />
+              {!sidebarCollapsed && <span className="ml-2">Collapse</span>}
+            </Button>
           </div>
+        </aside>
 
-          {/* Right side controls */}
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {topbarSmsWallet && (
-              <div className="hidden items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2 py-1 shadow-sm sm:flex">
-                <MessageSquareText className="h-4 w-4 text-primary" />
-                <span className="text-xs font-semibold text-foreground">
-                  SMS: <span className="tabular-nums">{topbarSmsUnits}</span> SMS
-                </span>
+        {/* Main content */}
+        <div
+          className={`min-w-0 transition-all duration-300 ${
+            sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"
+          }`}
+        >
+          {/* Top navigation bar */}
+          <header className={`fixed inset-x-0 top-0 z-40 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:right-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25 ${sidebarCollapsed ? "lg:left-24" : "lg:left-72"}`}>
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+
+            {/* Search */}
+            <div className="min-w-0 flex-1 sm:max-w-md">
+              <HeaderSearchButton onClick={() => setSearchOpen(true)} />
+            </div>
+
+            {/* Right side controls */}
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              {topbarSmsWallet && (
+                <HoverLift
+                  press={1}
+                  className="hidden items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2 py-1 shadow-sm sm:flex"
+                >
+                  <MotionIcon hover={{ rotate: [0, -12, 10, -6, 0], transition: { duration: 0.5 } }}>
+                    <MessageSquareText className="h-4 w-4 text-primary" />
+                  </MotionIcon>
+                  <span className="text-xs font-semibold text-foreground">
+                    SMS: <span className="tabular-nums">{topbarSmsUnits}</span> SMS
+                  </span>
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    className="ml-1 h-7 rounded-full px-2 text-xs font-semibold text-primary hover:bg-primary/10 hover:text-primary"
+                  >
+                    <Link href="/admin/sms">Top Up</Link>
+                  </Button>
+                </HoverLift>
+              )}
+
+              {topbarRenewalDate && (
+                <HoverLift
+                  press={1}
+                  className="hidden items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm dark:text-amber-200 lg:flex"
+                >
+                  <MotionIcon hover={{ rotate: 360, transition: { duration: 0.7, ease: "easeInOut" } }}>
+                    <Clock3 className="h-4 w-4" />
+                  </MotionIcon>
+                  <span className="whitespace-nowrap">
+                    RENEWAL IN: <span className="tabular-nums">{topbarRenewalCountdown}</span>
+                  </span>
+                </HoverLift>
+              )}
+
+              {/* Trial Countdown */}
+              <div className="hidden 2xl:block">
+                <TrialCountdown />
+              </div>
+
+              <HoverLift className="hidden sm:inline-flex">
                 <Button
                   asChild
+                  variant="outline"
                   size="sm"
-                  variant="ghost"
-                  className="ml-1 h-7 rounded-full px-2 text-xs font-semibold text-primary hover:bg-primary/10 hover:text-primary"
+                  className="h-9 shrink-0 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
                 >
-                  <Link href="/admin/sms">Top Up</Link>
+                  <Link href="/customer/login">
+                    <MotionIcon hover={{ rotate: 360, transition: { duration: 0.8, ease: "easeInOut" } }} className="mr-2">
+                      <Globe className="h-4 w-4" />
+                    </MotionIcon>
+                    <span className="hidden xl:inline">Customer Portal</span>
+                    <span className="xl:hidden">Portal</span>
+                  </Link>
+                </Button>
+              </HoverLift>
+
+              {/* Theme Toggle */}
+              <div className="hidden min-[380px]:block">
+                <AnimatedThemeToggle />
+              </div>
+
+              {/* Notifications */}
+              <Link href="/admin/notifications" aria-label="Notifications">
+                <HoverLift
+                  lift={0}
+                  scale={1.08}
+                  className="relative inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <MotionIcon hover={{ rotate: [0, -16, 14, -10, 6, 0], transition: { duration: 0.6, ease: "easeInOut" } }}>
+                    <Bell className="h-5 w-5" />
+                  </MotionIcon>
+                  <AnimatedBellBadge count={unreadNotifCount} />
+                </HoverLift>
+              </Link>
+
+              {/* User menu */}
+              <AdminProfileMenu
+                user={user}
+                canInstall={canInstall}
+                onInstall={handleInstallApp}
+                onOpenSearch={() => setSearchOpen(true)}
+                onLogout={logout}
+              />
+            </div>
+          </header>
+
+          {/* Page content */}
+          <main className="min-w-0 overflow-x-hidden px-3 pb-3 pt-17 sm:px-4 sm:pb-4 sm:pt-20 lg:px-6 lg:pb-6 lg:pt-28">
+            <AdminAnniversaryBar disabled={isDemoMode || isPublicPage || loading} />
+            {isDemoMode && (
+              <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold">Demo mode is active</p>
+                  <p className="mt-0.5 text-amber-800 dark:text-amber-200">
+                    You can browse every page, but changes are disabled in this workspace.
+                  </p>
+                </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={openDemoLeadModal}
+                  className="shrink-0 border-amber-300 bg-white/80 text-amber-950 hover:bg-white dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-100"
+                >
+                  Request setup
+                  <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
                 </Button>
               </div>
             )}
-
-            {topbarRenewalDate && (
-              <div className="hidden items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm dark:text-amber-200 lg:flex">
-                <Clock3 className="h-4 w-4" />
-                <span className="whitespace-nowrap">
-                  RENEWAL IN: <span className="tabular-nums">{topbarRenewalCountdown}</span>
-                </span>
-              </div>
-            )}
-
-            {/* Trial Countdown */}
-            <div className="hidden 2xl:block">
-              <TrialCountdown />
-            </div>
-
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="hidden h-9 shrink-0 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary sm:inline-flex"
-            >
-              <Link href="/customer/login">
-                <Globe className="mr-2 h-4 w-4" />
-                <span className="hidden xl:inline">Customer Portal</span>
-                <span className="xl:hidden">Portal</span>
-              </Link>
-            </Button>
-
-            {/* Theme Toggle */}
-            <div className="hidden min-[380px]:block">
-              <ThemeToggle />
-            </div>
-
-            {/* Notifications */}
-            <Link href="/admin/notifications">
-              <Button variant="ghost" size="icon" className="relative h-9 w-9">
-                <Bell className="w-5 h-5" />
-                {unreadNotifCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-white text-xs">
-                    {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
-                  </Badge>
+            <PageTransition>
+              <TrialGuard>
+                {routeAccessRule ? (
+                  <RoleGuard
+                    areaLabel={routeAccessRule.label}
+                    pathPrefix={routeAccessRule.pathPrefix}
+                    allowedRoles={routeAccessRule.allowedRoles}
+                    allowedDepartments={routeAccessRule.allowedDepartments}
+                  >
+                    {children}
+                  </RoleGuard>
+                ) : (
+                  children
                 )}
-              </Button>
-            </Link>
-
-            {/* User menu */}
-            <AdminProfileMenu
-              user={user}
-              canInstall={canInstall}
-              onInstall={handleInstallApp}
-              onOpenSearch={() => setSearchOpen(true)}
-              onLogout={logout}
+              </TrialGuard>
+              <MjengoFooter />
+            </PageTransition>
+          </main>
+          <CommandDialog
+            open={searchOpen}
+            onOpenChange={setSearchOpen}
+            title="Search admin workspace"
+            description="Search pages and tenant records"
+            className="max-w-2xl"
+          >
+            <CommandInput
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              placeholder="Search customer name, phone, router, invoice, ticket..."
             />
-          </div>
-        </header>
+            <CommandList className="max-h-[70vh]">
+              <CommandEmpty>
+                <div className="px-4 py-6 text-center">
+                  <p className="font-medium text-foreground">
+                    {trimmedSearchQuery.length < SEARCH_MIN_CHARS
+                      ? "Start with a page name or type at least 2 characters."
+                      : "No matching results found."}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Try a customer phone, router IP, payment reference, invoice number, or ticket subject.
+                  </p>
+                </div>
+              </CommandEmpty>
 
-        {/* Page content */}
-        <main className="min-w-0 overflow-x-hidden px-3 pb-3 pt-17 sm:px-4 sm:pb-4 sm:pt-20 lg:px-6 lg:pb-6 lg:pt-28">
-          <AdminAnniversaryBar disabled={isDemoMode || isPublicPage || loading} />
-          {isDemoMode && (
-            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-              <div className="min-w-0">
-                <p className="font-semibold">Demo mode is active</p>
-                <p className="mt-0.5 text-amber-800 dark:text-amber-200">
-                  You can browse every page, but changes are disabled in this workspace.
-                </p>
-              </div>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={openDemoLeadModal}
-                className="shrink-0 border-amber-300 bg-white/80 text-amber-950 hover:bg-white dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-100"
-              >
-                Request setup
-                <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-          <PageTransition>
-            <TrialGuard>
-              {routeAccessRule ? (
-                <RoleGuard
-                  areaLabel={routeAccessRule.label}
-                  pathPrefix={routeAccessRule.pathPrefix}
-                  allowedRoles={routeAccessRule.allowedRoles}
-                  allowedDepartments={routeAccessRule.allowedDepartments}
-                >
-                  {children}
-                </RoleGuard>
-              ) : (
-                children
+              {pageResults.length > 0 && (
+                <CommandGroup heading={trimmedSearchQuery ? "Pages" : "Quick navigation"}>
+                  {pageResults.map((result) => {
+                    const Icon = result.icon
+                    return (
+                      <CommandItem
+                        key={result.id}
+                        value={[result.title, result.subtitle, ...(result.keywords || [])].join(" ")}
+                        onSelect={() => handleSearchNavigate(result.href)}
+                        className="cursor-pointer"
+                      >
+                        <Icon className="h-4 w-4" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{result.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
+                        </div>
+                        <CommandShortcut>
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </CommandShortcut>
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
               )}
-            </TrialGuard>
-            <MjengoFooter />
-          </PageTransition>
-        </main>
-        <CommandDialog
-          open={searchOpen}
-          onOpenChange={setSearchOpen}
-          title="Search admin workspace"
-          description="Search pages and tenant records"
-          className="max-w-2xl"
-        >
-          <CommandInput
-            value={searchQuery}
-            onValueChange={setSearchQuery}
-            placeholder="Search customer name, phone, router, invoice, ticket..."
-          />
-          <CommandList className="max-h-[70vh]">
-            <CommandEmpty>
-              <div className="px-4 py-6 text-center">
-                <p className="font-medium text-foreground">
-                  {trimmedSearchQuery.length < SEARCH_MIN_CHARS
-                    ? "Start with a page name or type at least 2 characters."
-                    : "No matching results found."}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Try a customer phone, router IP, payment reference, invoice number, or ticket subject.
-                </p>
-              </div>
-            </CommandEmpty>
 
-            {pageResults.length > 0 && (
-              <CommandGroup heading={trimmedSearchQuery ? "Pages" : "Quick navigation"}>
-                {pageResults.map((result) => {
-                  const Icon = result.icon
-                  return (
-                    <CommandItem
-                      key={result.id}
-                      value={[result.title, result.subtitle, ...(result.keywords || [])].join(" ")}
-                      onSelect={() => handleSearchNavigate(result.href)}
-                      className="cursor-pointer"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{result.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
-                      </div>
-                      <CommandShortcut>
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </CommandShortcut>
+              {searchLoading && (
+                <>
+                  {pageResults.length > 0 && <CommandSeparator />}
+                  <CommandGroup heading="Searching records">
+                    <CommandItem disabled value="Searching records">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-muted-foreground">Checking customers, routers, finance, support, and leads...</span>
                     </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            )}
+                  </CommandGroup>
+                </>
+              )}
 
-            {searchLoading && (
-              <>
-                {pageResults.length > 0 && <CommandSeparator />}
-                <CommandGroup heading="Searching records">
-                  <CommandItem disabled value="Searching records">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-muted-foreground">Checking customers, routers, finance, support, and leads...</span>
+              {(["Customers", "Network", "Finance", "Support", "Leads"] as AdminSearchCategory[]).map((category) => {
+                const results = groupedRecordResults[category]
+                if (!results?.length) return null
+                return (
+                  <React.Fragment key={category}>
+                    {(pageResults.length > 0 || category !== "Customers") && <CommandSeparator />}
+                    <CommandGroup heading={category}>
+                      {results.map((result) => {
+                        const Icon = result.icon
+                        return (
+                          <CommandItem
+                            key={result.id}
+                            value={[result.title, result.subtitle, ...(result.keywords || [])].join(" ")}
+                            onSelect={() => handleSearchNavigate(result.href)}
+                            className="cursor-pointer"
+                          >
+                            <Icon className="h-4 w-4" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium">{result.title}</p>
+                              <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
+                            </div>
+                            <CommandShortcut>
+                              <ArrowUpRight className="h-3.5 w-3.5" />
+                            </CommandShortcut>
+                          </CommandItem>
+                        )
+                      })}
+                    </CommandGroup>
+                  </React.Fragment>
+                )
+              })}
+
+              {!searchLoading && !hasSearchResults && trimmedSearchQuery.length >= SEARCH_MIN_CHARS && (
+                <CommandGroup heading="Search tips">
+                  <CommandItem disabled value="Search tips">
+                    <Search className="h-4 w-4" />
+                    <span className="text-muted-foreground">Search works best with exact phone numbers, account codes, references, or names.</span>
                   </CommandItem>
                 </CommandGroup>
-              </>
-            )}
+              )}
+            </CommandList>
+            <div className="flex items-center justify-between border-t bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <span>Use arrows to move, Enter to open, Esc to close.</span>
+              <span className="hidden sm:inline">Ctrl K</span>
+            </div>
+          </CommandDialog>
+          {isDemoMode && (
+            <>
+              <button
+                type="button"
+                onClick={openDemoLeadModal}
+                className="fixed bottom-24 right-5 z-[60] inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-2xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-4 focus-visible:ring-ring/30 md:right-6"
+              >
+                <MessageSquare className="h-4 w-4 text-primary" />
+                Request setup
+              </button>
 
-            {(["Customers", "Network", "Finance", "Support", "Leads"] as AdminSearchCategory[]).map((category) => {
-              const results = groupedRecordResults[category]
-              if (!results?.length) return null
-              return (
-                <React.Fragment key={category}>
-                  {(pageResults.length > 0 || category !== "Customers") && <CommandSeparator />}
-                  <CommandGroup heading={category}>
-                    {results.map((result) => {
-                      const Icon = result.icon
-                      return (
-                        <CommandItem
-                          key={result.id}
-                          value={[result.title, result.subtitle, ...(result.keywords || [])].join(" ")}
-                          onSelect={() => handleSearchNavigate(result.href)}
-                          className="cursor-pointer"
-                        >
-                          <Icon className="h-4 w-4" />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{result.title}</p>
-                            <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
-                          </div>
-                          <CommandShortcut>
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                          </CommandShortcut>
-                        </CommandItem>
-                      )
-                    })}
-                  </CommandGroup>
-                </React.Fragment>
-              )
-            })}
-
-            {!searchLoading && !hasSearchResults && trimmedSearchQuery.length >= SEARCH_MIN_CHARS && (
-              <CommandGroup heading="Search tips">
-                <CommandItem disabled value="Search tips">
-                  <Search className="h-4 w-4" />
-                  <span className="text-muted-foreground">Search works best with exact phone numbers, account codes, references, or names.</span>
-                </CommandItem>
-              </CommandGroup>
-            )}
-          </CommandList>
-          <div className="flex items-center justify-between border-t bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            <span>Use arrows to move, Enter to open, Esc to close.</span>
-            <span className="hidden sm:inline">Ctrl K</span>
-          </div>
-        </CommandDialog>
-        {isDemoMode && (
-          <>
-            <button
-              type="button"
-              onClick={openDemoLeadModal}
-              className="fixed bottom-24 right-5 z-[60] inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-2xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-4 focus-visible:ring-ring/30 md:right-6"
-            >
-              <MessageSquare className="h-4 w-4 text-primary" />
-              Request setup
-            </button>
-
-            <Dialog open={demoLeadOpen} onOpenChange={setDemoLeadOpen}>
-              <DialogContent className="admin-theme-dialog max-h-[92vh] max-w-xl overflow-y-auto">
-                <DialogHeader>
-                  <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Demo workspace
-                  </div>
-                  <DialogTitle>Want this setup for your ISP?</DialogTitle>
-                  <DialogDescription>
-                    Share your details and the Internetily team will contact you with the best setup path for your customers, routers, plans, and payment workflow.
-                  </DialogDescription>
-                </DialogHeader>
-
-                {demoLeadSubmitted ? (
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-800 dark:text-emerald-100">
-                    <p className="font-semibold">Your enquiry has been sent.</p>
-                    <p className="mt-1 leading-6">We will reach out with a practical walkthrough based on what you explored in the demo.</p>
-                    <Button className="mt-4" onClick={() => setDemoLeadOpen(false)}>
-                      Continue browsing demo
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="demo-lead-name">Full name</Label>
-                        <Input
-                          id="demo-lead-name"
-                          value={demoLeadForm.name}
-                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, name: event.target.value }))}
-                          placeholder="Jane Mwangi"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="demo-lead-phone">Phone / WhatsApp</Label>
-                        <Input
-                          id="demo-lead-phone"
-                          value={demoLeadForm.phone}
-                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, phone: event.target.value }))}
-                          placeholder="0712 345 678"
-                        />
-                      </div>
+              <Dialog open={demoLeadOpen} onOpenChange={setDemoLeadOpen}>
+                <DialogContent className="admin-theme-dialog max-h-[92vh] max-w-xl overflow-y-auto">
+                  <DialogHeader>
+                    <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Demo workspace
                     </div>
+                    <DialogTitle>Want this setup for your ISP?</DialogTitle>
+                    <DialogDescription>
+                      Share your details and the Internetily team will contact you with the best setup path for your customers, routers, plans, and payment workflow.
+                    </DialogDescription>
+                  </DialogHeader>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="demo-lead-email">Email</Label>
-                        <Input
-                          id="demo-lead-email"
-                          type="email"
-                          value={demoLeadForm.email}
-                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, email: event.target.value }))}
-                          placeholder="you@company.co.ke"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="demo-lead-company">ISP / company</Label>
-                        <Input
-                          id="demo-lead-company"
-                          value={demoLeadForm.company}
-                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, company: event.target.value }))}
-                          placeholder="Your ISP name"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="demo-lead-message">What stood out in the demo?</Label>
-                      <Textarea
-                        id="demo-lead-message"
-                        value={demoLeadForm.message}
-                        onChange={(event) => setDemoLeadForm((form) => ({ ...form, message: event.target.value }))}
-                        rows={4}
-                      />
-                    </div>
-
-                    {demoLeadError && (
-                      <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                        {demoLeadError}
-                      </div>
-                    )}
-
-                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                      <Button type="button" variant="outline" onClick={() => setDemoLeadOpen(false)}>
-                        Later
-                      </Button>
-                      <Button type="button" onClick={submitDemoLead} disabled={demoLeadSubmitting}>
-                        {demoLeadSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowUpRight className="mr-2 h-4 w-4" />}
-                        Send enquiry
+                  {demoLeadSubmitted ? (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-800 dark:text-emerald-100">
+                      <p className="font-semibold">Your enquiry has been sent.</p>
+                      <p className="mt-1 leading-6">We will reach out with a practical walkthrough based on what you explored in the demo.</p>
+                      <Button className="mt-4" onClick={() => setDemoLeadOpen(false)}>
+                        Continue browsing demo
                       </Button>
                     </div>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-          </>
-        )}
-        {user && !isPublicPage && (
-          <SessionInactivityGuard onLogout={logout} areaLabel="tenant dashboard" />
-        )}
-        <NetilySupportChat />
-        <AdminOnboardingTour user={user} country={country} disabled={isDemoMode || isPublicPage || loading || localeLoading} />
-        <WhatsNewPopup user={user} disabled={isDemoMode || isPublicPage || loading || pathname === "/admin/whats-new"} />
-      <AdminAnniversaryConfetti user={user} disabled={isDemoMode || isPublicPage || loading} />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="demo-lead-name">Full name</Label>
+                          <Input
+                            id="demo-lead-name"
+                            value={demoLeadForm.name}
+                            onChange={(event) => setDemoLeadForm((form) => ({ ...form, name: event.target.value }))}
+                            placeholder="Jane Mwangi"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="demo-lead-phone">Phone / WhatsApp</Label>
+                          <Input
+                            id="demo-lead-phone"
+                            value={demoLeadForm.phone}
+                            onChange={(event) => setDemoLeadForm((form) => ({ ...form, phone: event.target.value }))}
+                            placeholder="0712 345 678"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="demo-lead-email">Email</Label>
+                          <Input
+                            id="demo-lead-email"
+                            type="email"
+                            value={demoLeadForm.email}
+                            onChange={(event) => setDemoLeadForm((form) => ({ ...form, email: event.target.value }))}
+                            placeholder="you@company.co.ke"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="demo-lead-company">ISP / company</Label>
+                          <Input
+                            id="demo-lead-company"
+                            value={demoLeadForm.company}
+                            onChange={(event) => setDemoLeadForm((form) => ({ ...form, company: event.target.value }))}
+                            placeholder="Your ISP name"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="demo-lead-message">What stood out in the demo?</Label>
+                        <Textarea
+                          id="demo-lead-message"
+                          value={demoLeadForm.message}
+                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, message: event.target.value }))}
+                          rows={4}
+                        />
+                      </div>
+
+                      {demoLeadError && (
+                        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                          {demoLeadError}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button type="button" variant="outline" onClick={() => setDemoLeadOpen(false)}>
+                          Later
+                        </Button>
+                        <Button type="button" onClick={submitDemoLead} disabled={demoLeadSubmitting}>
+                          {demoLeadSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowUpRight className="mr-2 h-4 w-4" />}
+                          Send enquiry
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+          {user && !isPublicPage && (
+            <SessionInactivityGuard onLogout={logout} areaLabel="tenant dashboard" />
+          )}
+          <NetilySupportChat />
+          <AdminOnboardingTour user={user} country={country} disabled={isDemoMode || isPublicPage || loading || localeLoading} />
+          <WhatsNewPopup user={user} disabled={isDemoMode || isPublicPage || loading || pathname === "/admin/whats-new"} />
+        <AdminAnniversaryConfetti user={user} disabled={isDemoMode || isPublicPage || loading} />
+        </div>
       </div>
-    </div>
+    </MotionConfig>
   )
 }
 
