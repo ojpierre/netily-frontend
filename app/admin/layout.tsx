@@ -86,6 +86,7 @@ import { AdminAnniversaryBar, AdminAnniversaryConfetti } from "@/components/admi
 import { AdminProfileMenu } from "@/components/admin-profile-menu"
 import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
+import { clearPostLoginPath, rememberPostLoginPath } from "@/lib/post-login-redirect"
 import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
 import { toast } from "sonner"                            // ← ADDED
 import {
@@ -402,6 +403,17 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
   useEffect(() => {
     loadBillingSummary()
   }, [loadBillingSummary])
+
+  // Renew links in reminder SMS/email end in ?renew=1: open this dialog straight away.
+  useEffect(() => {
+    if (!summaryLoaded) return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get("renew") !== "1") return
+    url.searchParams.delete("renew")
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`)
+    if (eligible) setOpen(true)
+    else toast.info("Your subscription has no payment due right now. Your billing details are below.")
+  }, [summaryLoaded, eligible])
 
   useEffect(() => {
     if (!open) return
@@ -1093,10 +1105,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, isPublicPage, mounted, pathname])
 
+  // A signed-in admin page has loaded, so any saved post-login destination is spent.
+  useEffect(() => {
+    if (!loading && user && !isPublicPage) clearPostLoginPath()
+  }, [loading, user, isPublicPage])
+
   // FORCE REDIRECT IF NO USER FOUND
   useEffect(() => {
     if (!loading && !user && !isPublicPage && mounted) {
       console.log('AdminLayout: No user found, forcing redirect to login')
+      rememberPostLoginPath(`${window.location.pathname}${window.location.search}`)
       router.push("/admin/login")
     }
   }, [loading, user, isPublicPage, mounted, router])

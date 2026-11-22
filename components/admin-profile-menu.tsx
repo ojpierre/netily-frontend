@@ -46,6 +46,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { SITE_URL } from "@/lib/brand"
 import { ADMIN_ROLES, canAccess } from "@/lib/rbac"
 import { cn } from "@/lib/utils"
 
@@ -277,7 +278,7 @@ export function AdminProfileMenu({
           <AnimatedItem {...row} id="logs" index={5} icon={ScrollText} onSelect={() => router.push("/admin/logs")}>
             Activity log
           </AnimatedItem>
-          <AnimatedItem {...row} id="refer" index={6} icon={Gift} onSelect={() => window.open("/affiliate", "_blank", "noopener,noreferrer")}>
+          <AnimatedItem {...row} id="refer" index={6} icon={Gift} onSelect={() => window.open(`${SITE_URL}/affiliate/register`, "_blank", "noopener,noreferrer")}>
             Refer an ISP
           </AnimatedItem>
         </DropdownMenuGroup>
@@ -311,7 +312,7 @@ export function AdminProfileMenu({
           <AnimatedItem {...row} id="setup" index={9} icon={PlayCircle} onSelect={() => window.dispatchEvent(new CustomEvent("netily:onboarding:start"))}>
             Setup guide &amp; video
           </AnimatedItem>
-          <AnimatedItem {...row} id="help" index={10} icon={LifeBuoy} onSelect={() => window.open("/docs", "_blank", "noopener,noreferrer")}>
+          <AnimatedItem {...row} id="help" index={10} icon={LifeBuoy} onSelect={() => window.open(`${SITE_URL}/docs`, "_blank", "noopener,noreferrer")}>
             Help center
           </AnimatedItem>
           <AnimatedItem {...row} id="search" index={11} icon={Search} shortcut="Ctrl K" onSelect={onOpenSearch}>

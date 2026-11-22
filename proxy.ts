@@ -166,6 +166,12 @@ export function proxy(request: NextRequest) {
   // ── 1b. Tenant subdomain redirect (runs before any auth check) ────────────
   const tenantSubdomain = getTenantSubdomain(hostname)
   if (tenantSubdomain) {
+    // Short renew link used in subscription reminder SMS/email. Opens the
+    // Subscription page with the Renew now dialog (via login when signed out).
+    if (pathname === '/renew' || pathname === '/renew/') {
+      return NextResponse.redirect(new URL('/admin/settings/billing?renew=1', request.url), { status: 302 })
+    }
+
     // Let panel routes and static assets through unchanged
     const isPassthrough = TENANT_PASSTHROUGH_PREFIXES.some((p) =>
       pathname.startsWith(p) || pathname === p.replace(/\/$/, '')

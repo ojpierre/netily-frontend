@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { adminApi, type AdminLoginChallengeResponse, type AdminLoginResponse } from "@/lib/admin-api"
 import { startAuthentication } from "@simplewebauthn/browser"
+import { consumePostLoginPath } from "@/lib/post-login-redirect"
 import { ParticleBackground } from "@/components/auth/particle-background" // ✅ NEW IMPORT
 
 // Check if using mock mode
@@ -161,7 +162,7 @@ export default function AdminLoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      router.push("/admin")
+      router.push(consumePostLoginPath())
     }
   }, [user, authLoading, router])
 
@@ -225,7 +226,7 @@ export default function AdminLoginPage() {
       const credential = await startAuthentication(publicKeyOptions)
       const response = await adminApi.verifyPasskeyLogin({ session_key, credential })
       establishSession(response, formData.rememberMe)
-      window.location.href = "/admin"
+      window.location.href = consumePostLoginPath()
     } catch (err: any) {
       if (err?.name === "NotAllowedError") {
         setError("Passkey sign-in was cancelled.")
@@ -265,7 +266,7 @@ export default function AdminLoginPage() {
           throw new Error("Mock mode is not configured for OTP challenge responses.")
         }
         establishSession(mockLoginResponse as AdminLoginResponse, formData.rememberMe)
-        window.location.href = "/admin"
+        window.location.href = consumePostLoginPath()
         return
       }
 
@@ -286,7 +287,7 @@ export default function AdminLoginPage() {
 
       const success = response as AdminLoginResponse
       establishSession(success, formData.rememberMe)
-      window.location.href = "/admin"
+      window.location.href = consumePostLoginPath()
     } catch (err: any) {
       setError(err.message || "Login failed")
     } finally {
@@ -316,7 +317,7 @@ export default function AdminLoginPage() {
         throw new Error("OTP verification not completed. Please try again.")
       }
       establishSession(response as AdminLoginResponse, formData.rememberMe)
-      window.location.href = "/admin"
+      window.location.href = consumePostLoginPath()
     } catch (err: any) {
       setError(err.message || "Invalid OTP")
       setOtpValues(["", "", "", "", "", ""])
