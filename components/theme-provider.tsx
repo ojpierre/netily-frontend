@@ -34,12 +34,18 @@ export type ColorTheme =
   | 'brutalist-lime'
   | 'aurora-noir'
   | 'coral-graphite'
+  | 'fibre-pulse'
+  | 'airwave'
+  | 'packet-flow'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
   setColorTheme: (theme: ColorTheme) => void
   appearanceFont: AppearanceFont
   setAppearanceFont: (font: AppearanceFont) => void
+  /** Motion themes only: freezes the animated background (spinners keep moving). */
+  motionPaused: boolean
+  setMotionPaused: (paused: boolean) => void
 }
 
 const NetilyThemeContext = React.createContext<NetilyThemeContextValue>({
@@ -47,6 +53,8 @@ const NetilyThemeContext = React.createContext<NetilyThemeContextValue>({
   setColorTheme: () => {},
   appearanceFont: DEFAULT_APPEARANCE_FONT,
   setAppearanceFont: () => {},
+  motionPaused: false,
+  setMotionPaused: () => {},
 })
 
 export function useColorTheme() {
@@ -73,13 +81,59 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'brutalist-lime', label: 'Brutalist Lime', preview: 'linear-gradient(135deg,#d9f99d,#111111 55%,#fb7185)' },
   { value: 'aurora-noir', label: 'Aurora Noir', preview: 'linear-gradient(135deg,#0f172a,#14b8a6,#a78bfa)' },
   { value: 'coral-graphite', label: 'Coral Graphite', preview: 'linear-gradient(135deg,#fb7185,#334155,#fef3c7)' },
+  { value: 'fibre-pulse', label: 'Fibre Pulse', preview: 'linear-gradient(135deg,#0b1430,#2563eb,#22d3ee)' },
+  { value: 'airwave', label: 'Airwave', preview: 'linear-gradient(135deg,#071c1a,#0d9488,#6ee7b7)' },
+  { value: 'packet-flow', label: 'Packet Flow', preview: 'linear-gradient(135deg,#1c1210,#ea580c,#fbbf24)' },
 ]
+
+/** Themes with an animated background, spinner, skeleton and header line. */
+export const MOTION_THEMES: {
+  value: ColorTheme
+  label: string
+  idea: string
+  description: string
+  spinner: string
+}[] = [
+  {
+    value: 'fibre-pulse',
+    label: 'Fibre Pulse',
+    idea: 'Light travelling down fibre strands',
+    description: 'Pulses of light run along glowing fibre lines behind your work.',
+    spinner: 'Light ring',
+  },
+  {
+    value: 'airwave',
+    label: 'Airwave',
+    idea: 'Radio rings from a hotspot tower',
+    description: 'Slow signal rings spread out from two access points.',
+    spinner: 'Signal ping',
+  },
+  {
+    value: 'packet-flow',
+    label: 'Packet Flow',
+    idea: 'Data packets routing across a grid',
+    description: 'Packets travel the lanes of a network grid as nodes blink.',
+    spinner: 'Signal bars',
+  },
+]
+
+export function isMotionTheme(theme: string | null | undefined): boolean {
+  return MOTION_THEMES.some((item) => item.value === theme)
+}
+
+const MOTION_PAUSED_STORAGE_KEY = 'netily-motion-paused'
+
+function applyMotionPaused(paused: boolean) {
+  if (paused) document.documentElement.setAttribute('data-motion', 'paused')
+  else document.documentElement.removeAttribute('data-motion')
+}
 
 const COLOR_THEME_VALUES = COLOR_THEMES.map((theme) => theme.value)
 
 function ColorThemeProvider({ children }: { children: React.ReactNode }) {
   const [colorTheme, setColorThemeState] = React.useState<ColorTheme>('blue')
   const [appearanceFont, setAppearanceFontState] = React.useState<AppearanceFont>(DEFAULT_APPEARANCE_FONT)
+  const [motionPaused, setMotionPausedState] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -92,6 +146,10 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       document.documentElement.setAttribute('data-theme', 'blue')
     }
+
+    const savedPaused = safeStorage.get(MOTION_PAUSED_STORAGE_KEY) === '1'
+    setMotionPausedState(savedPaused)
+    applyMotionPaused(savedPaused)
 
     const savedFont = safeStorage.get(APPEARANCE_FONT_STORAGE_KEY)
     setAppearanceFontState(applyAppearanceFont(savedFont))
@@ -140,13 +198,20 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
     setAppearanceFontState(applyAppearanceFont(font))
   }, [])
 
+  const setMotionPaused = React.useCallback((paused: boolean) => {
+    setMotionPausedState(paused)
+    if (paused) safeStorage.set(MOTION_PAUSED_STORAGE_KEY, '1')
+    else safeStorage.remove(MOTION_PAUSED_STORAGE_KEY)
+    applyMotionPaused(paused)
+  }, [])
+
   // Avoid flash of wrong theme
   if (!mounted) {
     return <>{children}</>
   }
 
   return (
-    <NetilyThemeContext.Provider value={{ colorTheme, setColorTheme, appearanceFont, setAppearanceFont }}>
+    <NetilyThemeContext.Provider value={{ colorTheme, setColorTheme, appearanceFont, setAppearanceFont, motionPaused, setMotionPaused }}>
       {children}
     </NetilyThemeContext.Provider>
   )

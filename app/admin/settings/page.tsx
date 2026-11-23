@@ -68,7 +68,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import { useColorTheme, type ColorTheme } from "@/components/theme-provider"
+import { COLOR_THEMES, useColorTheme, type ColorTheme } from "@/components/theme-provider"
+import { MotionThemesCard } from "@/components/settings/motion-themes-card"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
 import { PaymentMethodPinSettingsCard } from "@/components/settings/payment-method-pin-settings"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
@@ -529,6 +530,9 @@ function AppearanceTab() {
     },
   ]
 
+  const activeColorOption = colorOptions.find((c) => c.value === colorTheme)
+  const activeThemeMeta = COLOR_THEMES.find((t) => t.value === colorTheme)
+
   return (
     <div className="space-y-6">
       {/* Dark / Light Mode */}
@@ -642,6 +646,8 @@ function AppearanceTab() {
         </CardContent>
       </Card>
 
+      <MotionThemesCard />
+
       {/* Colour Palette */}
       <Card>
         <CardHeader>
@@ -687,11 +693,17 @@ function AppearanceTab() {
           </div>
 
           <div className="mt-5 flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-            <div className={`w-6 h-6 rounded-full ${colorOptions.find(c => c.value === colorTheme)?.swatch} shadow flex-shrink-0`} />
+            {activeColorOption ? (
+              <div className={`w-6 h-6 rounded-full ${activeColorOption.swatch} shadow flex-shrink-0`} />
+            ) : (
+              <div className="w-6 h-6 rounded-full shadow flex-shrink-0" style={{ background: activeThemeMeta?.preview }} />
+            )}
             <p className="text-sm text-muted-foreground">
-              Active accent: <span className={`font-semibold capitalize ${colorOptions.find(c => c.value === colorTheme)?.accent}`}>
-                {colorOptions.find(c => c.value === colorTheme)?.label}
+              {activeColorOption ? "Active accent: " : "Active theme: "}
+              <span className={`font-semibold capitalize ${activeColorOption?.accent ?? "text-primary"}`}>
+                {activeColorOption?.label ?? activeThemeMeta?.label}
               </span>
+              {!activeColorOption && " (motion theme)"}
             </p>
           </div>
         </CardContent>

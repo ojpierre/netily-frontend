@@ -2485,3 +2485,616 @@ html:not(.dark) .public-site th {
   border-color: var(--public-border-light) !important;
   color: var(--public-text) !important;
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+   MOTION THEMES — Fibre Pulse, Airwave, Packet Flow
+   Each theme borrows one real piece of an ISP network and animates it:
+   light in fibre, radio rings from a hotspot, packets on a grid.
+   Motion lives in the background, spinners, skeletons, the header line
+   and the active menu item; cards stay opaque so data stays readable.
+   Background motion pauses with html[data-motion="paused"] (Appearance
+   setting) and stops under prefers-reduced-motion.
+   ════════════════════════════════════════════════════════════════ */
+
+[data-theme="fibre-pulse"] {
+  --background: oklch(0.975 0.012 250);
+  --foreground: oklch(0.17 0.04 260);
+  --card: oklch(0.995 0.005 250);
+  --card-foreground: oklch(0.17 0.04 260);
+  --popover: oklch(0.995 0.005 250);
+  --popover-foreground: oklch(0.17 0.04 260);
+  --secondary: oklch(0.93 0.025 250);
+  --secondary-foreground: oklch(0.2 0.05 260);
+  --muted: oklch(0.92 0.02 250);
+  --muted-foreground: oklch(0.47 0.04 260);
+  --border: oklch(0.87 0.03 250);
+  --input: oklch(0.95 0.02 250);
+  --primary: oklch(0.53 0.2 258);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --accent: oklch(0.7 0.14 215);
+  --accent-foreground: oklch(0.15 0.04 250);
+  --ring: oklch(0.53 0.2 258);
+  --chart-1: oklch(0.53 0.2 258);
+  --chart-2: oklch(0.7 0.14 215);
+  --chart-3: oklch(0.72 0.13 185);
+  --chart-4: oklch(0.6 0.18 290);
+  --chart-5: oklch(0.42 0.13 245);
+  --sidebar: oklch(0.16 0.045 262);
+  --sidebar-foreground: oklch(0.93 0.025 240);
+  --sidebar-primary: oklch(0.62 0.19 255);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.24 0.05 262);
+  --sidebar-accent-foreground: oklch(0.93 0.025 240);
+  --sidebar-border: oklch(0.3 0.05 262);
+  --sidebar-ring: oklch(0.62 0.19 255);
+}
+
+[data-theme="fibre-pulse"].dark,
+.dark[data-theme="fibre-pulse"],
+.dark [data-theme="fibre-pulse"] {
+  --background: oklch(0.13 0.035 262);
+  --foreground: oklch(0.94 0.02 240);
+  --card: oklch(0.175 0.04 262);
+  --card-foreground: oklch(0.94 0.02 240);
+  --popover: oklch(0.175 0.04 262);
+  --popover-foreground: oklch(0.94 0.02 240);
+  --secondary: oklch(0.23 0.045 262);
+  --secondary-foreground: oklch(0.94 0.02 240);
+  --muted: oklch(0.26 0.04 262);
+  --muted-foreground: oklch(0.72 0.035 240);
+  --border: oklch(0.32 0.05 258);
+  --input: oklch(0.22 0.045 262);
+  --primary: oklch(0.62 0.19 255);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --accent: oklch(0.78 0.13 210);
+  --accent-foreground: oklch(0.14 0.04 255);
+  --ring: oklch(0.62 0.19 255);
+  --chart-1: oklch(0.66 0.18 255);
+  --chart-2: oklch(0.78 0.13 210);
+  --chart-3: oklch(0.78 0.12 180);
+  --chart-4: oklch(0.7 0.16 290);
+  --chart-5: oklch(0.6 0.14 240);
+  --sidebar: oklch(0.1 0.03 262);
+  --sidebar-foreground: oklch(0.94 0.02 240);
+  --sidebar-primary: oklch(0.62 0.19 255);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.21 0.045 262);
+  --sidebar-accent-foreground: oklch(0.94 0.02 240);
+  --sidebar-border: oklch(0.28 0.045 262);
+  --sidebar-ring: oklch(0.62 0.19 255);
+}
+
+[data-theme="airwave"] {
+  --background: oklch(0.975 0.014 175);
+  --foreground: oklch(0.18 0.035 190);
+  --card: oklch(0.995 0.006 175);
+  --card-foreground: oklch(0.18 0.035 190);
+  --popover: oklch(0.995 0.006 175);
+  --popover-foreground: oklch(0.18 0.035 190);
+  --secondary: oklch(0.93 0.03 172);
+  --secondary-foreground: oklch(0.2 0.045 190);
+  --muted: oklch(0.92 0.025 172);
+  --muted-foreground: oklch(0.46 0.035 185);
+  --border: oklch(0.86 0.04 172);
+  --input: oklch(0.95 0.02 172);
+  --primary: oklch(0.52 0.11 172);
+  --primary-foreground: oklch(0.99 0.006 175);
+  --accent: oklch(0.8 0.13 160);
+  --accent-foreground: oklch(0.2 0.05 175);
+  --ring: oklch(0.52 0.11 172);
+  --chart-1: oklch(0.52 0.11 172);
+  --chart-2: oklch(0.72 0.14 155);
+  --chart-3: oklch(0.62 0.12 215);
+  --chart-4: oklch(0.76 0.15 85);
+  --chart-5: oklch(0.45 0.08 190);
+  --sidebar: oklch(0.16 0.035 188);
+  --sidebar-foreground: oklch(0.93 0.03 165);
+  --sidebar-primary: oklch(0.62 0.12 170);
+  --sidebar-primary-foreground: oklch(0.99 0.006 175);
+  --sidebar-accent: oklch(0.24 0.04 186);
+  --sidebar-accent-foreground: oklch(0.93 0.03 165);
+  --sidebar-border: oklch(0.3 0.04 186);
+  --sidebar-ring: oklch(0.62 0.12 170);
+}
+
+[data-theme="airwave"].dark,
+.dark[data-theme="airwave"],
+.dark [data-theme="airwave"] {
+  --background: oklch(0.135 0.028 190);
+  --foreground: oklch(0.94 0.025 165);
+  --card: oklch(0.18 0.032 188);
+  --card-foreground: oklch(0.94 0.025 165);
+  --popover: oklch(0.18 0.032 188);
+  --popover-foreground: oklch(0.94 0.025 165);
+  --secondary: oklch(0.235 0.035 186);
+  --secondary-foreground: oklch(0.94 0.025 165);
+  --muted: oklch(0.27 0.035 186);
+  --muted-foreground: oklch(0.73 0.04 170);
+  --border: oklch(0.33 0.045 180);
+  --input: oklch(0.22 0.035 186);
+  --primary: oklch(0.58 0.12 172);
+  --primary-foreground: oklch(0.99 0.006 175);
+  --accent: oklch(0.82 0.13 160);
+  --accent-foreground: oklch(0.16 0.04 185);
+  --ring: oklch(0.62 0.12 172);
+  --chart-1: oklch(0.68 0.13 172);
+  --chart-2: oklch(0.82 0.13 160);
+  --chart-3: oklch(0.72 0.12 215);
+  --chart-4: oklch(0.8 0.15 85);
+  --chart-5: oklch(0.6 0.08 190);
+  --sidebar: oklch(0.1 0.025 190);
+  --sidebar-foreground: oklch(0.94 0.025 165);
+  --sidebar-primary: oklch(0.62 0.12 172);
+  --sidebar-primary-foreground: oklch(0.99 0.006 175);
+  --sidebar-accent: oklch(0.21 0.035 188);
+  --sidebar-accent-foreground: oklch(0.94 0.025 165);
+  --sidebar-border: oklch(0.28 0.035 188);
+  --sidebar-ring: oklch(0.62 0.12 172);
+}
+
+[data-theme="packet-flow"] {
+  --background: oklch(0.975 0.012 60);
+  --foreground: oklch(0.2 0.03 45);
+  --card: oklch(0.995 0.006 60);
+  --card-foreground: oklch(0.2 0.03 45);
+  --popover: oklch(0.995 0.006 60);
+  --popover-foreground: oklch(0.2 0.03 45);
+  --secondary: oklch(0.935 0.025 60);
+  --secondary-foreground: oklch(0.22 0.04 45);
+  --muted: oklch(0.92 0.022 60);
+  --muted-foreground: oklch(0.47 0.035 45);
+  --border: oklch(0.87 0.035 55);
+  --input: oklch(0.955 0.02 60);
+  --primary: oklch(0.56 0.19 38);
+  --primary-foreground: oklch(0.99 0.006 60);
+  --accent: oklch(0.8 0.15 80);
+  --accent-foreground: oklch(0.22 0.05 50);
+  --ring: oklch(0.56 0.19 38);
+  --chart-1: oklch(0.56 0.19 38);
+  --chart-2: oklch(0.78 0.15 80);
+  --chart-3: oklch(0.55 0.13 250);
+  --chart-4: oklch(0.65 0.14 150);
+  --chart-5: oklch(0.45 0.12 25);
+  --sidebar: oklch(0.17 0.02 45);
+  --sidebar-foreground: oklch(0.93 0.025 70);
+  --sidebar-primary: oklch(0.62 0.19 40);
+  --sidebar-primary-foreground: oklch(0.99 0.006 60);
+  --sidebar-accent: oklch(0.25 0.025 45);
+  --sidebar-accent-foreground: oklch(0.93 0.025 70);
+  --sidebar-border: oklch(0.31 0.03 45);
+  --sidebar-ring: oklch(0.62 0.19 40);
+}
+
+[data-theme="packet-flow"].dark,
+.dark[data-theme="packet-flow"],
+.dark [data-theme="packet-flow"] {
+  --background: oklch(0.14 0.018 45);
+  --foreground: oklch(0.94 0.02 70);
+  --card: oklch(0.185 0.022 45);
+  --card-foreground: oklch(0.94 0.02 70);
+  --popover: oklch(0.185 0.022 45);
+  --popover-foreground: oklch(0.94 0.02 70);
+  --secondary: oklch(0.24 0.025 45);
+  --secondary-foreground: oklch(0.94 0.02 70);
+  --muted: oklch(0.27 0.025 45);
+  --muted-foreground: oklch(0.73 0.03 65);
+  --border: oklch(0.34 0.035 45);
+  --input: oklch(0.22 0.025 45);
+  --primary: oklch(0.62 0.19 40);
+  --primary-foreground: oklch(0.99 0.006 60);
+  --accent: oklch(0.8 0.15 80);
+  --accent-foreground: oklch(0.18 0.03 45);
+  --ring: oklch(0.62 0.19 40);
+  --chart-1: oklch(0.68 0.18 40);
+  --chart-2: oklch(0.82 0.15 80);
+  --chart-3: oklch(0.68 0.13 250);
+  --chart-4: oklch(0.74 0.14 150);
+  --chart-5: oklch(0.58 0.14 25);
+  --sidebar: oklch(0.11 0.015 45);
+  --sidebar-foreground: oklch(0.94 0.02 70);
+  --sidebar-primary: oklch(0.62 0.19 40);
+  --sidebar-primary-foreground: oklch(0.99 0.006 60);
+  --sidebar-accent: oklch(0.22 0.022 45);
+  --sidebar-accent-foreground: oklch(0.94 0.02 70);
+  --sidebar-border: oklch(0.29 0.025 45);
+  --sidebar-ring: oklch(0.62 0.19 40);
+}
+
+/* Shell base wash. isolation lets the z-index:-1 backdrop sit above the
+   shell background but below every page element. */
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .netily-admin-shell {
+  isolation: isolate;
+}
+
+[data-theme="fibre-pulse"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 88% 6%, oklch(0.78 0.11 215 / 0.2), transparent 30rem),
+    linear-gradient(160deg, oklch(0.975 0.012 250), oklch(0.945 0.022 255));
+}
+.dark[data-theme="fibre-pulse"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 88% 4%, oklch(0.5 0.16 255 / 0.3), transparent 34rem),
+    radial-gradient(circle at 20% 100%, oklch(0.55 0.12 215 / 0.14), transparent 30rem),
+    linear-gradient(160deg, oklch(0.12 0.035 262), oklch(0.15 0.04 258));
+}
+
+[data-theme="airwave"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 84% 16%, oklch(0.85 0.1 160 / 0.28), transparent 26rem),
+    linear-gradient(160deg, oklch(0.975 0.014 175), oklch(0.945 0.025 172));
+}
+.dark[data-theme="airwave"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 84% 16%, oklch(0.55 0.12 165 / 0.26), transparent 30rem),
+    radial-gradient(circle at 38% 100%, oklch(0.5 0.1 190 / 0.2), transparent 28rem),
+    linear-gradient(160deg, oklch(0.125 0.028 192), oklch(0.155 0.03 186));
+}
+
+[data-theme="packet-flow"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 80% 10%, oklch(0.85 0.12 75 / 0.26), transparent 28rem),
+    linear-gradient(160deg, oklch(0.975 0.012 60), oklch(0.945 0.022 55));
+}
+.dark[data-theme="packet-flow"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 82% 8%, oklch(0.55 0.15 45 / 0.24), transparent 30rem),
+    radial-gradient(circle at 15% 100%, oklch(0.6 0.12 80 / 0.12), transparent 28rem),
+    linear-gradient(160deg, oklch(0.13 0.018 45), oklch(0.16 0.022 40));
+}
+
+/* ── Backdrop layer ───────────────────────────────────────────── */
+.nm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+  container-type: size;
+  opacity: 0.55;
+}
+.dark .nm-backdrop,
+.dark.nm-backdrop {
+  opacity: 0.9;
+}
+.nm-backdrop[data-nm="airwave"] {
+  opacity: 0.75;
+}
+.dark .nm-backdrop[data-nm="airwave"] {
+  opacity: 1;
+}
+.nm-backdrop--contained {
+  position: absolute;
+  z-index: 0;
+}
+
+/* Fibre Pulse: strands with travelling light and splitter halos */
+.nm-fibre {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.nm-fibre-strand {
+  fill: none;
+  stroke: color-mix(in oklab, var(--primary) 26%, transparent);
+  stroke-width: 1.2;
+}
+.nm-fibre-glow,
+.nm-fibre-pulse {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 7 93;
+  stroke-dashoffset: 100;
+  animation: nm-fibre-run var(--nm-dur, 10s) linear var(--nm-delay, 0s) infinite;
+}
+.nm-fibre-glow {
+  stroke: color-mix(in oklab, var(--accent) 28%, transparent);
+  stroke-width: 9;
+}
+.nm-fibre-pulse {
+  stroke: var(--accent);
+  stroke-width: 2.2;
+}
+.nm-fibre-node {
+  fill: var(--accent);
+}
+.nm-fibre-halo {
+  fill: color-mix(in oklab, var(--accent) 40%, transparent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nm-halo 3.2s ease-out var(--nm-delay, 0s) infinite;
+}
+@keyframes nm-fibre-run {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes nm-halo {
+  0% { transform: scale(0.3); opacity: 0.9; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+/* Airwave: rings spreading from two access points */
+.nm-air-source {
+  position: absolute;
+  left: var(--nm-x);
+  top: var(--nm-y);
+  width: 0;
+  height: 0;
+}
+.nm-air-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--nm-size);
+  height: var(--nm-size);
+  margin: calc(var(--nm-size) / -2) 0 0 calc(var(--nm-size) / -2);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in oklab, var(--primary) 80%, transparent);
+  box-shadow: inset 0 0 48px color-mix(in oklab, var(--accent) 14%, transparent);
+  opacity: 0;
+  transform: scale(0.04);
+  will-change: transform, opacity;
+  animation: nm-air-wave 10s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  animation-delay: calc(var(--nm-ring) * -2.5s + var(--nm-offset, 0s));
+}
+.nm-air-core {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent),
+    0 0 36px 10px color-mix(in oklab, var(--accent) 45%, transparent);
+  animation: nm-air-beat 2.5s ease-in-out infinite;
+}
+@keyframes nm-air-wave {
+  0% { transform: scale(0.04); opacity: 0; }
+  8% { opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes nm-air-beat {
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+
+/* Packet Flow: packets travelling the lanes of a dot grid */
+.nm-packet-grid {
+  --g: 28px;
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at center, color-mix(in oklab, var(--foreground) 20%, transparent) 1px, transparent 1.6px);
+  background-size: var(--g) var(--g);
+  -webkit-mask-image: radial-gradient(ellipse 80% 90% at 65% 40%, #000 35%, transparent 90%);
+  mask-image: radial-gradient(ellipse 80% 90% at 65% 40%, #000 35%, transparent 90%);
+}
+.nm-backdrop--contained .nm-packet-grid {
+  --g: 9px;
+}
+.nm-packet {
+  --nm-tone: var(--primary);
+  position: absolute;
+  border-radius: 999px;
+  box-shadow: 0 0 12px color-mix(in oklab, var(--nm-tone) 60%, transparent);
+  will-change: transform;
+}
+.nm-packet-accent {
+  --nm-tone: var(--accent);
+}
+.nm-packet-x {
+  left: 0;
+  top: calc(var(--nm-row) * var(--g) + var(--g) / 2 - 1.5px);
+  width: calc(var(--g) * 1.6);
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--nm-tone));
+  transform: translateX(-120%);
+  animation: nm-packet-x var(--nm-dur, 10s) linear var(--nm-delay, 0s) infinite;
+}
+.nm-packet-y {
+  top: 0;
+  left: calc(var(--nm-col) * var(--g) + var(--g) / 2 - 1.5px);
+  width: 3px;
+  height: calc(var(--g) * 1.6);
+  background: linear-gradient(180deg, transparent, var(--nm-tone));
+  transform: translateY(-120%);
+  animation: nm-packet-y var(--nm-dur, 10s) linear var(--nm-delay, 0s) infinite;
+}
+.nm-packet-node {
+  position: absolute;
+  left: calc(var(--nm-col) * var(--g) + var(--g) / 2 - 4px);
+  top: calc(var(--nm-row) * var(--g) + var(--g) / 2 - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.15;
+  animation: nm-node-blink 4s ease-in-out var(--nm-delay, 0s) infinite;
+}
+.nm-backdrop--contained .nm-packet-x { height: 2px; }
+.nm-backdrop--contained .nm-packet-y { width: 2px; }
+.nm-backdrop--contained .nm-packet-node {
+  width: 5px;
+  height: 5px;
+  margin: 1.5px 0 0 1.5px;
+}
+@keyframes nm-packet-x {
+  to { transform: translateX(calc(100cqw + 120%)); }
+}
+@keyframes nm-packet-y {
+  to { transform: translateY(calc(100cqh + 120%)); }
+}
+@keyframes nm-node-blink {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  45% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 14px var(--accent); }
+}
+
+/* ── Spinners (every Loader2 / Spinner across the app) ─────────── */
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .lucide-loader-circle.animate-spin > * {
+  visibility: hidden;
+}
+
+/* Fibre Pulse: a light packet running round a faint ring */
+[data-theme="fibre-pulse"] .lucide-loader-circle.animate-spin {
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0turn, transparent 0 22%, color-mix(in oklab, currentColor 45%, transparent) 70%, currentColor 99%, transparent 0),
+    linear-gradient(color-mix(in oklab, currentColor 16%, transparent) 0 0);
+  -webkit-mask: radial-gradient(closest-side, transparent calc(80% - 2.25px), #000 calc(80% - 2px) 80%, transparent calc(80% + 0.5px));
+  mask: radial-gradient(closest-side, transparent calc(80% - 2.25px), #000 calc(80% - 2px) 80%, transparent calc(80% + 0.5px));
+  animation: spin 0.9s linear infinite;
+}
+
+/* Airwave: a beacon with two signal rings pinging outwards */
+@property --nm-ping {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.2;
+}
+@property --nm-ping-b {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.6;
+}
+[data-theme="airwave"] .lucide-loader-circle.animate-spin {
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, currentColor 0 24%, transparent 28%),
+    radial-gradient(closest-side,
+      transparent calc(var(--nm-ping) * 92% - 13%),
+      color-mix(in oklab, currentColor calc(100% - var(--nm-ping) * 90%), transparent) calc(var(--nm-ping) * 92% - 11%) calc(var(--nm-ping) * 92%),
+      transparent calc(var(--nm-ping) * 92% + 1.5%)),
+    radial-gradient(closest-side,
+      transparent calc(var(--nm-ping-b) * 92% - 13%),
+      color-mix(in oklab, currentColor calc(100% - var(--nm-ping-b) * 90%), transparent) calc(var(--nm-ping-b) * 92% - 11%) calc(var(--nm-ping-b) * 92%),
+      transparent calc(var(--nm-ping-b) * 92% + 1.5%));
+  animation:
+    nm-ping 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite,
+    nm-ping-b 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) -0.7s infinite;
+}
+@keyframes nm-ping {
+  from { --nm-ping: 0.2; }
+  to { --nm-ping: 1; }
+}
+@keyframes nm-ping-b {
+  from { --nm-ping-b: 0.2; }
+  to { --nm-ping-b: 1; }
+}
+
+/* Packet Flow: signal bars acquiring, one bar at a time */
+@property --nm-lvl {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 3;
+}
+[data-theme="packet-flow"] .lucide-loader-circle.animate-spin {
+  border-radius: 2px;
+  background:
+    linear-gradient(color-mix(in oklab, currentColor calc(25% + 75% * clamp(0, var(--nm-lvl), 1)), transparent) 0 0) 12% 86% / 20% 36% no-repeat,
+    linear-gradient(color-mix(in oklab, currentColor calc(25% + 75% * clamp(0, var(--nm-lvl) - 1, 1)), transparent) 0 0) 50% 86% / 20% 58% no-repeat,
+    linear-gradient(color-mix(in oklab, currentColor calc(25% + 75% * clamp(0, var(--nm-lvl) - 2, 1)), transparent) 0 0) 88% 86% / 20% 80% no-repeat;
+  animation: nm-bars 1.2s linear infinite;
+}
+@keyframes nm-bars {
+  0%, 24% { --nm-lvl: 0; }
+  25%, 49% { --nm-lvl: 1; }
+  50%, 74% { --nm-lvl: 2; }
+  75%, 100% { --nm-lvl: 3; }
+}
+
+/* ── Skeletons: a themed sweep instead of a pulse ──────────────── */
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) [data-slot="skeleton"] {
+  background-color: var(--muted);
+  background-image: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--nm-sweep, var(--primary)) 24%, transparent) 50%, transparent 70%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: nm-shimmer 1.8s ease-in-out infinite;
+}
+[data-theme="fibre-pulse"] [data-slot="skeleton"] { --nm-sweep: var(--accent); }
+[data-theme="packet-flow"] [data-slot="skeleton"] { animation-timing-function: steps(12); }
+@keyframes nm-shimmer {
+  from { background-position: 130% 0; }
+  to { background-position: -130% 0; }
+}
+
+/* ── Header carrier line ───────────────────────────────────────── */
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .netily-admin-header::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+[data-theme="fibre-pulse"] .netily-admin-header::after {
+  background: linear-gradient(90deg, transparent, var(--accent), transparent) no-repeat;
+  background-size: 28% 100%;
+  animation: nm-header-run 6s ease-in-out infinite;
+}
+[data-theme="airwave"] .netily-admin-header::after {
+  background: linear-gradient(90deg, transparent, var(--primary) 30%, var(--accent) 50%, var(--primary) 70%, transparent);
+  transform-origin: 70% 50%;
+  animation: nm-header-spread 4s ease-out infinite;
+}
+[data-theme="packet-flow"] .netily-admin-header::after {
+  background: repeating-linear-gradient(90deg, var(--primary) 0 10px, transparent 10px 22px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+  opacity: 0.65;
+  animation: nm-header-march 1.6s linear infinite;
+}
+@keyframes nm-header-run {
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
+}
+@keyframes nm-header-spread {
+  0% { transform: scaleX(0); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@keyframes nm-header-march {
+  to { background-position: 22px 0; }
+}
+
+/* ── Active menu item: a slow sheen across the pill ────────────── */
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .nav-active-pill {
+  background-image: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.26) 50%, transparent 65%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  animation: nm-pill-sheen 5s ease-in-out infinite;
+}
+@keyframes nm-pill-sheen {
+  0%, 60% { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
+}
+
+/* ── Pause (Appearance setting) and reduced motion ─────────────── */
+html[data-motion="paused"] :is(.nm-backdrop, .nm-backdrop *, .nav-active-pill),
+html[data-motion="paused"] .netily-admin-header::after {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nm-backdrop,
+  .nm-backdrop *,
+  .nav-active-pill,
+  .netily-admin-header::after {
+    animation: none !important;
+  }
+  /* Keep a still, readable picture of each theme */
+  .nm-air-ring {
+    opacity: 0.35;
+    transform: scale(calc(0.22 + var(--nm-ring) * 0.22));
+  }
+  .nm-fibre-halo {
+    opacity: 0.5;
+  }
+  .nm-packet {
+    display: none;
+  }
+  :is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) [data-slot="skeleton"] {
+    animation: none;
+    background-image: none;
+  }
+}

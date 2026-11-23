@@ -84,6 +84,7 @@ import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
 import { WhatsNewPopup } from "@/components/whats-new-popup"
 import { AdminAnniversaryBar, AdminAnniversaryConfetti } from "@/components/admin-anniversary"
 import { AdminProfileMenu } from "@/components/admin-profile-menu"
+import { MotionThemeBackdrop } from "@/components/motion-theme-backdrop"
 import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
 import { clearPostLoginPath, rememberPostLoginPath } from "@/lib/post-login-redirect"
@@ -1237,6 +1238,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="netily-admin-shell min-h-screen bg-background" suppressHydrationWarning>
+        <MotionThemeBackdrop />
         {/* Mobile sidebar backdrop */}
         {sidebarOpen && (
           <div
@@ -1375,7 +1377,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                             {isActive && (
                               <motion.span
                                 layoutId="admin-active-nav"
-                                className="absolute inset-0 rounded-lg bg-primary"
+                                className="nav-active-pill absolute inset-0 rounded-lg bg-primary"
                                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                               />
                             )}
@@ -1418,7 +1420,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                         {isActive && (
                           <motion.span
                             layoutId="admin-active-nav"
-                            className="absolute inset-0 rounded-lg bg-primary"
+                            className="nav-active-pill absolute inset-0 rounded-lg bg-primary"
                             transition={{ type: "spring", stiffness: 420, damping: 34 }}
                           />
                         )}
@@ -1463,7 +1465,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           }`}
         >
           {/* Top navigation bar */}
-          <header className={`fixed inset-x-0 top-0 z-40 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:right-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25 ${sidebarCollapsed ? "lg:left-24" : "lg:left-72"}`}>
+          <header className={`netily-admin-header fixed inset-x-0 top-0 z-40 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:right-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25 ${sidebarCollapsed ? "lg:left-24" : "lg:left-72"}`}>
             {/* Mobile menu button */}
             <Button
               variant="ghost"
