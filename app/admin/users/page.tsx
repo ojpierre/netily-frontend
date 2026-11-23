@@ -47,7 +47,6 @@ import {
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
-import { particleDelete } from "@/components/ui/particle-delete"
 import type { 
   Customer, 
   CustomerService, 
@@ -378,7 +377,6 @@ export default function UsersPage() {
   const editIPSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const hasFetched = useRef(false)
-  const rowRefs = useRef(new Map<number, HTMLElement>())
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -2201,58 +2199,15 @@ export default function UsersPage() {
     setShowDeleteConfirmDialog(true)
   }
 
-  // ============================================================
-  // DISSOLVE HELPERS
-  // ============================================================
-  // Dissolve the card into dust, then collapse its slot so the list closes the gap
-  const dissolveRow = async (customerId: number) => {
-    const el = rowRefs.current.get(customerId)
-    if (!el) return
-    try {
-      await particleDelete(el, { duration: 900, density: 10 })
-      const wrap = el.parentElement
-      if (wrap) {
-        wrap.style.overflow = "hidden"
-        await wrap.animate(
-          [
-            { height: `${wrap.offsetHeight}px`, paddingBottom: "8px" },
-            { height: "0px", paddingBottom: "0px" },
-          ],
-          { duration: 220, easing: "ease-out", fill: "forwards" }
-        ).finished
-      }
-    } catch {
-      /* animation is cosmetic - never block the delete */
-    }
-  }
-
-  // Remove deleted users from local state (no list refetch)
-  const removeUsers = (deleted: User[]) => {
-    const ids = new Set(deleted.map((u) => u.customerId))
-    const keys = new Set(deleted.map((u) => u.id))
-    setUsers((p) => p.filter((u) => !ids.has(u.customerId)))
-    setExpiredUsers((p) => p.filter((u) => !ids.has(u.customerId)))
-    setAllActiveSubUsers((p) => p.filter((u) => !ids.has(u.customerId)))
-    setSelectedUsers((p) => p.filter((k) => !keys.has(k)))
-    setTotalCount((c) => Math.max(0, c - deleted.length))
-  }
-
-  // ============================================================
-  // REPLACED: confirmDeleteUser - dissolve card on success
-  // ============================================================
   const confirmDeleteUser = async () => {
-    if (!userToDelete || deleting) return
-    const target = userToDelete
+    if (!userToDelete) return
     try {
       setDeleting(true)
-      await adminApi.deleteCustomer(target.customerId) // dissolve only after the server confirms
+      await adminApi.deleteCustomer(userToDelete.customerId)
+      toast.success(`${userToDelete.name} deleted successfully. RADIUS credentials cleaned up.`)
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
-      toast.success(`${target.name} deleted successfully. RADIUS credentials cleaned up.`)
-      await new Promise((r) => setTimeout(r, 180)) // let the dialog overlay fade out first
-      await dissolveRow(target.customerId)
-      removeUsers([target])
-      void Promise.all([loadOnlineMap(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -2260,29 +2215,21 @@ export default function UsersPage() {
     }
   }
 
-  // ============================================================
-  // REPLACED: handleBulkDelete - dissolve + local removal
-  // ============================================================
   const handleBulkDelete = async () => {
-    if (selectedUsers.length === 0 || deleting) return
-    const usersToDelete = filteredUsers.filter((u) => selectedUsers.includes(u.id))
-    const deleted: User[] = []
+    if (selectedUsers.length === 0) return
+    const usersToDelete = enrichedUsers.filter(u => selectedUsers.includes(u.id))
     try {
       setDeleting(true)
       for (const user of usersToDelete) {
         await adminApi.deleteCustomer(user.customerId)
-        deleted.push(user)
       }
-      toast.success(`${deleted.length} user(s) deleted successfully`)
+      toast.success(`${usersToDelete.length} user(s) deleted successfully`)
+      setSelectedUsers([])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } finally {
-      if (deleted.length) {
-        // animate small batches only, so large bulk deletes stay instant
-        if (deleted.length <= 5) await Promise.all(deleted.map((u) => dissolveRow(u.customerId)))
-        removeUsers(deleted)
-        void Promise.all([loadOnlineMap(), loadServerStats(), loadStatusCounts()])
-      }
       setDeleting(false)
     }
   }
@@ -4243,80 +4190,83 @@ export default function UsersPage() {
                 </div>
               ) : (
                 <>
-                  {(() => {
-                    const GRID =
-                      "lg:grid lg:grid-cols-[28px_minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_36px] lg:items-center lg:gap-4"
-                    return (
-                      <>
-                        {/* Header */}
-                        <div className={`flex items-center gap-3 px-4 pb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 ${GRID}`}>
-                          <Checkbox
-                            checked={filteredUsers.length > 0 && selectedUsers.length === filteredUsers.length}
-                            onCheckedChange={handleSelectAll}
-                          />
-                          <span className="lg:hidden normal-case tracking-normal">Select all</span>
-                          <span className="hidden lg:block">User</span>
-                          <span className="hidden lg:block">Type</span>
-                          <span className="hidden lg:block">Status</span>
-                          <span className="hidden lg:block">Connection</span>
-                          <span className="hidden lg:block">Plan</span>
-                          <span className="hidden lg:block">Data Usage</span>
-                          <span className="hidden lg:block">Expiry</span>
-                          <span className="hidden lg:block" />
-                        </div>
-
-                        {/* Cards */}
-                        <div>
-                          {filteredUsers.map((user) => (
-                            <div key={user.customerId} className="pb-2">
-                              <div
-                                ref={(node) => {
-                                  if (node) rowRefs.current.set(user.customerId, node)
-                                  else rowRefs.current.delete(user.customerId)
-                                }}
-                                onClick={() => router.push(`/admin/users/${user.customerId}`)}
-                                className={`group cursor-pointer flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800/60 ${GRID}`}
-                              >
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    checked={selectedUsers.includes(user.id)}
-                                    onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
-                                  />
-                                </div>
-
-                                <div className="flex min-w-[180px] flex-1 items-center gap-3 lg:min-w-0">
-                                  <div className="relative h-10 w-10 shrink-0">
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 opacity-40 blur-sm" />
-                                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 text-sm font-semibold text-white ring-1 ring-white/20">
-                                      {user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+                  <div className="rounded-lg border dark:border-slate-700 overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="dark:border-slate-700">
+                          <TableHead className="w-12 dark:text-slate-300">
+                            <Checkbox
+                              checked={
+                                filteredUsers.length > 0 &&
+                                selectedUsers.length === filteredUsers.length
+                              }
+                              onCheckedChange={handleSelectAll}
+                            />
+                          </TableHead>
+                          <TableHead className="dark:text-slate-300">User</TableHead>
+                          <TableHead className="dark:text-slate-300">Type</TableHead>
+                          <TableHead className="dark:text-slate-300">Status</TableHead>
+                          <TableHead className="dark:text-slate-300">Connection</TableHead>
+                          <TableHead className="dark:text-slate-300">Plan</TableHead>
+                          <TableHead className="dark:text-slate-300">Data Usage</TableHead>
+                          <TableHead className="dark:text-slate-300">Expiry</TableHead>
+                          <TableHead className="w-12 dark:text-slate-300"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((user) => {
+                          return (
+                            <motion.tr
+                              key={user.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.15 }}
+                              className="transition-all duration-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:shadow-sm group dark:border-slate-700 cursor-pointer"
+                              onClick={() => router.push(`/admin/users/${user.customerId}`)}
+                            >
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={selectedUsers.includes(user.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleSelectUser(user.id, checked as boolean)
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="relative w-10 h-10 shrink-0">
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 blur-sm opacity-40" />
+                                    <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 ring-1 ring-white/20 shadow-md shadow-indigo-500/25 flex items-center justify-center text-white font-semibold text-sm">
+                                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                     </div>
                                   </div>
-                                  <div className="min-w-0">
-                                    <p className="truncate font-medium text-foreground">{user.name}</p>
-                                    <p className="truncate text-xs text-muted-foreground">{user.phone}</p>
+                                  <div>
+                                    <p className="font-medium text-foreground">{user.name}</p>
+                                    <p className="text-xs text-muted-foreground">{user.phone}</p>
                                     {user.accountSuffix && (
-                                      <Badge variant="outline" className="mt-0.5 border-violet-300 text-[10px] text-violet-700 dark:border-violet-700 dark:text-violet-300">
+                                      <Badge variant="outline" className="mt-0.5 text-[10px] border-violet-300 text-violet-700 dark:border-violet-700 dark:text-violet-300">
                                         Child {user.accountSuffix}{user.accountLabel ? ` · ${user.accountLabel}` : ""}
                                       </Badge>
                                     )}
                                     {user.location && (
-                                      <p className="mt-0.5 flex items-center gap-0.5 text-[11px] text-muted-foreground/70">
-                                        <MapPin className="h-2.5 w-2.5 shrink-0" />
-                                        <span className="max-w-[140px] truncate">{user.location}</span>
+                                      <p className="text-[11px] text-muted-foreground/70 flex items-center gap-0.5 mt-0.5">
+                                        <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                        <span className="truncate max-w-[140px]">{user.location}</span>
                                       </p>
                                     )}
                                   </div>
                                 </div>
-
-                                <div>{getTypeBadge(user.type)}</div>
-                                <div>{getStatusBadge(user.status)}</div>
-                                <div>{getConnectionBadge(user.connectionStatus)}</div>
-
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium dark:text-slate-300">{user.plan}</p>
+                              </TableCell>
+                              <TableCell>{getTypeBadge(user.type)}</TableCell>
+                              <TableCell>{getStatusBadge(user.status)}</TableCell>
+                              <TableCell>{getConnectionBadge(user.connectionStatus)}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
                                   <p className="text-xs text-muted-foreground">KES {user.planPrice.toLocaleString()}</p>
                                 </div>
-
+                              </TableCell>
+                              <TableCell>
                                 <div className="space-y-1">
                                   <p className="text-sm font-medium dark:text-slate-300">
                                     {user.liveUsageString || `${Number(user.dataUsed || 0).toFixed(1)} GB`}
@@ -4325,119 +4275,118 @@ export default function UsersPage() {
                                     <Progress value={(Number(user.dataUsed || 0) / user.dataLimit) * 100} className="h-1.5 w-16" />
                                   )}
                                 </div>
-
-                                <div>
-                                  {user.plan === "No Plan" ? (
-                                    <>
-                                      <p className="text-sm dark:text-slate-300">-</p>
-                                      <p className="text-xs text-muted-foreground">Voucher</p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {new Date(user.expiryDate) > new Date()
-                                          ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / 86400000)} days left`
-                                          : "Expired"}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-
-                                <div onClick={(e) => e.stopPropagation()} className="ml-auto lg:ml-0">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <MoreVertical className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
-                                      <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                        <Eye className="w-4 h-4 mr-2" />
-                                        View Details
+                              </TableCell>
+                              <TableCell>
+                                {user.plan === "No Plan" ? (
+                                  <div>
+                                    <p className="text-sm dark:text-slate-300">-</p>
+                                    <p className="text-xs text-muted-foreground">Voucher</p>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(user.expiryDate) > new Date() 
+                                        ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
+                                        : "Expired"
+                                      }
+                                    </p>
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
+                                    <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenRenew(user)}
+                                      className="text-emerald-600 dark:text-emerald-400 dark:hover:bg-slate-800"
+                                    >
+                                      <CreditCard className="w-4 h-4 mr-2" />
+                                      Renew Subscription
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Calendar className="w-4 h-4 mr-2" />
+                                      Extend Subscription
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                      Change Plan
+                                    </DropdownMenuItem>
+                                    {(user.type === "pppoe" || user.type === "static") && (
+                                      <DropdownMenuItem onClick={() => handleOpenChildDialog(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Add Child Account
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        Edit User
+                                    )}
+                                    {(user.type === "pppoe" || user.type === "static") && (
+                                      <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <Server className="w-4 h-4 mr-2" />
+                                        Edit IP Address
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleOpenRenew(user)}
-                                        className="text-emerald-600 dark:text-emerald-400 dark:hover:bg-slate-800"
-                                      >
-                                        <CreditCard className="w-4 h-4 mr-2" />
-                                        Renew Subscription
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                        <Calendar className="w-4 h-4 mr-2" />
-                                        Extend Subscription
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                        <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                        Change Plan
-                                      </DropdownMenuItem>
-                                      {(user.type === "pppoe" || user.type === "static") && (
-                                        <DropdownMenuItem onClick={() => handleOpenChildDialog(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                          <UserPlus className="w-4 h-4 mr-2" />
-                                          Add Child Account
-                                        </DropdownMenuItem>
-                                      )}
-                                      {(user.type === "pppoe" || user.type === "static") && (
-                                        <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                          <Server className="w-4 h-4 mr-2" />
-                                          Edit IP Address
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                        <Send className="w-4 h-4 mr-2" />
-                                        Send SMS
-                                      </DropdownMenuItem>
-                                      {user.status === "pending" && (
-                                        <DropdownMenuItem 
-                                          onClick={() => handleActivateUser(user)}
-                                          className="text-green-600 dark:text-green-400 dark:hover:bg-slate-800"
-                                        >
-                                          <UserCheck className="w-4 h-4 mr-2" />
-                                          Activate Now
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuSeparator className="dark:bg-slate-700" />
-                                      {/* CLAUDE CHANGE #3b: REPLACED DROPDOWN ITEMS - Main Users table */}
-                                      {user.radiusCredentials && (
-                                        <DropdownMenuItem 
-                                          onClick={() => handleOpenSuspendDialog(user)}
-                                          className={user.radiusCredentials.is_enabled === false ? "text-green-600 dark:text-green-400 dark:hover:bg-slate-800" : "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"}
-                                        >
-                                          <Power className="w-4 h-4 mr-2" />
-                                          {user.radiusCredentials.is_enabled === false ? 'Unsuspend User' : 'Suspend User'}
-                                        </DropdownMenuItem>
-                                      )}
-                                      {user.radiusCredentials && (
-                                        <DropdownMenuItem
-                                          onClick={() => handleRefreshInternet(user)}
-                                          className="text-blue-600 dark:text-blue-400 dark:hover:bg-slate-800"
-                                        >
-                                          <RefreshCw className="w-4 h-4 mr-2" />
-                                          Refresh Internet
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                    )}
+                                    <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Send SMS
+                                    </DropdownMenuItem>
+                                    {user.status === "pending" && (
                                       <DropdownMenuItem 
-                                        onClick={() => handleDeleteUser(user)}
-                                        className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
+                                        onClick={() => handleActivateUser(user)}
+                                        className="text-green-600 dark:text-green-400 dark:hover:bg-slate-800"
                                       >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Delete User
+                                        <UserCheck className="w-4 h-4 mr-2" />
+                                        Activate Now
                                       </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )
-                  })()}
+                                    )}
+                                    <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                    {/* CLAUDE CHANGE #3b: REPLACED DROPDOWN ITEMS - Main Users table */}
+                                    {user.radiusCredentials && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleOpenSuspendDialog(user)}
+                                        className={user.radiusCredentials.is_enabled === false ? "text-green-600 dark:text-green-400 dark:hover:bg-slate-800" : "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"}
+                                      >
+                                        <Power className="w-4 h-4 mr-2" />
+                                        {user.radiusCredentials.is_enabled === false ? 'Unsuspend User' : 'Suspend User'}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.radiusCredentials && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleRefreshInternet(user)}
+                                        className="text-blue-600 dark:text-blue-400 dark:hover:bg-slate-800"
+                                      >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Refresh Internet
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteUser(user)}
+                                      className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete User
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </motion.tr>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
 
                   <div ref={observerTarget} className="flex items-center justify-center py-6">
                     {loadingMore && (
