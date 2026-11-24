@@ -1425,6 +1425,16 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Radix menus/dialogs (react-remove-scroll) set body overflow:hidden. Because html
+     uses overflow-x: clip, that never locks the viewport; it only turns <body> into a
+     scroll container, which snaps every position:sticky element (e.g. a sticky header
+     and the menu anchored to it) to the top of the document, off screen once the page
+     is scrolled. Background scrolling is still blocked by the library listeners. */
+  html body[data-scroll-locked] {
+    overflow: visible !important;
+    overflow-x: clip !important;
+  }
+
   button,
   input,
   select,
