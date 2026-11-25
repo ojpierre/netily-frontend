@@ -54,6 +54,7 @@ import {
   ArrowUpRight,
   Loader2,
   Clock3,
+  MonitorSmartphone,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
@@ -202,6 +203,7 @@ const navigationSections: NavigationSection[] = [
       { name: "Users", href: "/admin/users", icon: Users, allowedRoles: USER_MANAGEMENT_ROLES },
       { name: "Staff", href: "/admin/staff", icon: UserCog, allowedRoles: ADMIN_ROLES },
       { name: "Plans", href: "/admin/plans", icon: Package, allowedRoles: ADMIN_ROLES },
+      { name: "Captive Portal", href: "/admin/captive-portal", icon: MonitorSmartphone, allowedRoles: NETWORK_ROLES },
     ],
   },
   {

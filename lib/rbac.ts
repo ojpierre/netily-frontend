@@ -213,6 +213,13 @@ export const adminRouteAccessRules: RouteAccessRule[] = [
     actions: ["view", "view_details", "add", "edit", "delete"],
   },
   {
+    pathPrefix: "/admin/captive-portal",
+    label: "Captive Portal",
+    allowedRoles: NETWORK_ROLES,
+    allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
+    actions: ["view", "edit"],
+  },
+  {
     pathPrefix: "/admin/networks",
     label: "IP Network Management",
     allowedRoles: NETWORK_ROLES,

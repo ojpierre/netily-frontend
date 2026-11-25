@@ -286,6 +286,12 @@ export default function RouterDetailPage() {
     const [vpnChoice, setVpnChoice] = useState<"wireguard" | "openvpn">("wireguard")
     const [isSavingVpn, setIsSavingVpn] = useState(false)
   const params = useParams()
+  // ?tab=<value> opens a specific tab (e.g. the sidebar Captive Portal shortcut uses portal-settings)
+  const [activeTab, setActiveTab] = useState("live")
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("tab")
+    if (wanted && /^[a-z0-9-]{2,40}$/.test(wanted)) setActiveTab(wanted)
+  }, [])
   const router = useRouter()
   const routerId = params.id as string
   const hasFetchedRef = React.useRef(false)
@@ -1122,7 +1128,7 @@ export default function RouterDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="live" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex flex-wrap gap-1 h-auto p-1">
           <TabsTrigger value="live" className="gap-2">
             <MonitorSpeaker className="w-4 h-4" />
