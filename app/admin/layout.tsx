@@ -85,6 +85,9 @@ import { WhatsNewPopup } from "@/components/whats-new-popup"
 import { AdminAnniversaryBar, AdminAnniversaryConfetti } from "@/components/admin-anniversary"
 import { AdminProfileMenu } from "@/components/admin-profile-menu"
 import { MotionThemeBackdrop } from "@/components/motion-theme-backdrop"
+import { InternetilyLogo } from "@/components/internetily-logo"
+import { RingingIcon } from "@/components/ringing"
+import { SITE_URL } from "@/lib/brand"
 import { SessionInactivityGuard } from "@/components/session-inactivity-guard"
 import { submitLead } from "@/lib/api"
 import { clearPostLoginPath, rememberPostLoginPath } from "@/lib/post-login-redirect"
@@ -1260,8 +1263,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 {companyLogo ? (
                   <img src={companyLogo} alt="Company Logo" className="h-8 w-8 shrink-0 rounded-lg object-contain bg-white border border-slate-200" />
                 ) : (
-                  <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-sm">
-                    N
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-white shadow-sm dark:bg-slate-900">
+                    <InternetilyLogo variant="mark" className="h-6" />
                   </div>
                 )}
                 <span className="block w-40 whitespace-normal wrap-break-word text-sm font-bold leading-tight text-foreground tracking-tight">
@@ -1455,6 +1458,22 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <Menu className="w-5 h-5" />
               {!sidebarCollapsed && <span className="ml-2">Collapse</span>}
             </Button>
+            <a
+              href={SITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Powered by Internetily"
+              className={`flex items-center gap-2 rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground opacity-80 transition-opacity hover:opacity-100 ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              {sidebarCollapsed ? (
+                <InternetilyLogo variant="mark" className="h-6" />
+              ) : (
+                <>
+                  <span>Powered by</span>
+                  <InternetilyLogo className="h-4" />
+                </>
+              )}
+            </a>
           </div>
         </aside>
 
@@ -1547,14 +1566,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               {/* Notifications */}
-              <Link href="/admin/notifications" aria-label="Notifications">
+              <Link href="/admin/notifications" aria-label={unreadNotifCount > 0 ? `Notifications, ${unreadNotifCount} unread` : "Notifications"}>
                 <HoverLift
                   lift={0}
                   scale={1.08}
                   className="relative inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <MotionIcon hover={{ rotate: [0, -16, 14, -10, 6, 0], transition: { duration: 0.6, ease: "easeInOut" } }}>
-                    <Bell className="h-5 w-5" />
+                    <RingingIcon count={unreadNotifCount}>
+                      <Bell className="h-5 w-5" />
+                    </RingingIcon>
                   </MotionIcon>
                   <AnimatedBellBadge count={unreadNotifCount} />
                 </HoverLift>

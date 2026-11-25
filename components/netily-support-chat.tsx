@@ -5,8 +5,36 @@ import { Headset, Loader2, MessageCircle, Send, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { adminApi } from "@/lib/admin-api"
 import type { SupportChatConversation, SupportChatMessage } from "@/lib/types"
+import { BadgePing, RingingIcon } from "@/components/ringing"
 
 const CATEGORIES = ["Billing", "SMS", "M-Pesa", "Routers", "Hotspot", "PPPoE", "Account Access", "Other"]
+
+// Replies are checked quietly while the chat is closed so the launcher can ring.
+const BACKGROUND_CHECK_MS = 60_000
+
+function seenKey() {
+  return `netily:support-chat:seen:${typeof window === "undefined" ? "" : window.location.hostname}`
+}
+
+function timeOf(message?: SupportChatMessage | null) {
+  const value = message?.created_at ? Date.parse(message.created_at) : NaN
+  return Number.isNaN(value) ? 0 : value
+}
+
+function readSeen(): number | null {
+  try {
+    const value = window.localStorage.getItem(seenKey())
+    return value ? Number(value) || 0 : null
+  } catch {
+    return null
+  }
+}
+
+function writeSeen(value: number) {
+  try {
+    window.localStorage.setItem(seenKey(), String(value))
+  } catch {}
+}
 
 function formatTime(value?: string | null) {
   if (!value) return ""
@@ -35,11 +63,67 @@ export function NetilySupportChat() {
   const [conversation, setConversation] = useState<SupportChatConversation | null>(null)
   const [messages, setMessages] = useState<SupportChatMessage[]>([])
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  // Timestamp of the newest message this admin has seen (persisted per host).
+  const [seenAt, setSeenAt] = useState<number | null>(null)
 
-  const unreadFromSupport = useMemo(() => {
-    if (!messages.length) return false
-    return messages[messages.length - 1]?.sender_type === "superadmin"
-  }, [messages])
+  const unreadCount = useMemo(() => {
+    if (seenAt === null) return 0
+    return messages.filter((item) => item.sender_type === "superadmin" && timeOf(item) > seenAt).length
+  }, [messages, seenAt])
+  const unreadFromSupport = unreadCount > 0
+
+  // First visit on this device: treat everything up to the admin's own last
+  // message as seen, so only replies after it count as new.
+  useEffect(() => {
+    const stored = readSeen()
+    if (stored !== null) setSeenAt(stored)
+  }, [])
+
+  useEffect(() => {
+    if (seenAt !== null || !messages.length) return
+    const lastOwn = [...messages].reverse().find((item) => item.sender_type !== "superadmin")
+    const initial = timeOf(lastOwn)
+    setSeenAt(initial)
+    writeSeen(initial)
+  }, [messages, seenAt])
+
+  // While the chat is open, everything on screen is seen.
+  useEffect(() => {
+    if (!open || !messages.length) return
+    const latest = Math.max(...messages.map(timeOf))
+    if (seenAt === null || latest > seenAt) {
+      setSeenAt(latest)
+      writeSeen(latest)
+    }
+  }, [open, messages, seenAt])
+
+  // Quiet background check for replies while the chat is closed.
+  useEffect(() => {
+    if (open) return
+    let cancelled = false
+    const check = async () => {
+      if (document.hidden) return
+      try {
+        const data = await adminApi.getCurrentSupportChat()
+        if (cancelled) return
+        setConversation(data.conversation)
+        setMessages(data.messages || [])
+      } catch {
+        // Stay quiet; opening the chat surfaces errors.
+      }
+    }
+    void check()
+    const timer = window.setInterval(check, BACKGROUND_CHECK_MS)
+    const onVisible = () => {
+      if (!document.hidden) void check()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [open])
 
   const loadCurrent = async () => {
     setBooting(true)
@@ -232,11 +316,19 @@ export function NetilySupportChat() {
 
       <button
         onClick={() => setOpen((value) => !value)}
+        aria-label={unreadFromSupport ? `Support, ${unreadCount} new ${unreadCount === 1 ? "reply" : "replies"}` : "Support"}
         className="relative flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/30 transition hover:bg-primary/90"
       >
-        <MessageCircle className="h-5 w-5" />
-        Support
-        {unreadFromSupport && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-background" />}
+        <RingingIcon count={open ? 0 : unreadCount}>
+          <MessageCircle className="h-5 w-5" />
+        </RingingIcon>
+        {unreadFromSupport && !open ? "New reply" : "Support"}
+        {unreadFromSupport && !open && (
+          <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[11px] font-bold text-white ring-2 ring-background">
+            <BadgePing count={unreadCount} className="bg-emerald-400/70" />
+            <span className="relative">{unreadCount > 9 ? "9+" : unreadCount}</span>
+          </span>
+        )}
       </button>
     </div>
   )

@@ -123,21 +123,81 @@ const PLATFORM_SUPERADMIN_NAMES = new Set(["peter ouma", "mark mbolonzi"])
 
 // ─── Conversational Helpers ───
 
-// Dynamic greeting based on time of day
-function getGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return "Good morning"
-  if (hour < 17) return "Good afternoon"
-  if (hour < 21) return "Good evening"
-  return "Still up?"
+type DayPart = "morning" | "afternoon" | "evening" | "late"
+
+function getDayPart(hour = new Date().getHours()): DayPart {
+  if (hour >= 5 && hour < 12) return "morning"
+  if (hour >= 12 && hour < 17) return "afternoon"
+  if (hour >= 17 && hour < 21) return "evening"
+  return "late"
+}
+
+// "{name}" marks where the first name goes. Swahili lines carry an English
+// meaning, shown as a tooltip so nobody is left guessing.
+type Greeting = { text: string; meaning?: string }
+
+const GREETINGS: Record<DayPart, Greeting[]> = {
+  morning: [
+    { text: "Good morning, {name}." },
+    { text: "Habari ya asubuhi, {name}.", meaning: "Good morning" },
+    { text: "Asubuhi njema, {name}.", meaning: "Have a good morning" },
+    { text: "Morning, {name}. Coffee first?" },
+    { text: "Fresh start, {name}." },
+  ],
+  afternoon: [
+    { text: "Good afternoon, {name}." },
+    { text: "Habari ya mchana, {name}.", meaning: "Good afternoon" },
+    { text: "Mchana mwema, {name}.", meaning: "Have a good afternoon" },
+    { text: "Back at it, {name}." },
+    { text: "Afternoon, {name}." },
+  ],
+  evening: [
+    { text: "Good evening, {name}." },
+    { text: "Habari ya jioni, {name}.", meaning: "Good evening" },
+    { text: "Jioni njema, {name}.", meaning: "Have a good evening" },
+    { text: "Evening, {name}." },
+    { text: "Winding down, {name}?" },
+  ],
+  late: [
+    { text: "Still up, {name}?" },
+    { text: "Habari za usiku, {name}.", meaning: "Good night (as a greeting)" },
+    { text: "Late shift, {name}." },
+    { text: "Burning the midnight oil, {name}?" },
+  ],
+}
+
+// Fit any time of day; mixed in so the greeting does not feel scripted.
+const ANYTIME_GREETINGS: Greeting[] = [
+  { text: "Karibu tena, {name}.", meaning: "Welcome back" },
+  { text: "Mambo, {name}?", meaning: "What's up?" },
+  { text: "Hey there, {name}." },
+]
+
+const LAST_GREETING_KEY = "netily:admin:last-greeting"
+
+/** Picks a greeting for this visit, never the same one twice in a row. */
+function pickGreeting(): Greeting {
+  const pool = [...GREETINGS[getDayPart()], ...ANYTIME_GREETINGS]
+  let last: string | null = null
+  try { last = sessionStorage.getItem(LAST_GREETING_KEY) } catch {}
+  const options = pool.filter((greeting) => greeting.text !== last)
+  const choice = options[Math.floor(Math.random() * options.length)] ?? pool[0]
+  try { sessionStorage.setItem(LAST_GREETING_KEY, choice.text) } catch {}
+  return choice
+}
+
+/** Splits a greeting around {name} so each half can animate in on its own. */
+function splitGreeting(greeting: Greeting, name: string): { lead: string; rest: string } {
+  const [before, after = ""] = greeting.text.split("{name}")
+  return { lead: before.trimEnd(), rest: `${name}${after}` }
 }
 
 // Get shift label
 function getShiftLabel(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return "MORNING SHIFT"
-  if (hour < 17) return "AFTERNOON SHIFT"
-  if (hour < 21) return "EVENING SHIFT"
+  const part = getDayPart()
+  if (part === "morning") return "MORNING SHIFT"
+  if (part === "afternoon") return "AFTERNOON SHIFT"
+  if (part === "evening") return "EVENING SHIFT"
   return "LATE NIGHT"
 }
 
@@ -212,6 +272,8 @@ export default function AdminDashboard() {
   
   // ─── ANIMATION RETRIGGER KEY ───
   const [greetKey, setGreetKey] = useState(0)
+  // Chosen once per visit; refreshing the dashboard replays the animation, not the words.
+  const [greeting] = useState<Greeting>(pickGreeting)
   
   // State for live online sessions and active subscriptions
   const [onlineSessions, setOnlineSessions] = useState<any[]>([])
@@ -561,15 +623,22 @@ export default function AdminDashboard() {
                 letterSpacing: "-0.03em",
               }}
             >
-              <span className="apple-hello-word" style={{ animationDelay: "0.05s" }}>
-                {getGreeting()},
-              </span>{" "}
-              <span
-                className="apple-hello-word text-foreground/90"
-                style={{ animationDelay: "0.2s" }}
-              >
-                {user?.first_name || user?.username || "there"}.
-              </span>
+              {(() => {
+                const { lead, rest } = splitGreeting(greeting, user?.first_name || user?.username || "there")
+                return (
+                  <span title={greeting.meaning} lang={greeting.meaning ? "sw" : undefined}>
+                    <span className="apple-hello-word" style={{ animationDelay: "0.05s" }}>
+                      {lead}
+                    </span>{" "}
+                    <span
+                      className="apple-hello-word text-foreground/90"
+                      style={{ animationDelay: "0.2s" }}
+                    >
+                      {rest}
+                    </span>
+                  </span>
+                )
+              })()}
             </h1>
 
             {(() => {

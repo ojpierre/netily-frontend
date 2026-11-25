@@ -20,6 +20,7 @@ import { adminApi, type AdminLoginChallengeResponse, type AdminLoginResponse } f
 import { startAuthentication } from "@simplewebauthn/browser"
 import { consumePostLoginPath } from "@/lib/post-login-redirect"
 import { ParticleBackground } from "@/components/auth/particle-background" // ✅ NEW IMPORT
+import { InternetilyLogo } from "@/components/internetily-logo"
 
 // Check if using mock mode
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
@@ -367,6 +368,9 @@ export default function AdminLoginPage() {
 
       <ParticleBackground /> {/* ✅ USING IMPORTED COMPONENT */}
 
+      <div className="relative z-10 flex w-full max-w-md flex-col items-center gap-6">
+      <InternetilyLogo className="h-8 animate-in fade-in duration-500" priority />
+
       <Card
         ref={cardRef}
         className="relative w-full max-w-md bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_60px_-10px_rgba(15,23,42,0.18)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 overflow-hidden"
@@ -600,6 +604,11 @@ export default function AdminLoginPage() {
           </>
         )}
       </Card>
+
+      <p className="text-xs text-muted-foreground">
+        Secure sign-in · Powered by Internetily
+      </p>
+      </div>
     </div>
   )
 }

@@ -57,6 +57,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { safeStorage } from "@/lib/safe-storage"
+import { InternetilyLogo } from "@/components/internetily-logo"
 
 // ── Navigation ──
 
@@ -261,12 +262,10 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
         >
           {/* Brand */}
           <div className={`flex h-16 shrink-0 items-center gap-3 border-b border-slate-800 ${rail ? "lg:justify-center lg:px-0" : ""} px-4`}>
-            <Link href="/superadmin" className="flex min-w-0 items-center gap-3" title="Superadmin dashboard">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 shadow-lg shadow-violet-900/40">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
-              <div className={rail ? "lg:hidden" : ""}>
-                <p className="text-base font-bold leading-none text-white">Netily</p>
+            <Link href="/superadmin" className="flex min-w-0 items-center gap-3" title="Superadmin dashboard" aria-label="Internetily superadmin dashboard">
+              {rail && <InternetilyLogo variant="mark" tone="onDark" className="hidden h-8 lg:block" priority />}
+              <div className={`flex flex-col gap-1 ${rail ? "lg:hidden" : ""}`}>
+                <InternetilyLogo tone="onDark" className="h-6" priority />
                 <span className="text-[10px] font-semibold tracking-[0.18em] text-violet-400">SUPERADMIN</span>
               </div>
             </Link>

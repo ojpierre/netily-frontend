@@ -5,6 +5,7 @@ import { AnimatePresence, motion, type TargetAndTransition } from "framer-motion
 import { Moon, Search, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
+import { BadgePing } from "@/components/ringing"
 
 export const spring = { type: "spring", stiffness: 420, damping: 30, mass: 0.7 } as const
 
@@ -139,9 +140,10 @@ export function AnimatedBellBadge({ count }: { count: number }) {
             initial={{ scale: 1.45 }}
             animate={{ scale: 1 }}
             transition={spring}
-            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-white"
+            className="relative flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-white"
           >
-            {count > 9 ? "9+" : count}
+            <BadgePing count={count} className="bg-destructive/70" />
+            <span className="relative">{count > 9 ? "9+" : count}</span>
           </motion.span>
         </motion.span>
       )}
