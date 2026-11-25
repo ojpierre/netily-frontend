@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useSuperAdminAuth } from "../superadmin-auth-context"
+import { InternetilyLogo } from "@/components/internetily-logo"
 
 export default function SuperAdminLoginPage() {
   const { login } = useSuperAdminAuth()
@@ -35,10 +36,11 @@ export default function SuperAdminLoginPage() {
       <div className="w-full max-w-md">
         {/* Branding */}
         <div className="text-center mb-8">
-          <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/30 mb-4">
-            <Shield className="w-8 h-8 text-violet-400" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Netily Superadmin</h1>
+          <InternetilyLogo tone="onDark" priority className="mx-auto mb-6 h-9" />
+          <h1 className="flex items-center justify-center gap-2 text-2xl font-bold text-white">
+            <Shield className="h-5 w-5 text-violet-400" aria-hidden="true" />
+            Superadmin
+          </h1>
           <p className="text-slate-400 mt-1 text-sm">Platform owner console — restricted access</p>
         </div>
 
