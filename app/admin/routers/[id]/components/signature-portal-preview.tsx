@@ -10,9 +10,11 @@ import type { HotspotPlan } from "@/app/hotspot/[router_id]/HotspotClientView"
 import BubblePlans, { BUBBLE_GRID_CLASS } from "@/app/hotspot/[router_id]/BubblePlans"
 import SpotlightPlans from "@/app/hotspot/[router_id]/SpotlightPlans"
 import BoardingPassPlans from "@/app/hotspot/[router_id]/BoardingPassPlans"
+import ChatPlans from "@/app/hotspot/[router_id]/ChatPlans"
+import VendingPlans from "@/app/hotspot/[router_id]/VendingPlans"
 import { bubblesSans } from "@/app/hotspot/[router_id]/bubbles-fonts"
 
-export const SIGNATURE_TEMPLATE_IDS = [18, 19, 20]
+export const SIGNATURE_TEMPLATE_IDS = [18, 19, 20, 21, 22]
 
 function samplePlan(id: string, name: string, duration: string, price: number, speed: number, data: string | null, popular = false): HotspotPlan {
   return {
@@ -118,6 +120,18 @@ export function SignaturePortalPreview({
                 )}
                 <SpotlightPlans plans={SAMPLE_PLANS} formatPrice={formatPrice} hideSpeed={hidePlanSpeed} onPay={pick} />
               </div>
+            </div>
+          )}
+
+          {templateId === 21 && (
+            <div className="min-h-full bg-gradient-to-b from-[#0f5e57] via-[#d8e9e3] via-30% to-[#efe9e1] px-3 py-5">
+              <ChatPlans plans={SAMPLE_PLANS} formatPrice={formatPrice} hideSpeed={hidePlanSpeed} displayName={displayName} logoUrl={logoSrc} supportPhone={supportPhone} announcement={announcementText} provider="M-Pesa" onPay={pick} />
+            </div>
+          )}
+
+          {templateId === 22 && (
+            <div className="min-h-full bg-[#fde8c8] bg-[repeating-linear-gradient(45deg,rgba(232,71,61,0.06)_0_14px,transparent_14px_28px)] px-3 py-5">
+              <VendingPlans plans={SAMPLE_PLANS.slice(0, 4)} formatPrice={formatPrice} hideSpeed={hidePlanSpeed} displayName={displayName} logoUrl={logoSrc} onPay={pick} />
             </div>
           )}
 

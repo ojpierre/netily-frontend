@@ -28,6 +28,8 @@ import {
   Waves,
   ExternalLink,
   Plane,
+  MessageCircle,
+  Store,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -48,6 +50,7 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { APPEARANCE_FONTS, type AppearanceFont } from "@/lib/appearance-fonts"
 import { SignaturePortalPreview, SIGNATURE_TEMPLATE_IDS } from "./signature-portal-preview"
+import { LivePortalFrame } from "./live-portal-frame"
 
 // ==========================================
 // TEMPLATE DEFINITIONS
@@ -305,6 +308,30 @@ const TEMPLATES: TemplateOption[] = [
       card: "bg-white shadow-sm",
       accent: "bg-[#13294b]",
       text: "text-[#13294b]",
+    },
+  },
+  {
+    id: 21,
+    name: "Chat Bundles",
+    description: "The portal reads like a chat with your business: friendly bot messages, a tappable bundle list, a typing bubble, then a Pay button",
+    icon: <MessageCircle className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#ece5dc]",
+      card: "bg-white",
+      accent: "bg-[#0f5e57]",
+      text: "text-[#0f5e57]",
+    },
+  },
+  {
+    id: 22,
+    name: "Wi-Fi Vending",
+    description: "A playful vending machine: bundles on lit shelves with A1/B2 codes, a green LED display and a big VEND button",
+    icon: <Store className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#fde8c8]",
+      card: "bg-[#e8473d]",
+      accent: "bg-amber-300",
+      text: "text-[#b8261f]",
     },
   },
 ]
@@ -940,8 +967,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
           </Card>
         </div>
 
-        {/* ───────────── RIGHT COLUMN: Live Preview ───────────── */}
-        <div className="space-y-6">
+        {/* ───────────── RIGHT COLUMN: Live Preview (stays in view while editing) ───────────── */}
+        <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -953,6 +980,18 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {!isDemo ? (
+                <LivePortalFrame
+                  routerId={routerId}
+                  encodedTemplateId={planLayout === "list" ? templateId + 100 : planLayout === "grid" ? templateId + 200 : templateId}
+                  hotspotName={hotspotName}
+                  supportPhone={supportPhone}
+                  announcementText={announcementText}
+                  logoSrc={logoPreview || existingLogo || null}
+                  hidePlanSpeed={hidePlanSpeed}
+                  portalFont={portalFont}
+                />
+              ) : (
               <PortalPreview
                 templateId={templateId}
                 hotspotName={hotspotName}
@@ -964,6 +1003,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                 hidePlanSpeed={hidePlanSpeed}
                 portalFont={portalFont}
               />
+              )}
             </CardContent>
           </Card>
 
@@ -1169,6 +1209,31 @@ function SignatureThumb({ id }: { id: number }) {
           <span className="h-2 w-3/5 rounded bg-gradient-to-r from-teal-200 to-violet-200" />
           <span className="h-1.5 w-2/5 rounded bg-white/70" />
           <span className="mt-1 h-2 w-4/5 rounded bg-teal-300" />
+        </div>
+      </div>
+    )
+  }
+  if (id === 21) {
+    return (
+      <div className="aspect-[4/3] overflow-hidden bg-[#ece5dc]">
+        <div className="flex h-3.5 items-center gap-1 bg-[#0f5e57] px-1.5"><span className="h-2 w-2 rounded-full bg-white" /><span className="h-1 w-8 rounded bg-white/70" /></div>
+        <div className="space-y-1 p-1.5">
+          <div className="h-2 w-3/5 rounded bg-white" />
+          <div className="w-4/5 space-y-0.5 rounded bg-white p-1"><div className="h-1 w-full rounded bg-[#0f5e57]/50" /><div className="h-1 w-full rounded bg-[#0f5e57]/30" /><div className="h-1 w-full rounded bg-[#0f5e57]/30" /></div>
+          <div className="ml-auto h-2 w-2/5 rounded bg-[#d4f1e6]" />
+        </div>
+      </div>
+    )
+  }
+  if (id === 22) {
+    return (
+      <div className="aspect-[4/3] bg-[#fde8c8] p-1.5">
+        <div className="h-full rounded-md bg-[#e8473d] p-1">
+          <div className="mb-1 h-1.5 rounded-sm bg-[#2a0d0b]" />
+          <div className="grid grid-cols-2 gap-1 rounded-sm bg-[#141922] p-1">
+            {["bg-lime-400", "bg-sky-400", "bg-orange-400", "bg-violet-400"].map((c) => <div key={c} className={`h-3 rounded-sm ${c}`} />)}
+          </div>
+          <div className="mt-1 flex gap-1"><div className="h-2.5 flex-1 rounded-sm bg-[#08140b]" /><div className="h-2.5 w-2.5 rounded-full bg-amber-300" /></div>
         </div>
       </div>
     )

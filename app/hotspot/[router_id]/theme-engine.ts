@@ -31,7 +31,7 @@ export interface ThemeStyles {
   successBg: string
   successPageBg: string
   // Layout variations
-  layoutType: "grid" | "list" | "featured" | "compact" | "bubbles" | "spotlight" | "pass"
+  layoutType: "grid" | "list" | "featured" | "compact" | "bubbles" | "spotlight" | "pass" | "chat" | "vending"
   // Structural variations
   headerStyle: "centered" | "left-aligned" | "large-hero" | "minimal"
   cardShape: "rounded-2xl" | "rounded-3xl" | "rounded-none" | "rounded-lg"
@@ -804,6 +804,86 @@ export function getTheme(id: number): ThemeStyles {
         successBg: "bg-emerald-50 border border-emerald-300",
         successPageBg: "min-h-screen bg-[#e7edf5]",
       }
+    case 21: // Chat Bundles - the portal reads like a chat with the ISP; bundles are a tappable list message (ChatPlans.tsx)
+      return {
+        layoutType: "chat",
+        headerStyle: "centered",
+        cardShape: "rounded-2xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: false,
+        pageBg: "min-h-screen bg-gradient-to-b from-[#0f5e57] from-0% via-[#d8e9e3] via-[30%] to-[#efe9e1]",
+        cardClass: "bg-white rounded-2xl shadow-xl",
+        headerBg: "bg-[#0f5e57]",
+        headerText: "text-white",
+        headerSub: "text-emerald-100",
+        annBg: "bg-white border border-[#cfe3dc]",
+        annText: "text-[#1f2b2a]",
+        annIcon: "text-[#0f5e57]",
+        planSelectedBorder: "border-[#0f5e57]",
+        planSelectedBg: "bg-[#f2faf7]",
+        planBorder: "border-[#d9e6e2]",
+        planBg: "bg-white",
+        planTitle: "text-[#0f5e57]",
+        planSub: "text-[#6b7f7c]",
+        planPrice: "text-[#1f2b2a]",
+        planPopularBg: "bg-amber-100",
+        planPopularText: "text-amber-700",
+        inputBorder: "border-[#cfe3dc]",
+        inputBg: "bg-white",
+        inputText: "text-[#1f2b2a]",
+        inputPlaceholder: "placeholder:text-[#8aa09c]",
+        ctaBg: "bg-[#0f5e57] hover:bg-[#0c4d47]",
+        ctaText: "text-white font-semibold",
+        ctaHover: "hover:shadow-[#0f5e57]/25",
+        bodyText: "text-[#1f2b2a]",
+        mutedText: "text-[#55706b]",
+        footerText: "text-[#55706b]",
+        errorBg: "bg-red-50 border-red-200",
+        errorText: "text-red-700",
+        successBg: "bg-emerald-50",
+        successPageBg: "min-h-screen bg-[#efe9e1]",
+      }
+    case 22: // Wi-Fi Vending - bundles on vending machine shelves with codes, LED display and a VEND button (VendingPlans.tsx)
+      return {
+        layoutType: "vending",
+        headerStyle: "centered",
+        cardShape: "rounded-3xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: false,
+        pageBg: "min-h-screen bg-[#fde8c8] bg-[repeating-linear-gradient(45deg,rgba(232,71,61,0.06)_0_14px,transparent_14px_28px)]",
+        cardClass: "bg-[#fff7ea] rounded-3xl shadow-xl border-2 border-[#b8261f]",
+        headerBg: "bg-[#b8261f]",
+        headerText: "text-amber-100",
+        headerSub: "text-amber-100/80",
+        annBg: "bg-[#fff7ea] border-2 border-dashed border-[#e8473d]",
+        annText: "text-[#5a1410]",
+        annIcon: "text-[#e8473d]",
+        planSelectedBorder: "border-[#b8261f]",
+        planSelectedBg: "bg-amber-50",
+        planBorder: "border-[#f3c9a8]",
+        planBg: "bg-white",
+        planTitle: "text-[#3a0f0c]",
+        planSub: "text-[#8a4a3a]",
+        planPrice: "text-[#b8261f]",
+        planPopularBg: "bg-amber-300",
+        planPopularText: "text-[#3a0f0c]",
+        inputBorder: "border-[#e8a88a]",
+        inputBg: "bg-white",
+        inputText: "text-[#3a0f0c]",
+        inputPlaceholder: "placeholder:text-[#b98a7c]",
+        ctaBg: "bg-[#e8473d] hover:bg-[#b8261f]",
+        ctaText: "text-white font-bold",
+        ctaHover: "hover:shadow-[#b8261f]/25",
+        bodyText: "text-[#3a0f0c]",
+        mutedText: "text-[#8a4a3a]",
+        footerText: "text-[#8a4a3a]",
+        errorBg: "bg-red-50 border-red-200",
+        errorText: "text-red-700",
+        successBg: "bg-amber-50",
+        successPageBg: "min-h-screen bg-[#fde8c8]",
+      }
     default: // Classic (1) - Grid Layout (Professional, ISP standard)
       return {
         layoutType: "grid",
@@ -845,4 +925,18 @@ export function getTheme(id: number): ThemeStyles {
         successPageBg: "min-h-screen bg-gradient-to-br from-green-50 to-emerald-100",
       }
   }
+}
+
+/** Display names of the portal themes (template ids 1-22), e.g. for router pickers. */
+export const PORTAL_THEME_NAMES: Record<number, string> = {
+  1: "Classic", 2: "Dark Mode", 3: "Gradient", 4: "Minimal", 5: "Vibrant", 6: "Corporate", 7: "Glass", 8: "Neon Noir",
+  9: "Safari Warmth", 10: "Ocean Breeze", 11: "Midnight Luxury", 12: "Blossom", 13: "Neumorphic", 14: "Brutalist Sun",
+  15: "Brutalist Ink", 16: "Cyber Orchid", 17: "Retro Terminal", 18: "Bubbles", 19: "Aurora Spotlight", 20: "Boarding Pass",
+  21: "Chat Bundles", 22: "Wi-Fi Vending",
+}
+
+/** Name for a saved template id, including the +100 (list) / +200 (grid) layout forms. */
+export function portalThemeName(templateId?: number | null): string {
+  const base = templateId ? ((templateId - 1) % 100) + 1 : 1
+  return PORTAL_THEME_NAMES[base] || "Classic"
 }

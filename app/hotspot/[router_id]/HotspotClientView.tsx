@@ -11,8 +11,11 @@ import TvPayGuide from "./TvPayGuide"
 import AuroraBackdrop from "./AuroraBackdrop"
 import SpotlightPlans from "./SpotlightPlans"
 import BoardingPassPlans from "./BoardingPassPlans"
+import ChatPlans from "./ChatPlans"
+import VendingPlans from "./VendingPlans"
 import { bubblesSans } from "./bubbles-fonts"
 import BubblePlans, { BUBBLE_GRID_CLASS } from "./BubblePlans"
+import { PORTAL_PREVIEW_MESSAGE, PORTAL_PREVIEW_READY } from "./preview-protocol"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -754,7 +757,12 @@ interface HotspotClientViewProps {
   initialSuspended?: boolean
   /** ?preview_template=N: show this theme instead of the saved one (visual only, nothing is saved). */
   previewTemplateId?: number | null
+  /** ?embed=preview: shown inside the admin Live Preview; takes unsaved settings via postMessage and never charges */
+  embedPreview?: boolean
 }
+
+/** Portal settings the admin Live Preview may override (cosmetic only, never saved). */
+const PREVIEW_KEYS = ["template_id", "hotspot_name", "support_phone", "announcement_text", "router_logo_url", "hide_plan_speed", "portal_font"] as const
 
 // ==========================================
 // CHANGED: Component signature - now accepts props, not params
@@ -769,13 +777,37 @@ export default function HotspotClientView({
   initialLoginUrl,
   initialSuspended = false,
   previewTemplateId = null,
+  embedPreview = false,
 }: HotspotClientViewProps) {
 
   // ==========================================
   // CHANGED: State seeded from props instead of empty defaults
   // ==========================================
   const [plans, setPlans] = useState<HotspotPlan[]>(initialPlans)
-  const [portalConfig, setPortalConfig] = useState<PortalConfig | null>(initialPortalConfig)
+  const [savedPortalConfig, setPortalConfig] = useState<PortalConfig | null>(initialPortalConfig)
+  // Unsaved settings sent by the admin Live Preview (embed mode only)
+  const [previewOverrides, setPreviewOverrides] = useState<Partial<PortalConfig> | null>(null)
+  const portalConfig = useMemo<PortalConfig | null>(() => {
+    if (!previewOverrides) return savedPortalConfig
+    const fallback: PortalConfig = { template_id: 1, hotspot_name: "", support_phone: "", announcement_text: "", gateway_ip: "" }
+    return { ...(savedPortalConfig ?? fallback), ...previewOverrides }
+  }, [savedPortalConfig, previewOverrides])
+
+  useEffect(() => {
+    if (!embedPreview || window.parent === window) return
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      const data = event.data as { type?: string; config?: Record<string, unknown> } | null
+      if (!data || data.type !== PORTAL_PREVIEW_MESSAGE || !data.config) return
+      const next: Record<string, unknown> = {}
+      for (const key of PREVIEW_KEYS) if (key in data.config) next[key] = data.config[key]
+      setPreviewOverrides(next as Partial<PortalConfig>)
+    }
+    window.addEventListener("message", onMessage)
+    // Ask the admin page for the current (unsaved) settings
+    window.parent.postMessage({ type: PORTAL_PREVIEW_READY }, window.location.origin)
+    return () => window.removeEventListener("message", onMessage)
+  }, [embedPreview])
   const paymentLocale = getPaymentLocale(portalConfig?.country, portalConfig?.currency)
   const [branding, setBranding] = useState<BrandingConfig | null>(initialBranding)
   const [loading, setLoading] = useState(initialPlans.length === 0)
@@ -922,8 +954,12 @@ export default function HotspotClientView({
   const bo = (n: number) => (isBubbles ? BUBBLE_ORDER[n] : "")
   const isSpotlight = theme.layoutType === "spotlight"
   const isPass = theme.layoutType === "pass"
+  const isChat = theme.layoutType === "chat"
+  const isVending = theme.layoutType === "vending"
   // Plans sit straight on the page (no card) for these layouts
-  const isOpenLayout = isBubbles || isSpotlight || isPass
+  const isOpenLayout = isBubbles || isSpotlight || isPass || isChat || isVending
+  // These draw their own header (chat bar / machine marquee) or none at all (Bubbles)
+  const ownHeader = isBubbles || isChat || isVending
   const isAurora = templateId === 19
   // Visible keyboard focus for the plan cards of the newer themes (older themes keep browser defaults)
   const planFocusClass = isAurora
@@ -940,7 +976,7 @@ export default function HotspotClientView({
   const logoUrl = (() => {
     const raw = branding?.logo_url || portalConfig?.router_logo_url || null
     if (!raw) return null
-    return raw.startsWith('http') ? raw : `${apiBaseUrl}${raw}`
+    return /^(https?:|blob:|data:)/.test(raw) ? raw : `${apiBaseUrl}${raw}`
   })()
 
   // Reset logo error when logo URL changes
@@ -1251,6 +1287,11 @@ export default function HotspotClientView({
   }
 
   const selectPlanAndPay = (plan: HotspotPlan) => {
+    // Admin Live Preview: show the selection, never open payment
+    if (embedPreview) {
+      setSelectedPlan(plan)
+      return
+    }
     if (targetDevice === "tv" && !tvMacVerified) {
       setTvMacError("First confirm your TV above, then choose a plan.")
       tvGuideRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -1316,6 +1357,7 @@ export default function HotspotClientView({
   }
 
   const handleVoucherRedeem = async () => {
+    if (embedPreview) return
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
       return
@@ -1826,9 +1868,9 @@ export default function HotspotClientView({
   return (
     <div className={isBubbles ? `${theme.pageBg} ${bubblesSans.className}` : `${theme.pageBg} flex items-center justify-center p-4`} style={isBubbles ? undefined : { fontFamily: portalFontFamily }}>
       {isAurora && <AuroraBackdrop />}
-      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : isSpotlight || isPass ? `relative z-10 w-full max-w-md ${isPass ? "py-2" : ""}` : `${theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
+      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : isOpenLayout ? `relative z-10 w-full max-w-md ${isPass ? "py-2" : ""}` : `${theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
         {/* ── Header — adapts to headerStyle (Bubbles shows the name in its footer instead) ── */}
-        {!isBubbles && (
+        {!ownHeader && (
         <div
           className={`${theme.headerBg} ${
             theme.headerStyle === "large-hero" ? "p-8" :
@@ -1878,7 +1920,7 @@ export default function HotspotClientView({
         )}
 
         {/* ── Content ── */}
-        <div className={isBubbles ? "flex flex-col pt-1" : isSpotlight || isPass ? "px-1 py-5" : "p-6"}>
+        <div className={isBubbles ? "flex flex-col pt-1" : isOpenLayout ? "px-1 py-5" : "p-6"}>
           {/* Bubbles: plain text links replace the voucher box + reconnect button */}
           {isBubbles && (
             <div className="order-1 flex flex-wrap items-center justify-center gap-x-[18px]">
@@ -1902,7 +1944,7 @@ export default function HotspotClientView({
           )}
 
           {/* Announcement Banner */}
-          {announcement && (
+          {announcement && !isChat && (
             <div className={`mb-5 px-4 py-3 rounded-lg ${theme.annBg} flex items-start gap-2 ${bo(2)} ${isBubbles ? "mt-3" : ""}`}>
               <Megaphone className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme.annIcon}`} />
               <p className={`text-sm ${theme.annText}`}>{announcement}</p>
@@ -2157,7 +2199,7 @@ export default function HotspotClientView({
             </div>
           )}
 
-          <p className={isBubbles ? "order-8 mt-2 mb-4 text-center text-xs text-[#725a67]" : `${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
+          <p className={isChat ? "hidden" : isBubbles ? "order-8 mt-2 mb-4 text-center text-xs text-[#725a67]" : `${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
             {welcomeMessage || `Select a plan and pay with ${paymentLocale.provider} to get connected`}
           </p>
 
@@ -2185,7 +2227,7 @@ export default function HotspotClientView({
               ? "flex flex-wrap gap-2"
               : theme.layoutType === "bubbles"
               ? `mt-4 ${BUBBLE_GRID_CLASS}`
-              : theme.layoutType === "spotlight" || theme.layoutType === "pass"
+              : isOpenLayout
               ? ""
               : "space-y-3"
           }`}>
@@ -2202,6 +2244,30 @@ export default function HotspotClientView({
                 plans={paidPlans}
                 formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
                 hideSpeed={portalConfig?.hide_plan_speed}
+                onPay={selectPlanAndPay}
+              />
+            )}
+            {isChat && (
+              <ChatPlans
+                plans={paidPlans}
+                formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
+                hideSpeed={portalConfig?.hide_plan_speed}
+                displayName={displayName}
+                logoUrl={logoError ? null : logoUrl}
+                supportPhone={supportPhone}
+                greeting={welcomeTitle || welcomeMessage}
+                announcement={announcement}
+                provider={paymentLocale.provider}
+                onPay={selectPlanAndPay}
+              />
+            )}
+            {isVending && (
+              <VendingPlans
+                plans={paidPlans}
+                formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
+                hideSpeed={portalConfig?.hide_plan_speed}
+                displayName={displayName}
+                logoUrl={logoError ? null : logoUrl}
                 onPay={selectPlanAndPay}
               />
             )}
@@ -2410,7 +2476,7 @@ export default function HotspotClientView({
         </div>
       </div>
 
-      {previewTemplateId !== null && (
+      {previewTemplateId !== null && !embedPreview && (
         <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-4">
           <span className="rounded-full bg-black/75 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg backdrop-blur">
             Previewing theme {previewTemplateId} · not saved

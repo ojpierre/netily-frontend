@@ -21,19 +21,23 @@ async function fetchCaptivePortalServerSide(
   }
 }
 
+/** Highest captive portal theme id (see theme-engine.ts) */
+const MAX_TEMPLATE_ID = 22
+
 export default async function HotspotPage({
   params,
   searchParams,
 }: {
   params: Promise<{ router_id: string }>
-  searchParams: Promise<{ tenant?: string; mac?: string; login_url?: string; error?: string; preview_template?: string }>
+  searchParams: Promise<{ tenant?: string; mac?: string; login_url?: string; error?: string; preview_template?: string; embed?: string }>
 }) {
   const { router_id: routerId } = await params
   const sp = await searchParams
   const tenant = sp.tenant || ""
   // ?preview_template=N lets an admin see any theme on the live portal without saving it.
   const previewNum = Number(sp.preview_template)
-  const previewTemplateId = Number.isInteger(previewNum) && previewNum >= 1 && previewNum <= 20 ? previewNum : null
+  // Accepts plain ids and the +100 (list) / +200 (grid) layout forms the settings save
+  const previewTemplateId = Number.isInteger(previewNum) && previewNum >= 1 && previewNum <= 299 && previewNum % 100 >= 1 && previewNum % 100 <= MAX_TEMPLATE_ID ? previewNum : null
 
   // Resolved BEFORE any HTML reaches the device — the phone's WebView gets
   // one cold DNS+TCP+TLS round trip and a fully-populated page, no second
@@ -61,6 +65,7 @@ export default async function HotspotPage({
       initialSuspended={initialData?.status === "suspended"}
       initialLoginUrl={initialLoginUrl}
       previewTemplateId={previewTemplateId}
+      embedPreview={sp.embed === "preview"}
     />
   )
 }
