@@ -52,10 +52,6 @@ export default function BlogPage() {
         />
         <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28 lg:px-8">
           <div className="max-w-3xl">
-            <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-amber-300 hover:text-white">
-              Back to Internetily
-              <ArrowRight className="h-4 w-4" />
-            </Link>
             <div className="mb-6 inline-flex items-center gap-3 border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-200">
               <BookOpen className="h-4 w-4" />
               Internetily Blog

@@ -83,10 +83,6 @@ export default function AlternativesPage() {
           }}
         />
         <div className="relative mx-auto max-w-6xl">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-amber-300 hover:text-white">
-            Back to Internetily
-            <ArrowRight className="h-4 w-4" />
-          </Link>
           <div className="mt-10 grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
               <div className="inline-flex items-center gap-2 border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200">

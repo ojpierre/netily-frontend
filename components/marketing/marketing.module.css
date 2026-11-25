@@ -536,3 +536,5 @@
 }
 @keyframes lb-flow-v { from { background-position: 0 0; } to { background-position: 0 20px; } }
 @media (prefers-reduced-motion: reduce) { .lbWire span, .lbUplinks li[data-down] .lbDot { animation: none; } .lbBar span { transition: none; } }
+/* Header-only wrapper for public pages outside MarketingLayout (see public-page-layout.tsx) */
+.headerOnly { display: contents; }
