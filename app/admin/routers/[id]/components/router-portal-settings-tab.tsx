@@ -24,6 +24,9 @@ import {
   X,
   Gauge,
   ChevronDown,
+  CircleDot,
+  Waves,
+  Ticket,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -264,6 +267,42 @@ const TEMPLATES: TemplateOption[] = [
       card: "bg-[#031f10] border border-lime-400/70 shadow-[0_0_18px_rgba(132,204,22,0.28)]",
       accent: "bg-lime-400",
       text: "text-lime-300",
+    },
+  },
+  {
+    id: 18,
+    name: "Bubbles",
+    description: "Soft blush page with big pastel circle plans in a playful zigzag and plum accents",
+    icon: <CircleDot className="w-5 h-5" />,
+    preview: {
+      bg: "bg-gradient-to-br from-[#f3e9fb] via-[#fdf0f3] to-[#fddde5]",
+      card: "bg-[#FDDCC4]",
+      accent: "bg-[#7B1E57]",
+      text: "text-[#4A1235]",
+    },
+  },
+  {
+    id: 19,
+    name: "Aurora Drift",
+    description: "Calm dark theme with slowly drifting teal, violet and blue glow (static if reduced motion is on)",
+    icon: <Waves className="w-5 h-5" />,
+    preview: {
+      bg: "bg-gradient-to-br from-[#050816] via-[#0f2a3a] to-[#2a1b57]",
+      card: "bg-slate-950 border border-teal-300/40",
+      accent: "bg-teal-400",
+      text: "text-teal-300",
+    },
+  },
+  {
+    id: 20,
+    name: "Ticket Stub",
+    description: "Cream paper with ink text and tear-off ticket plans, perforated edges and a red stamped price",
+    icon: <Ticket className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#ece2c8]",
+      card: "bg-[#f6efdc] border-2 border-stone-900 shadow-[3px_3px_0_#1c1917]",
+      accent: "bg-red-700",
+      text: "text-red-700",
     },
   },
 ]

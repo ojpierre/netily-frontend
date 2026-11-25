@@ -11,6 +11,7 @@ interface PhoneReconnectModalProps {
   theme: any
   locale: PaymentLocale
   forTv?: boolean            // NEW
+  initialMode?: "phone" | "credentials"
   onPhoneChange: (value: string) => void
   onReconnect: () => void
   onCredentialReconnect: (username: string, password: string) => void
@@ -27,13 +28,14 @@ export default function PhoneReconnectModal({
   theme,
   locale,
   forTv = false,             // NEW
+  initialMode = "phone",
   onPhoneChange,
   onReconnect,
   onCredentialReconnect,
   onClearError,
   onClose,
 }: PhoneReconnectModalProps) {
-  const [mode, setMode] = useState<Mode>("phone")
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
 

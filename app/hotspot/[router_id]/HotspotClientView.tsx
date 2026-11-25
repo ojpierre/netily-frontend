@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState, useMemo, useRef } from "react"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone, Wrench } from "lucide-react"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone, Wrench, Receipt, KeyRound } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 import dynamic from "next/dynamic"
 import { getTheme, type ThemeStyles } from "./theme-engine"
 import { fetchWithRetry } from "./fetchWithRetry"
 import { getPaymentLocale, normalizePaymentPhone, isValidPaymentPhone, formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
 import TvPayGuide from "./TvPayGuide"
+import AuroraBackdrop from "./AuroraBackdrop"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -831,6 +832,9 @@ export default function HotspotClientView({
 
   // ── Phone reconnect state ──────────────────────────────────────────────────
   const [showPhoneModal, setShowPhoneModal] = useState(false)
+  // Bubbles theme: top links toggle the voucher box / open the reconnect modal in a given tab
+  const [showVoucherBox, setShowVoucherBox] = useState(false)
+  const [reconnectMode, setReconnectMode] = useState<"phone" | "credentials">("phone")
   const [reconnectPhone, setReconnectPhone] = useState('')
   const [reconnectPhoneError, setReconnectPhoneError] = useState<string | null>(null)
   const [reconnectPhoneLoading, setReconnectPhoneLoading] = useState(false)
@@ -904,6 +908,15 @@ export default function HotspotClientView({
     }
     return base
   }, [templateId, isListOverride, isGridOverride])
+  const isBubbles = theme.layoutType === "bubbles"
+  const isAurora = templateId === 19
+  const isTicket = templateId === 20
+  // Visible keyboard focus for the plan cards of the newer themes (older themes keep browser defaults)
+  const planFocusClass = isTicket
+    ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6efdc]"
+    : isAurora
+    ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+    : ""
   const displayName = branding?.company_name || portalConfig?.hotspot_name || "WiFi Hotspot"
   const welcomeTitle = branding?.welcome_title || ""
   const welcomeMessage = branding?.welcome_message || ""
@@ -1211,6 +1224,18 @@ export default function HotspotClientView({
     } finally {
       setFreeTrialClaiming(false)
     }
+  }
+
+  // Opens the reconnect modal on a given tab (same TV guard as the "Already paid?" button)
+  const openReconnectModal = (mode: "phone" | "credentials") => {
+    if (targetDevice === "tv" && !tvMacVerified) {
+      setTvMacError("Verify your TV below first, then tap Reconnect")
+      return
+    }
+    setReconnectMode(mode)
+    setShowPhoneModal(true)
+    setReconnectPhoneError(null)
+    setReconnectPhone('')
   }
 
   const selectPlanAndPay = (plan: HotspotPlan) => {
@@ -1788,7 +1813,8 @@ export default function HotspotClientView({
 
   return (
     <div className={`${theme.pageBg} flex items-center justify-center p-4`} style={{ fontFamily: portalFontFamily }}>
-      <div className={`${theme.cardClass} max-w-md w-full overflow-hidden`}>
+      {isAurora && <AuroraBackdrop />}
+      <div className={`${isBubbles ? "bg-transparent" : theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
         {/* ── Header — adapts to headerStyle ── */}
         <div
           className={`${theme.headerBg} ${
@@ -1831,7 +1857,29 @@ export default function HotspotClientView({
         </div>
 
         {/* ── Content ── */}
-        <div className="p-6">
+        <div className={isBubbles ? "px-0 py-3 sm:p-6" : "p-6"}>
+          {/* Bubbles: plain text links replace the voucher box + reconnect button */}
+          {isBubbles && (
+            <div className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+              {[
+                { key: "voucher", label: "Have a voucher?", Icon: Ticket, onClick: () => setShowVoucherBox((v) => !v), expanded: showVoucherBox },
+                { key: "receipt", label: "Have a receipt?", Icon: Receipt, onClick: () => openReconnectModal("phone"), expanded: undefined },
+                { key: "login", label: "Login", Icon: KeyRound, onClick: () => openReconnectModal("credentials"), expanded: undefined },
+              ].map(({ key, label, Icon, onClick, expanded }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={onClick}
+                  aria-expanded={expanded}
+                  className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-1 text-sm ${theme.mutedText} hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7B1E57]`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Announcement Banner */}
           {announcement && (
             <div className={`mb-5 px-4 py-3 rounded-lg ${theme.annBg} flex items-start gap-2`}>
@@ -1884,6 +1932,7 @@ export default function HotspotClientView({
           )}
 
           {/* ── Voucher Redemption — top level, always visible ── */}
+          {(!isBubbles || showVoucherBox) && (
           <div className="mb-5">
             <div className={`flex rounded-xl border ${theme.inputBorder} overflow-hidden`}>
               <div className="relative flex-1">
@@ -1892,6 +1941,7 @@ export default function HotspotClientView({
                   type="text"
                   placeholder="Have a voucher code? Enter here"
                   value={voucherCode}
+                  autoFocus={isBubbles}
                   onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
                   className={`w-full pl-9 pr-3 py-3 text-sm border-0 outline-none ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder}`}
                 />
@@ -1916,8 +1966,10 @@ export default function HotspotClientView({
               </p>
             )}
           </div>
+          )}
 
           {/* ── Phone reconnect button ── */}
+          {!isBubbles && (
           <button
             type="button"
             onClick={() => {
@@ -1935,6 +1987,7 @@ export default function HotspotClientView({
               ? "Already paid? Reconnect your TV"
               : "Already paid? Reconnect or add a device"}
           </button>
+          )}
 
           {/* Free Ad-Sponsored Access */}
           {availableAd && availableAd.reward_enabled && availableAd.reward_minutes > 0 && (
@@ -2105,8 +2158,59 @@ export default function HotspotClientView({
               ? "grid grid-cols-2 gap-3" 
               : theme.layoutType === "compact"
               ? "flex flex-wrap gap-2"
+              : theme.layoutType === "bubbles"
+              ? "grid grid-cols-2 gap-x-3 gap-y-2 pb-[26%]"
               : "space-y-3"
           }`}>
+            {/* Bubbles: pastel circles in a staggered two-column zigzag (right column sits half a circle lower) */}
+            {theme.layoutType === "bubbles" && paidPlans.map((plan, i) => {
+              const isSel = selectedPlan?.id === plan.id
+              const fill = ["bg-[#F8CAD4]", "bg-[#FDDCC4]", "bg-[#E4D4F4]", "bg-[#D5E5CF]"][i % 4]
+              const priceText = formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)
+              const sp = priceText.indexOf(" ")
+              const currencyPart = sp > 0 ? priceText.slice(0, sp) : ""
+              const amountPart = sp > 0 ? priceText.slice(sp + 1) : priceText
+              const serif = { fontFamily: 'Georgia, "Times New Roman", serif' }
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => selectPlanAndPay(plan)}
+                  aria-pressed={isSel}
+                  aria-label={`${plan.name}, ${priceText}, ${plan.duration_display}`}
+                  className={`@container aspect-square w-full rounded-full border-2 p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7B1E57] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf0f3] ${
+                    i % 2 === 1 ? "translate-y-1/2" : ""
+                  } ${isSel ? theme.planSelectedBorder : "border-transparent"}`}
+                  style={isSel ? brandingSelectedBorderStyle : undefined}
+                >
+                  <span
+                    className={`flex h-full w-full flex-col items-center justify-center rounded-full px-2 text-center ${
+                      isSel ? `${theme.planSelectedBg} text-white` : `${fill} ${theme.planTitle}`
+                    }`}
+                    style={isSel && branding?.primary_color ? { backgroundColor: branding.primary_color } : undefined}
+                  >
+                    <span className="line-clamp-2 break-words text-[clamp(0.7rem,9cqw,0.95rem)] font-bold leading-tight">{plan.name}</span>
+                    <span className="mt-0.5 flex max-w-full items-baseline justify-center gap-1" style={serif}>
+                      {currencyPart && <span className="text-[clamp(0.65rem,8cqw,0.9rem)] font-semibold">{currencyPart}</span>}
+                      {/* Sized to the circle, not the screen, so long amounts (e.g. 10,000) still fit */}
+                      <span
+                        className={`truncate font-bold leading-none ${
+                          amountPart.length > 5 ? "text-[clamp(0.95rem,14cqw,1.6rem)]" : amountPart.length > 3 ? "text-[clamp(1rem,17cqw,1.85rem)]" : "text-[clamp(1.1rem,21cqw,2.1rem)]"
+                        }`}
+                      >
+                        {amountPart}
+                      </span>
+                    </span>
+                    <span className={`mt-0.5 line-clamp-1 text-[clamp(0.65rem,7.5cqw,0.8rem)] ${isSel ? "text-white/85" : theme.planSub}`}>
+                      for {plan.duration_display}
+                    </span>
+                    {plan.is_popular && (
+                      <span className={`text-[10px] font-semibold ${isSel ? "text-white" : theme.planTitle}`}>★ Popular</span>
+                    )}
+                  </span>
+                </button>
+              )
+            })}
             {theme.layoutType === "featured" && paidPlans.some(p => p.is_popular) && (
               <div className="mb-3">
                 {paidPlans.filter(p => p.is_popular).map((plan) => (
@@ -2153,12 +2257,12 @@ export default function HotspotClientView({
                 ))}
               </div>
             )}
-            {(theme.layoutType === "featured" ? paidPlans.filter(p => !p.is_popular) : paidPlans).map((plan) => (
+            {(theme.layoutType === "bubbles" ? [] : theme.layoutType === "featured" ? paidPlans.filter(p => !p.is_popular) : paidPlans).map((plan) => (
               <button
                 key={plan.id}
                 type="button"
                 onClick={() => selectPlanAndPay(plan)}
-                className={`text-left border-2 transition-all ${
+                className={`text-left border-2 transition-all ${planFocusClass} ${isTicket ? "relative" : ""} ${
                   theme.layoutType === "grid" 
                     ? "rounded-xl p-3 flex flex-col" 
                     : theme.layoutType === "compact"
@@ -2204,7 +2308,7 @@ export default function HotspotClientView({
                     {selectedPlan?.id === plan.id && <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto mt-1" />}
                   </div>
                 ) : (
-                  <div className="flex justify-between items-start">
+                  <div className={`flex justify-between ${isTicket ? "items-stretch border-inherit" : "items-start"}`}>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`font-semibold ${theme.planTitle}`}>{plan.name}</span>
@@ -2268,11 +2372,22 @@ export default function HotspotClientView({
                       <p className={`text-xs mt-1 ${theme.planSub}`}>{plan.description}</p>
                     )}
                   </div>
+                  {isTicket ? (
+                    // Tear-off stub: dashed perforation with half-circle notches biting into the top/bottom edge
+                    <div className="relative -my-4 -mr-4 ml-3 flex items-center border-l-2 border-dashed border-inherit px-3 py-4">
+                      <span aria-hidden="true" className="absolute -top-[2px] -left-[10px] h-[12px] w-[22px] rounded-b-full border-2 border-t-0 border-inherit bg-[#f6efdc]" />
+                      <span aria-hidden="true" className="absolute -bottom-[2px] -left-[10px] h-[12px] w-[22px] rounded-t-full border-2 border-b-0 border-inherit bg-[#f6efdc]" />
+                      <span className={`inline-block -rotate-2 whitespace-nowrap border-2 border-current px-2 py-1 font-mono text-lg font-bold uppercase tracking-tight ${theme.planPrice}`} style={brandingPriceStyle}>
+                        {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
+                      </span>
+                    </div>
+                  ) : (
                   <div className="text-right ml-3">
                     <span className={`text-xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
                       {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
                     </span>
                   </div>
+                  )}
                 </div>
                 )}
               </button>
@@ -2350,6 +2465,7 @@ export default function HotspotClientView({
           theme={theme}
           locale={paymentLocale}
           forTv={targetDevice === "tv"}
+          initialMode={reconnectMode}
           onPhoneChange={(value) => {
             setReconnectPhone(value)
             setReconnectPhoneError(null)
