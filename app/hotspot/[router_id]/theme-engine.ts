@@ -690,7 +690,7 @@ export function getTheme(id: number): ThemeStyles {
         ctaStyle: "pill",
         showPhoneBeforePlans: false,
         showWifiIcon: false,
-        pageBg: "min-h-screen bg-gradient-to-br from-[#f3e9fb] via-[#fdf0f3] to-[#fddde5]",
+        pageBg: "min-h-screen bg-[#fdeef1] bg-[radial-gradient(ellipse_75%_40%_at_100%_0%,#fbd5de_0%,transparent_70%),radial-gradient(ellipse_55%_35%_at_0%_45%,#f4dcf6_0%,transparent_70%)]",
         // Solid enough for modals/chat; the main portal view renders this card transparent for bubbles.
         cardClass: "bg-[#fff8fa] rounded-3xl shadow-xl shadow-[#7B1E57]/10 border border-[#f3d9e2]",
         headerBg: "bg-transparent",
@@ -721,7 +721,7 @@ export function getTheme(id: number): ThemeStyles {
         errorBg: "bg-red-50 border-red-200",
         errorText: "text-red-700",
         successBg: "bg-emerald-50",
-        successPageBg: "min-h-screen bg-gradient-to-br from-[#f3e9fb] via-[#fdf0f3] to-[#fddde5]",
+        successPageBg: "min-h-screen bg-[#fdeef1] bg-[radial-gradient(ellipse_75%_40%_at_100%_0%,#fbd5de_0%,transparent_70%),radial-gradient(ellipse_55%_35%_at_0%_45%,#f4dcf6_0%,transparent_70%)]",
       }
     case 19: // Aurora Drift - Calm dark theme; animated backdrop lives in AuroraBackdrop.tsx
       return {

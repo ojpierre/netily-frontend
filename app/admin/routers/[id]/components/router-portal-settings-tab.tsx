@@ -27,6 +27,7 @@ import {
   CircleDot,
   Waves,
   Ticket,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -656,6 +657,13 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
               <p className="text-xs text-muted-foreground mt-3">
                 {selectedTemplate.description}
               </p>
+              {/* Opens the real portal for this router in the chosen theme; nothing is saved */}
+              <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
+                <a href={`/hotspot/${routerId}?preview_template=${templateId}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Preview {selectedTemplate.name} on your live portal
+                </a>
+              </Button>
             </CardContent>
           </Card>
 

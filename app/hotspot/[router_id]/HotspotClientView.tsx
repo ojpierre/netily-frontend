@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo, useRef } from "react"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone, Wrench, Receipt, KeyRound } from "lucide-react"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone, Wrench, ReceiptText, Key } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 import dynamic from "next/dynamic"
 import { getTheme, type ThemeStyles } from "./theme-engine"
@@ -9,6 +9,7 @@ import { fetchWithRetry } from "./fetchWithRetry"
 import { getPaymentLocale, normalizePaymentPhone, isValidPaymentPhone, formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
 import TvPayGuide from "./TvPayGuide"
 import AuroraBackdrop from "./AuroraBackdrop"
+import { bubblesSans, bubblesSerif } from "./bubbles-fonts"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -736,6 +737,11 @@ export function PhoneInput({
 // ==========================================
 // ADDED: HotspotClientViewProps interface
 // ==========================================
+// Bubbles (template 18): pastel fills cycle pink, peach, lavender, mint, matching the reference design.
+const BUBBLE_FILLS = ["bg-[#f9cad4]", "bg-[#fedcc1]", "bg-[#e4d3f5]", "bg-[#d4e6ce]"]
+// Bubbles stacks the portal sections in its own order (plans right under the links) via CSS order.
+const BUBBLE_ORDER = ["", "order-1", "order-2", "order-3", "order-4", "order-5", "order-6", "order-7", "order-8", "order-9", "order-10", "order-11", "order-12"]
+
 interface HotspotClientViewProps {
   routerId: string
   initialTenant: string
@@ -745,6 +751,8 @@ interface HotspotClientViewProps {
   initialRouterError: string | null
   initialLoginUrl: string
   initialSuspended?: boolean
+  /** ?preview_template=N: show this theme instead of the saved one (visual only, nothing is saved). */
+  previewTemplateId?: number | null
 }
 
 // ==========================================
@@ -759,6 +767,7 @@ export default function HotspotClientView({
   initialRouterError,
   initialLoginUrl,
   initialSuspended = false,
+  previewTemplateId = null,
 }: HotspotClientViewProps) {
 
   // ==========================================
@@ -894,7 +903,7 @@ export default function HotspotClientView({
   // Phone paying for TV
   const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
 
-  const rawTemplateId = portalConfig?.template_id ?? 1
+  const rawTemplateId = previewTemplateId ?? portalConfig?.template_id ?? 1
   const isListOverride = rawTemplateId > 100 && rawTemplateId <= 200
   const isGridOverride = rawTemplateId > 200
   const templateId = isGridOverride ? rawTemplateId - 200 : isListOverride ? rawTemplateId - 100 : rawTemplateId
@@ -909,6 +918,7 @@ export default function HotspotClientView({
     return base
   }, [templateId, isListOverride, isGridOverride])
   const isBubbles = theme.layoutType === "bubbles"
+  const bo = (n: number) => (isBubbles ? BUBBLE_ORDER[n] : "")
   const isAurora = templateId === 19
   const isTicket = templateId === 20
   // Visible keyboard focus for the plan cards of the newer themes (older themes keep browser defaults)
@@ -1812,10 +1822,11 @@ export default function HotspotClientView({
     : nonTrialPlans.filter(p => !p.is_tv_plan)
 
   return (
-    <div className={`${theme.pageBg} flex items-center justify-center p-4`} style={{ fontFamily: portalFontFamily }}>
+    <div className={isBubbles ? `${theme.pageBg} ${bubblesSans.className}` : `${theme.pageBg} flex items-center justify-center p-4`} style={isBubbles ? undefined : { fontFamily: portalFontFamily }}>
       {isAurora && <AuroraBackdrop />}
-      <div className={`${isBubbles ? "bg-transparent" : theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
-        {/* ── Header — adapts to headerStyle ── */}
+      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : `${theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
+        {/* ── Header — adapts to headerStyle (Bubbles shows the name in its footer instead) ── */}
+        {!isBubbles && (
         <div
           className={`${theme.headerBg} ${
             theme.headerStyle === "large-hero" ? "p-8" :
@@ -1856,24 +1867,26 @@ export default function HotspotClientView({
           )}
         </div>
 
+        )}
+
         {/* ── Content ── */}
-        <div className={isBubbles ? "px-0 py-3 sm:p-6" : "p-6"}>
+        <div className={isBubbles ? "flex flex-col pt-1" : "p-6"}>
           {/* Bubbles: plain text links replace the voucher box + reconnect button */}
           {isBubbles && (
-            <div className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <div className="order-1 flex flex-wrap items-center justify-center gap-x-[18px]">
               {[
                 { key: "voucher", label: "Have a voucher?", Icon: Ticket, onClick: () => setShowVoucherBox((v) => !v), expanded: showVoucherBox },
-                { key: "receipt", label: "Have a receipt?", Icon: Receipt, onClick: () => openReconnectModal("phone"), expanded: undefined },
-                { key: "login", label: "Login", Icon: KeyRound, onClick: () => openReconnectModal("credentials"), expanded: undefined },
+                { key: "receipt", label: "Have a receipt?", Icon: ReceiptText, onClick: () => openReconnectModal("phone"), expanded: undefined },
+                { key: "login", label: "Login", Icon: Key, onClick: () => openReconnectModal("credentials"), expanded: undefined },
               ].map(({ key, label, Icon, onClick, expanded }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={onClick}
                   aria-expanded={expanded}
-                  className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-1 text-sm ${theme.mutedText} hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7B1E57]`}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-lg text-[12px] text-[#725a67] hover:text-[#4a1538] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a1f5c]"
                 >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
                   {label}
                 </button>
               ))}
@@ -1882,7 +1895,7 @@ export default function HotspotClientView({
 
           {/* Announcement Banner */}
           {announcement && (
-            <div className={`mb-5 px-4 py-3 rounded-lg ${theme.annBg} flex items-start gap-2`}>
+            <div className={`mb-5 px-4 py-3 rounded-lg ${theme.annBg} flex items-start gap-2 ${bo(2)} ${isBubbles ? "mt-3" : ""}`}>
               <Megaphone className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme.annIcon}`} />
               <p className={`text-sm ${theme.annText}`}>{announcement}</p>
             </div>
@@ -1890,7 +1903,7 @@ export default function HotspotClientView({
 
           {/* ── Loyalty Points Banner ── */}
           {loyaltyData?.program_active && (
-            <div className="mb-5">
+            <div className={`mb-5 ${bo(10)}`}>
               {loyaltyData.has_loyalty ? (
                 <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200">
                   <div className="flex items-center gap-2">
@@ -1933,7 +1946,7 @@ export default function HotspotClientView({
 
           {/* ── Voucher Redemption — top level, always visible ── */}
           {(!isBubbles || showVoucherBox) && (
-          <div className="mb-5">
+          <div className={`mb-5 ${bo(3)} ${isBubbles ? "mt-3" : ""}`}>
             <div className={`flex rounded-xl border ${theme.inputBorder} overflow-hidden`}>
               <div className="relative flex-1">
                 <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.mutedText}`} />
@@ -1994,7 +2007,7 @@ export default function HotspotClientView({
             <button
               type="button"
               onClick={() => { setShowAdModal(true); setAdCompleted(false); setAdError(null) }}
-              className="w-full mb-4 flex items-center justify-between px-4 py-3.5 rounded-xl border-2 border-dashed border-green-400 bg-green-50 hover:bg-green-100 transition-all group"
+              className={`w-full mb-4 flex items-center justify-between px-4 py-3.5 rounded-xl border-2 border-dashed border-green-400 bg-green-50 hover:bg-green-100 transition-all group ${bo(9)}`}
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
@@ -2015,7 +2028,7 @@ export default function HotspotClientView({
 
           {/* ── FREE TRIAL SECTION ── */}
           {freeTrialPlans.length > 0 && (
-            <div className="mb-5">
+            <div className={`mb-5 ${bo(4)} ${isBubbles ? "mt-3" : ""}`}>
               {freeTrialPlans.map(plan => (
                 <div key={plan.id} className="relative overflow-hidden rounded-2xl border-2 border-dashed border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 p-5 mb-3">
                   <div className="absolute top-3 right-3">
@@ -2072,7 +2085,7 @@ export default function HotspotClientView({
           )}
 
           {/* DEVICE TARGET TOGGLE */}
-          <div className="mb-2 bg-gray-100 p-1.5 rounded-xl flex items-center">
+          <div className={`mb-2 p-1.5 rounded-xl flex items-center ${isBubbles ? "bg-white/60" : "bg-gray-100"} ${bo(11)}`}>
             <button
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setTargetDevice('this')}
@@ -2081,12 +2094,16 @@ export default function HotspotClientView({
             </button>
             <button
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'tv' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setTargetDevice('tv')}
+              onClick={() => {
+                setTargetDevice('tv')
+                // Bubbles puts the TV steps above the plans, so bring them into view
+                if (isBubbles) window.setTimeout(() => tvGuideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
+              }}
             >
               <Monitor className="w-4 h-4" /> Pay for my TV
             </button>
           </div>
-          <p className={`mb-5 text-center text-xs ${theme.mutedText}`}>
+          <p className={`mb-5 text-center text-xs ${theme.mutedText} ${bo(11)}`}>
             {targetDevice === 'this'
               ? "Want internet on your Smart TV? Tap “Pay for my TV”."
               : "You pay from your phone and your TV gets the internet. Follow the steps below."}
@@ -2094,7 +2111,7 @@ export default function HotspotClientView({
 
           {/* TV GUIDED VERIFICATION */}
           {targetDevice === 'tv' && (
-            <div ref={tvGuideRef}>
+            <div ref={tvGuideRef} className={`${bo(5)} ${isBubbles ? "mt-3" : ""}`}>
               <TvPayGuide
                 verified={tvMacVerified}
                 mode={tvPayMode}
@@ -2132,20 +2149,20 @@ export default function HotspotClientView({
             </div>
           )}
 
-          <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
+          <p className={isBubbles ? "order-8 mt-2 mb-4 text-center text-xs text-[#725a67]" : `${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
             {welcomeMessage || `Select a plan and pay with ${paymentLocale.provider} to get connected`}
           </p>
 
           {/* Confirm-TV reminder */}
           {targetDevice === 'tv' && !tvMacVerified && (
-            <p className="mb-3 text-center text-xs font-semibold text-amber-600">
+            <p className={`mb-3 text-center text-xs font-semibold text-amber-600 ${bo(6)}`}>
               Confirm your TV above first, then choose a plan.
             </p>
           )}
 
           {/* Plan Cards - Layout varies by theme */}
           {targetDevice === 'tv' && paidPlans.length === 0 ? (
-            <div className={`mb-6 rounded-xl border-2 border-dashed p-6 text-center ${theme.planBorder} ${theme.planBg}`}>
+            <div className={`mb-6 rounded-xl border-2 border-dashed p-6 text-center ${theme.planBorder} ${theme.planBg} ${bo(7)}`}>
               <Monitor className={`w-8 h-8 mx-auto mb-2 ${theme.mutedText}`} />
               <p className={`text-sm font-medium ${theme.planTitle}`}>No TV plans available</p>
               <p className={`text-xs mt-1 ${theme.mutedText}`}>
@@ -2153,60 +2170,56 @@ export default function HotspotClientView({
               </p>
             </div>
           ) : (
-          <div className={`mb-6 ${
+          <div className={`mb-6 ${bo(7)} ${
             theme.layoutType === "grid" 
               ? "grid grid-cols-2 gap-3" 
               : theme.layoutType === "compact"
               ? "flex flex-wrap gap-2"
               : theme.layoutType === "bubbles"
-              ? "grid grid-cols-2 gap-x-3 gap-y-2 pb-[26%]"
+              ? "mt-4 grid grid-cols-2 gap-x-3 gap-y-2 pb-[11%]"
               : "space-y-3"
           }`}>
-            {/* Bubbles: pastel circles in a staggered two-column zigzag (right column sits half a circle lower) */}
+            {/* Bubbles: pastel circles in two columns; the right column sits about a fifth of a circle lower */}
             {theme.layoutType === "bubbles" && paidPlans.map((plan, i) => {
               const isSel = selectedPlan?.id === plan.id
-              const fill = ["bg-[#F8CAD4]", "bg-[#FDDCC4]", "bg-[#E4D4F4]", "bg-[#D5E5CF]"][i % 4]
               const priceText = formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)
               const sp = priceText.indexOf(" ")
               const currencyPart = sp > 0 ? priceText.slice(0, sp) : ""
               const amountPart = sp > 0 ? priceText.slice(sp + 1) : priceText
-              const serif = { fontFamily: 'Georgia, "Times New Roman", serif' }
               return (
                 <button
                   key={plan.id}
                   type="button"
                   onClick={() => selectPlanAndPay(plan)}
                   aria-pressed={isSel}
-                  aria-label={`${plan.name}, ${priceText}, ${plan.duration_display}`}
-                  className={`@container aspect-square w-full rounded-full border-2 p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7B1E57] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf0f3] ${
-                    i % 2 === 1 ? "translate-y-1/2" : ""
-                  } ${isSel ? theme.planSelectedBorder : "border-transparent"}`}
-                  style={isSel ? brandingSelectedBorderStyle : undefined}
+                  aria-label={`${plan.name}, ${priceText}, for ${plan.duration_display}`}
+                  className={`@container aspect-square w-full rounded-full transition-[scale,box-shadow,background-color] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a1f5c] focus-visible:ring-offset-4 focus-visible:ring-offset-[#fdf1f4] ${
+                    i % 2 === 1 ? "translate-y-[21.8%]" : ""
+                  } ${
+                    isSel
+                      ? "bg-[#7a1f5c] text-white ring-2 ring-[#7a1f5c] ring-offset-4 ring-offset-[#fdf1f4]"
+                      : `${BUBBLE_FILLS[i % BUBBLE_FILLS.length]} text-[#3b0f2f]`
+                  }`}
                 >
-                  <span
-                    className={`flex h-full w-full flex-col items-center justify-center rounded-full px-2 text-center ${
-                      isSel ? `${theme.planSelectedBg} text-white` : `${fill} ${theme.planTitle}`
-                    }`}
-                    style={isSel && branding?.primary_color ? { backgroundColor: branding.primary_color } : undefined}
-                  >
-                    <span className="line-clamp-2 break-words text-[clamp(0.7rem,9cqw,0.95rem)] font-bold leading-tight">{plan.name}</span>
-                    <span className="mt-0.5 flex max-w-full items-baseline justify-center gap-1" style={serif}>
-                      {currencyPart && <span className="text-[clamp(0.65rem,8cqw,0.9rem)] font-semibold">{currencyPart}</span>}
-                      {/* Sized to the circle, not the screen, so long amounts (e.g. 10,000) still fit */}
+                  {/* Everything below is sized to the circle (cqw), so it matches on any phone width */}
+                  <span className="flex h-full w-full flex-col items-center justify-center px-[12cqw] text-center">
+                    {plan.is_popular && (
+                      <span className="mb-[2.5cqw] text-[4.6cqw] font-semibold uppercase tracking-wider opacity-75">★ Popular</span>
+                    )}
+                    <span className="line-clamp-2 break-words text-[7.2cqw] font-bold leading-[1.15]">{plan.name}</span>
+                    <span className={`mt-[3.5cqw] flex max-w-full items-baseline justify-center gap-[2.6cqw] whitespace-nowrap ${bubblesSerif.className}`}>
+                      {currencyPart && <span className="text-[7cqw] font-semibold">{currencyPart}</span>}
                       <span
-                        className={`truncate font-bold leading-none ${
-                          amountPart.length > 5 ? "text-[clamp(0.95rem,14cqw,1.6rem)]" : amountPart.length > 3 ? "text-[clamp(1rem,17cqw,1.85rem)]" : "text-[clamp(1.1rem,21cqw,2.1rem)]"
+                        className={`font-semibold leading-none ${
+                          amountPart.length > 7 ? "text-[10cqw]" : amountPart.length > 5 ? "text-[12cqw]" : "text-[15cqw]"
                         }`}
                       >
                         {amountPart}
                       </span>
                     </span>
-                    <span className={`mt-0.5 line-clamp-1 text-[clamp(0.65rem,7.5cqw,0.8rem)] ${isSel ? "text-white/85" : theme.planSub}`}>
+                    <span className={`mt-[2.5cqw] line-clamp-1 text-[5.8cqw] leading-tight ${isSel ? "text-white/85" : "text-[#6b4b5f]"}`}>
                       for {plan.duration_display}
                     </span>
-                    {plan.is_popular && (
-                      <span className={`text-[10px] font-semibold ${isSel ? "text-white" : theme.planTitle}`}>★ Popular</span>
-                    )}
                   </span>
                 </button>
               )
@@ -2395,9 +2408,20 @@ export default function HotspotClientView({
           </div>
           )}
 
+          {/* Bubbles footer: the ISP logo and name (the other themes show these in the header) */}
+          {isBubbles && (
+            <div className="order-12 mt-4 flex flex-col items-center gap-1.5 text-center">
+              {logoUrl && !logoError && (
+                <img src={logoUrl} alt="" className="h-8 max-w-[120px] object-contain" onError={() => setLogoError(true)} />
+              )}
+              <p className="text-[13px] font-semibold text-[#4a1538]">{displayName}</p>
+              {welcomeTitle && <p className="text-xs text-[#725a67]">{welcomeTitle}</p>}
+            </div>
+          )}
+
           {/* Support footer */}
           {supportPhone && (
-            <p className={`text-center text-xs mt-4 ${theme.footerText}`}>
+            <p className={`text-center text-xs mt-4 ${theme.footerText} ${bo(12)}`}>
               Need help? Call{" "}
               <a href={`tel:${supportPhone}`} className="underline">
                 {supportPhone}
@@ -2406,6 +2430,14 @@ export default function HotspotClientView({
           )}
         </div>
       </div>
+
+      {previewTemplateId !== null && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-4">
+          <span className="rounded-full bg-black/75 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg backdrop-blur">
+            Previewing theme {previewTemplateId} · not saved
+          </span>
+        </div>
+      )}
 
       {/* ━━━ PAYMENT MODAL (M-Pesa only) ━━━ */}
       {showPaymentModal && selectedPlan && (

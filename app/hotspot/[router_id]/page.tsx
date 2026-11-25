@@ -26,11 +26,14 @@ export default async function HotspotPage({
   searchParams,
 }: {
   params: Promise<{ router_id: string }>
-  searchParams: Promise<{ tenant?: string; mac?: string; login_url?: string; error?: string }>
+  searchParams: Promise<{ tenant?: string; mac?: string; login_url?: string; error?: string; preview_template?: string }>
 }) {
   const { router_id: routerId } = await params
   const sp = await searchParams
   const tenant = sp.tenant || ""
+  // ?preview_template=N lets an admin see any theme on the live portal without saving it.
+  const previewNum = Number(sp.preview_template)
+  const previewTemplateId = Number.isInteger(previewNum) && previewNum >= 1 && previewNum <= 20 ? previewNum : null
 
   // Resolved BEFORE any HTML reaches the device — the phone's WebView gets
   // one cold DNS+TCP+TLS round trip and a fully-populated page, no second
@@ -57,6 +60,7 @@ export default async function HotspotPage({
       initialRouterError={sp.error || null}
       initialSuspended={initialData?.status === "suspended"}
       initialLoginUrl={initialLoginUrl}
+      previewTemplateId={previewTemplateId}
     />
   )
 }
