@@ -9,7 +9,10 @@ import { fetchWithRetry } from "./fetchWithRetry"
 import { getPaymentLocale, normalizePaymentPhone, isValidPaymentPhone, formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
 import TvPayGuide from "./TvPayGuide"
 import AuroraBackdrop from "./AuroraBackdrop"
-import { bubblesSans, bubblesSerif } from "./bubbles-fonts"
+import SpotlightPlans from "./SpotlightPlans"
+import BoardingPassPlans from "./BoardingPassPlans"
+import { bubblesSans } from "./bubbles-fonts"
+import BubblePlans, { BUBBLE_GRID_CLASS } from "./BubblePlans"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -737,8 +740,6 @@ export function PhoneInput({
 // ==========================================
 // ADDED: HotspotClientViewProps interface
 // ==========================================
-// Bubbles (template 18): pastel fills cycle pink, peach, lavender, mint, matching the reference design.
-const BUBBLE_FILLS = ["bg-[#f9cad4]", "bg-[#fedcc1]", "bg-[#e4d3f5]", "bg-[#d4e6ce]"]
 // Bubbles stacks the portal sections in its own order (plans right under the links) via CSS order.
 const BUBBLE_ORDER = ["", "order-1", "order-2", "order-3", "order-4", "order-5", "order-6", "order-7", "order-8", "order-9", "order-10", "order-11", "order-12"]
 
@@ -919,12 +920,13 @@ export default function HotspotClientView({
   }, [templateId, isListOverride, isGridOverride])
   const isBubbles = theme.layoutType === "bubbles"
   const bo = (n: number) => (isBubbles ? BUBBLE_ORDER[n] : "")
+  const isSpotlight = theme.layoutType === "spotlight"
+  const isPass = theme.layoutType === "pass"
+  // Plans sit straight on the page (no card) for these layouts
+  const isOpenLayout = isBubbles || isSpotlight || isPass
   const isAurora = templateId === 19
-  const isTicket = templateId === 20
   // Visible keyboard focus for the plan cards of the newer themes (older themes keep browser defaults)
-  const planFocusClass = isTicket
-    ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6efdc]"
-    : isAurora
+  const planFocusClass = isAurora
     ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
     : ""
   const displayName = branding?.company_name || portalConfig?.hotspot_name || "WiFi Hotspot"
@@ -1824,7 +1826,7 @@ export default function HotspotClientView({
   return (
     <div className={isBubbles ? `${theme.pageBg} ${bubblesSans.className}` : `${theme.pageBg} flex items-center justify-center p-4`} style={isBubbles ? undefined : { fontFamily: portalFontFamily }}>
       {isAurora && <AuroraBackdrop />}
-      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : `${theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
+      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : isSpotlight || isPass ? `relative z-10 w-full max-w-md ${isPass ? "py-2" : ""}` : `${theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
         {/* ── Header — adapts to headerStyle (Bubbles shows the name in its footer instead) ── */}
         {!isBubbles && (
         <div
@@ -1855,6 +1857,12 @@ export default function HotspotClientView({
               } mb-3 ${theme.headerText}`}
             />
           ) : null}
+          {isPass && (
+            <p className="mb-1 flex items-center gap-2 font-[ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation_Mono',monospace] text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-300 motion-reduce:animate-none" aria-hidden="true" />
+              Departures · Wi-Fi
+            </p>
+          )}
           <h1 className={`${theme.headerStyle === "large-hero" ? "text-3xl" : theme.headerStyle === "minimal" ? "text-lg" : "text-2xl"} font-bold ${theme.headerText}`}>{displayName}</h1>
           {welcomeTitle && (
             <p className={`text-sm mt-1 ${theme.headerSub}`}>{welcomeTitle}</p>
@@ -1870,7 +1878,7 @@ export default function HotspotClientView({
         )}
 
         {/* ── Content ── */}
-        <div className={isBubbles ? "flex flex-col pt-1" : "p-6"}>
+        <div className={isBubbles ? "flex flex-col pt-1" : isSpotlight || isPass ? "px-1 py-5" : "p-6"}>
           {/* Bubbles: plain text links replace the voucher box + reconnect button */}
           {isBubbles && (
             <div className="order-1 flex flex-wrap items-center justify-center gap-x-[18px]">
@@ -2085,7 +2093,7 @@ export default function HotspotClientView({
           )}
 
           {/* DEVICE TARGET TOGGLE */}
-          <div className={`mb-2 p-1.5 rounded-xl flex items-center ${isBubbles ? "bg-white/60" : "bg-gray-100"} ${bo(11)}`}>
+          <div className={`mb-2 p-1.5 rounded-xl flex items-center ${isBubbles ? "bg-white/60" : isSpotlight ? "bg-white/10" : "bg-gray-100"} ${bo(11)}`}>
             <button
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setTargetDevice('this')}
@@ -2176,54 +2184,36 @@ export default function HotspotClientView({
               : theme.layoutType === "compact"
               ? "flex flex-wrap gap-2"
               : theme.layoutType === "bubbles"
-              ? "mt-4 grid grid-cols-2 gap-x-3 gap-y-2 pb-[11%]"
+              ? `mt-4 ${BUBBLE_GRID_CLASS}`
+              : theme.layoutType === "spotlight" || theme.layoutType === "pass"
+              ? ""
               : "space-y-3"
           }`}>
-            {/* Bubbles: pastel circles in two columns; the right column sits about a fifth of a circle lower */}
-            {theme.layoutType === "bubbles" && paidPlans.map((plan, i) => {
-              const isSel = selectedPlan?.id === plan.id
-              const priceText = formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)
-              const sp = priceText.indexOf(" ")
-              const currencyPart = sp > 0 ? priceText.slice(0, sp) : ""
-              const amountPart = sp > 0 ? priceText.slice(sp + 1) : priceText
-              return (
-                <button
-                  key={plan.id}
-                  type="button"
-                  onClick={() => selectPlanAndPay(plan)}
-                  aria-pressed={isSel}
-                  aria-label={`${plan.name}, ${priceText}, for ${plan.duration_display}`}
-                  className={`@container aspect-square w-full rounded-full transition-[scale,box-shadow,background-color] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a1f5c] focus-visible:ring-offset-4 focus-visible:ring-offset-[#fdf1f4] ${
-                    i % 2 === 1 ? "translate-y-[21.8%]" : ""
-                  } ${
-                    isSel
-                      ? "bg-[#7a1f5c] text-white ring-2 ring-[#7a1f5c] ring-offset-4 ring-offset-[#fdf1f4]"
-                      : `${BUBBLE_FILLS[i % BUBBLE_FILLS.length]} text-[#3b0f2f]`
-                  }`}
-                >
-                  {/* Everything below is sized to the circle (cqw), so it matches on any phone width */}
-                  <span className="flex h-full w-full flex-col items-center justify-center px-[12cqw] text-center">
-                    {plan.is_popular && (
-                      <span className="mb-[2.5cqw] text-[4.6cqw] font-semibold uppercase tracking-wider opacity-75">★ Popular</span>
-                    )}
-                    <span className="line-clamp-2 break-words text-[7.2cqw] font-bold leading-[1.15]">{plan.name}</span>
-                    <span className={`mt-[3.5cqw] flex max-w-full items-baseline justify-center gap-[2.6cqw] whitespace-nowrap ${bubblesSerif.className}`}>
-                      {currencyPart && <span className="text-[7cqw] font-semibold">{currencyPart}</span>}
-                      <span
-                        className={`font-semibold leading-none ${
-                          amountPart.length > 7 ? "text-[10cqw]" : amountPart.length > 5 ? "text-[12cqw]" : "text-[15cqw]"
-                        }`}
-                      >
-                        {amountPart}
-                      </span>
-                    </span>
-                    <span className={`mt-[2.5cqw] line-clamp-1 text-[5.8cqw] leading-tight ${isSel ? "text-white/85" : "text-[#6b4b5f]"}`}>
-                      for {plan.duration_display}
-                    </span>
-                  </span>
-                </button>
-              )
-            })}
+            {isBubbles && (
+              <BubblePlans
+                plans={paidPlans}
+                selectedId={selectedPlan?.id}
+                formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
+                onPick={selectPlanAndPay}
+              />
+            )}
+            {isSpotlight && (
+              <SpotlightPlans
+                plans={paidPlans}
+                formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
+                hideSpeed={portalConfig?.hide_plan_speed}
+                onPay={selectPlanAndPay}
+              />
+            )}
+            {isPass && (
+              <BoardingPassPlans
+                plans={paidPlans}
+                formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
+                hideSpeed={portalConfig?.hide_plan_speed}
+                carrier={displayName}
+                onPay={selectPlanAndPay}
+              />
+            )}
             {theme.layoutType === "featured" && paidPlans.some(p => p.is_popular) && (
               <div className="mb-3">
                 {paidPlans.filter(p => p.is_popular).map((plan) => (
@@ -2270,12 +2260,12 @@ export default function HotspotClientView({
                 ))}
               </div>
             )}
-            {(theme.layoutType === "bubbles" ? [] : theme.layoutType === "featured" ? paidPlans.filter(p => !p.is_popular) : paidPlans).map((plan) => (
+            {(isOpenLayout ? [] : theme.layoutType === "featured" ? paidPlans.filter(p => !p.is_popular) : paidPlans).map((plan) => (
               <button
                 key={plan.id}
                 type="button"
                 onClick={() => selectPlanAndPay(plan)}
-                className={`text-left border-2 transition-all ${planFocusClass} ${isTicket ? "relative" : ""} ${
+                className={`text-left border-2 transition-all ${planFocusClass} ${
                   theme.layoutType === "grid" 
                     ? "rounded-xl p-3 flex flex-col" 
                     : theme.layoutType === "compact"
@@ -2321,7 +2311,7 @@ export default function HotspotClientView({
                     {selectedPlan?.id === plan.id && <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto mt-1" />}
                   </div>
                 ) : (
-                  <div className={`flex justify-between ${isTicket ? "items-stretch border-inherit" : "items-start"}`}>
+                  <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`font-semibold ${theme.planTitle}`}>{plan.name}</span>
@@ -2385,22 +2375,11 @@ export default function HotspotClientView({
                       <p className={`text-xs mt-1 ${theme.planSub}`}>{plan.description}</p>
                     )}
                   </div>
-                  {isTicket ? (
-                    // Tear-off stub: dashed perforation with half-circle notches biting into the top/bottom edge
-                    <div className="relative -my-4 -mr-4 ml-3 flex items-center border-l-2 border-dashed border-inherit px-3 py-4">
-                      <span aria-hidden="true" className="absolute -top-[2px] -left-[10px] h-[12px] w-[22px] rounded-b-full border-2 border-t-0 border-inherit bg-[#f6efdc]" />
-                      <span aria-hidden="true" className="absolute -bottom-[2px] -left-[10px] h-[12px] w-[22px] rounded-t-full border-2 border-b-0 border-inherit bg-[#f6efdc]" />
-                      <span className={`inline-block -rotate-2 whitespace-nowrap border-2 border-current px-2 py-1 font-mono text-lg font-bold uppercase tracking-tight ${theme.planPrice}`} style={brandingPriceStyle}>
-                        {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
-                      </span>
-                    </div>
-                  ) : (
-                  <div className="text-right ml-3">
-                    <span className={`text-xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
-                      {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
-                    </span>
-                  </div>
-                  )}
+                <div className="text-right ml-3">
+                  <span className={`text-xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
+                    {formatPaymentAmount(plan.price, plan.currency || paymentLocale.currency)}
+                  </span>
+                </div>
                 </div>
                 )}
               </button>

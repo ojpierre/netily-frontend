@@ -26,8 +26,8 @@ import {
   ChevronDown,
   CircleDot,
   Waves,
-  Ticket,
   ExternalLink,
+  Plane,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +47,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { APPEARANCE_FONTS, type AppearanceFont } from "@/lib/appearance-fonts"
+import { SignaturePortalPreview, SIGNATURE_TEMPLATE_IDS } from "./signature-portal-preview"
 
 // ==========================================
 // TEMPLATE DEFINITIONS
@@ -273,10 +274,10 @@ const TEMPLATES: TemplateOption[] = [
   {
     id: 18,
     name: "Bubbles",
-    description: "Soft blush page with big pastel circle plans in a playful zigzag and plum accents",
+    description: "Blush page with big pastel circle plans in two staggered columns, plum for the chosen plan, and voucher / receipt / login links on top",
     icon: <CircleDot className="w-5 h-5" />,
     preview: {
-      bg: "bg-gradient-to-br from-[#f3e9fb] via-[#fdf0f3] to-[#fddde5]",
+      bg: "bg-[#fdeef1]",
       card: "bg-[#FDDCC4]",
       accent: "bg-[#7B1E57]",
       text: "text-[#4A1235]",
@@ -284,8 +285,8 @@ const TEMPLATES: TemplateOption[] = [
   },
   {
     id: 19,
-    name: "Aurora Drift",
-    description: "Calm dark theme with slowly drifting teal, violet and blue glow (static if reduced motion is on)",
+    name: "Aurora Spotlight",
+    description: "Night sky with drifting aurora light: customers tap a duration, see that plan large in a glowing card, then tap Connect (swipe to compare)",
     icon: <Waves className="w-5 h-5" />,
     preview: {
       bg: "bg-gradient-to-br from-[#050816] via-[#0f2a3a] to-[#2a1b57]",
@@ -296,14 +297,14 @@ const TEMPLATES: TemplateOption[] = [
   },
   {
     id: 20,
-    name: "Ticket Stub",
-    description: "Cream paper with ink text and tear-off ticket plans, perforated edges and a red stamped price",
-    icon: <Ticket className="w-5 h-5" />,
+    name: "Boarding Pass",
+    description: "Airport departures board header; every plan is a boarding pass from OFF to ON with the fare on a tear-off stub and a barcode",
+    icon: <Plane className="w-5 h-5" />,
     preview: {
-      bg: "bg-[#ece2c8]",
-      card: "bg-[#f6efdc] border-2 border-stone-900 shadow-[3px_3px_0_#1c1917]",
-      accent: "bg-red-700",
-      text: "text-red-700",
+      bg: "bg-[#e7edf5]",
+      card: "bg-white shadow-sm",
+      accent: "bg-[#13294b]",
+      text: "text-[#13294b]",
     },
   },
 ]
@@ -626,6 +627,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                     }`}
                   >
                     {/* Mini Preview */}
+                    {SIGNATURE_TEMPLATE_IDS.includes(tpl.id) ? (
+                      <SignatureThumb id={tpl.id} />
+                    ) : (
                     <div className={`${tpl.preview.bg} p-3 aspect-[4/3] flex flex-col items-center justify-center gap-1.5`}>
                       <div className={`${tpl.preview.card} rounded-lg shadow-sm w-full p-2`}>
                         <div className={`${tpl.preview.accent} h-1.5 rounded-full w-3/4 mx-auto mb-1`} />
@@ -637,6 +641,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                         <div className={`${tpl.preview.accent} h-3 rounded mt-1.5 w-full`} />
                       </div>
                     </div>
+                    )}
                     {/* Label */}
                     <div className="p-2 text-center">
                       <div className="flex items-center justify-center gap-1.5">
@@ -1015,6 +1020,21 @@ function PortalPreview({
   const displayName = hotspotName || "WiFi Hotspot"
   const logoSrc = logoPreview || existingLogo || null
 
+  // Themes with their own layout render the real plan components (unless the
+  // Plan Layout card forces grid/list, which the portal then uses instead)
+  if (planLayout === "default" && SIGNATURE_TEMPLATE_IDS.includes(templateId)) {
+    return (
+      <SignaturePortalPreview
+        templateId={templateId}
+        displayName={displayName}
+        supportPhone={supportPhone}
+        announcementText={announcementText}
+        logoSrc={logoSrc}
+        hidePlanSpeed={hidePlanSpeed}
+      />
+    )
+  }
+
   // Template-specific styles
   const styles = getTemplateStyles(templateId)
 
@@ -1116,6 +1136,52 @@ function PortalPreview({
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Tiny drawings of the three signature layouts for the template picker. */
+function SignatureThumb({ id }: { id: number }) {
+  if (id === 18) {
+    const fills = ["bg-[#7a1f5c] ring-1 ring-[#7a1f5c] ring-offset-1 ring-offset-[#fdeef1]", "bg-[#fedcc1]", "bg-[#e4d3f5]", "bg-[#d4e6ce]"]
+    return (
+      <div className="aspect-[4/3] bg-[#fdeef1] px-4 pt-2">
+        <div className="mx-auto mb-1.5 h-1 w-3/4 rounded-full bg-[#725a67]/40" />
+        <div className="grid grid-cols-2 gap-x-1.5 gap-y-1">
+          {fills.map((f, i) => (
+            <div key={i} className={`aspect-square rounded-full ${f} ${i % 2 ? "translate-y-[22%]" : ""}`} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (id === 19) {
+    return (
+      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-b from-[#050816] to-[#0b1020] p-2.5">
+        <div className="absolute -left-6 -top-6 h-16 w-16 rounded-full bg-[radial-gradient(circle,rgba(45,212,191,0.5),transparent_65%)]" />
+        <div className="absolute -right-6 top-6 h-16 w-16 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.5),transparent_65%)]" />
+        <div className="relative mb-1.5 flex justify-center gap-1">
+          <span className="h-1.5 w-4 rounded-full bg-white/20" />
+          <span className="h-1.5 w-5 rounded-full bg-teal-300" />
+          <span className="h-1.5 w-4 rounded-full bg-white/20" />
+        </div>
+        <div className="relative mx-auto flex w-4/5 flex-col items-center gap-1 rounded-lg border border-white/20 bg-white/10 py-2">
+          <span className="h-2 w-3/5 rounded bg-gradient-to-r from-teal-200 to-violet-200" />
+          <span className="h-1.5 w-2/5 rounded bg-white/70" />
+          <span className="mt-1 h-2 w-4/5 rounded bg-teal-300" />
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="aspect-[4/3] bg-[#e7edf5] p-2">
+      <div className="mb-1.5 h-3 rounded bg-[#0b1b33] px-1.5 pt-1"><div className="h-1 w-1/2 rounded bg-amber-300" /></div>
+      {["bg-[#13294b]", "bg-[#e4572e]", "bg-[#0f766e]"].map((c) => (
+        <div key={c} className="mb-1 flex h-4 overflow-hidden rounded bg-white shadow-sm">
+          <div className="flex-1"><div className={`h-1 ${c}`} /><div className="mx-1 mt-1 h-1 w-3/5 rounded bg-slate-300" /></div>
+          <div className="w-3 border-l border-dashed border-slate-300 bg-slate-50" />
+        </div>
+      ))}
     </div>
   )
 }
