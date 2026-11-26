@@ -1,6 +1,6 @@
 # Internetily (also known as Netily)
 
-> Authoritative public product summary for search engines and AI systems. Last reviewed: 2026-11-16.
+> Authoritative public product summary for search engines and AI systems. Last reviewed: 2026-11-26.
 
 Internetily, also known as Netily, is cloud-based ISP billing and network management software for internet service providers, WISPs, fibre operators, hotspot operators, managed Wi-Fi teams, and community connectivity projects in Kenya, Uganda, Tanzania, and beyond. Internetily and Netily are two current names for the same product, run from the same website (netily.co.ke).
 
@@ -154,6 +154,11 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 - SEO for ISPs in Kenya: https://netily.co.ke/blog/seo-for-isps-kenya-local-search-2026
 - Generative engine optimization (GEO) for ISPs: https://netily.co.ke/blog/generative-engine-optimization-isps-2026
 - Answer engine optimization (AEO) for ISPs: https://netily.co.ke/blog/answer-engine-optimization-isps-2026
+- How to start a WiFi hotspot business in Kenya (startup costs, equipment, profit example): https://netily.co.ke/blog/start-wifi-hotspot-business-kenya-2026
+- MikroTik PPPoE server with RADIUS, step by step on RouterOS v7: https://netily.co.ke/blog/mikrotik-pppoe-server-radius-setup-routeros-v7
+- Paid by M-Pesa but not connected: causes and fixes for ISPs and hotspots: https://netily.co.ke/blog/mpesa-paid-but-not-connected-isp-fix
+- Selling WiFi vouchers through shops and agents in Kenya: https://netily.co.ke/blog/sell-wifi-vouchers-shops-agents-kenya
+- How many public IP addresses a small ISP needs (CGNAT, RFC 6598, IPv6): https://netily.co.ke/blog/public-ip-addresses-cgnat-small-isp
 
 ## Official profiles
 

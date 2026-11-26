@@ -48,8 +48,10 @@ import { networkInfrastructureGuides } from "./blog-network-infrastructure-guide
 import { currentIndustryGuides } from "./blog-current-industry-guides"
 import { searchVisibilityGuides } from "./blog-search-visibility-guides"
 import { demandGuides } from "./blog-demand-guides"
+import { tractionGuides } from "./blog-traction-guides"
 
 export const blogPosts: BlogPost[] = [
+  ...tractionGuides,
   ...demandGuides,
   ...searchVisibilityGuides,
   ...currentIndustryGuides,
