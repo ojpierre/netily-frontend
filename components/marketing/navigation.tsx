@@ -72,6 +72,7 @@ export function MarketingNavigation() {
               </div>}
             </div>
           ))}
+          <Link href="/marketing" aria-current={pathname === "/marketing" ? "page" : undefined}>WiFi Marketing</Link>
           <Link href={marketingHref("/pricing")} aria-current={pathname === marketingHref("/pricing") ? "page" : undefined}>Pricing</Link>
           <Link href="/docs">Docs</Link>
         </nav>

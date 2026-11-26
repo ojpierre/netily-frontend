@@ -21,6 +21,7 @@ export const detailPages = pages
 export type DetailPage = (typeof pages)[number]
 
 const names: Record<string, string> = {
+  marketing: "WiFi marketing",
   "mpesa-billing": "M-Pesa billing", "mikrotik-provisioning": "MikroTik provisioning",
   "pppoe-billing": "PPPoE billing", "hotspot-billing": "Hotspot billing",
   "tr069-device-management": "TR-069 device management", "load-balancing-failover": "Load balancing & failover", "ip-mac-bindings": "IP / MAC bindings",

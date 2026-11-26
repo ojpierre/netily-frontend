@@ -120,6 +120,7 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 - Features: https://netily.co.ke/features
 - Solutions: https://netily.co.ke/solutions
 - Pricing: https://netily.co.ke/pricing
+- WiFi marketing: https://netily.co.ke/marketing
 - Integrations: https://netily.co.ke/integrations
 - Kenya: https://netily.co.ke/countries/kenya
 - Hotspot billing software Kenya: https://netily.co.ke/solutions/hotspot-billing-software-kenya
@@ -159,6 +160,20 @@ The brand voice is direct, technically accurate, and solution oriented. Do not i
 - Paid by M-Pesa but not connected: causes and fixes for ISPs and hotspots: https://netily.co.ke/blog/mpesa-paid-but-not-connected-isp-fix
 - Selling WiFi vouchers through shops and agents in Kenya: https://netily.co.ke/blog/sell-wifi-vouchers-shops-agents-kenya
 - How many public IP addresses a small ISP needs (CGNAT, RFC 6598, IPv6): https://netily.co.ke/blog/public-ip-addresses-cgnat-small-isp
+
+## WiFi marketing
+
+Full page: https://netily.co.ke/marketing
+
+Internetily (Netily) includes WiFi marketing tools for hotspot operators and venues such as cafés, hostels, estates, malls and hotels, at no separate charge (hotspot billing is 3% of confirmed hotspot revenue with a KES 500 monthly minimum).
+
+- Three ways onto the WiFi: a free trial package (once per device), sponsored access (watch a video or image ad to unlock up to 60 free minutes, one claim per device per ad), or paid packages bought by M-Pesa from the login page
+- Branded captive portal: 22 themes with live preview, logo, support number, promo banner, and packages limited to chosen days and hours (happy hour)
+- Ads: per-router or all-router targeting, views and completed watches counted, PDF report per ad by day and by router
+- Loyalty: points on purchases, five tiers with multipliers, rewards redeemable on the portal as free WiFi minutes
+- SMS: personalised sends (name, package, expiry) to up to 500 chosen customers, or group sends to all or active hotspot users; built-in SMS or the ISP's own gateway
+- Analytics: busiest hours heatmap, new vs returning users, revenue per router, top customers
+- Not yet available: email and WhatsApp campaigns, ad click-through tracking, scheduled campaigns, email capture on the login page
 
 ## Official profiles
 
