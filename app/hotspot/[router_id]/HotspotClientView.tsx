@@ -120,6 +120,9 @@ interface PurchaseResponse {
   login_url?: string
 }
 
+/** Theme layouts that render their own plan component and ignore the Grid/List override */
+const SIGNATURE_LAYOUTS = new Set<ThemeStyles["layoutType"]>(["bubbles", "spotlight", "pass", "chat", "vending"])
+
 const PORTAL_FONT_FAMILIES: Record<string, string> = {
   outfit: 'var(--font-outfit), "Outfit", system-ui, sans-serif',
   montserrat: 'var(--font-montserrat), "Montserrat", system-ui, sans-serif',
@@ -942,6 +945,10 @@ export default function HotspotClientView({
   const templateId = isGridOverride ? rawTemplateId - 200 : isListOverride ? rawTemplateId - 100 : rawTemplateId
   const theme = useMemo(() => {
     const base = getTheme(templateId)
+    // Signature themes (Bubbles, Spotlight, Boarding Pass, Chat, Vending) draw their own
+    // plans. A Grid/List choice saved earlier must not replace that layout — otherwise only
+    // the header picks up the theme and the plans fall back to plain cards.
+    if (SIGNATURE_LAYOUTS.has(base.layoutType)) return base
     if (isListOverride) {
       return { ...base, layoutType: "list" as const }
     }

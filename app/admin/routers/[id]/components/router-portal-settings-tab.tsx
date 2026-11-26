@@ -364,6 +364,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [logoPreview, setLogoPreview] = useState<string>("")
   const [existingLogo, setExistingLogo] = useState<string>("")
   const [planLayout, setPlanLayout] = useState<"grid" | "list" | "default">("default")
+  // Bubbles, Spotlight, Boarding Pass, Chat and Vending have their own plan layout
+  const isSignature = SIGNATURE_TEMPLATE_IDS.includes(templateId)
   const [portalFont, setPortalFont] = useState<AppearanceFont>("outfit")
 
   // UI state
@@ -452,7 +454,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   useEffect(() => {
     const isDirty =
       templateId !== original.template_id ||
-      planLayout !== original._planLayout ||
+      (!isSignature && planLayout !== original._planLayout) ||
       hotspotName !== original.hotspot_name ||
       supportPhone !== original.support_phone ||
       announcementText !== original.announcement_text ||
@@ -460,7 +462,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       portalFont !== original.portal_font ||
       logoFile !== null
     setDirty(isDirty)
-  }, [templateId, hotspotName, supportPhone, announcementText, hidePlanSpeed, portalFont, original, logoFile, planLayout])
+  }, [templateId, hotspotName, supportPhone, announcementText, hidePlanSpeed, portalFont, original, logoFile, planLayout, isSignature])
 
   // ── Save — PATCH only changed fields ──
   const handleSave = async () => {
@@ -471,8 +473,11 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     setSaving(true)
     setError(null)
 
-    // Encode template_id based on layout selection
-    const encodedTemplateId = planLayout === "list" 
+    // Encode template_id based on layout selection. Signature themes draw their own
+    // plans, so they are always saved without the Grid/List flag.
+    const encodedTemplateId = isSignature
+      ? templateId
+      : planLayout === "list" 
       ? templateId + 100 
       : planLayout === "grid" 
       ? templateId + 200 
@@ -515,8 +520,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         announcement_text: announcementText,
         hide_plan_speed: hidePlanSpeed,
         portal_font: portalFont,
-        _planLayout: planLayout,
+        _planLayout: isSignature ? "default" : planLayout,
       })
+      if (isSignature) setPlanLayout("default")
       setDirty(false)
       if (logoFile) {
         setExistingLogo(logoPreview)
@@ -707,11 +713,16 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                 Plan Layout
               </CardTitle>
               <CardDescription>
-                How pricing plans are displayed to customers
+                {isSignature
+                  ? "This theme has its own plan layout, so Grid and List don't apply to it."
+                  : "How pricing plans are displayed to customers"}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-3">
+              <div
+                className={`grid grid-cols-3 gap-3 ${isSignature ? "pointer-events-none opacity-50" : ""}`}
+                aria-disabled={isSignature}
+              >
                 <button
                   onClick={() => setPlanLayout("default")}
                   className={`relative rounded-xl border-2 p-4 transition-all text-left ${
@@ -983,7 +994,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
               {!isDemo ? (
                 <LivePortalFrame
                   routerId={routerId}
-                  encodedTemplateId={planLayout === "list" ? templateId + 100 : planLayout === "grid" ? templateId + 200 : templateId}
+                  encodedTemplateId={isSignature ? templateId : planLayout === "list" ? templateId + 100 : planLayout === "grid" ? templateId + 200 : templateId}
                   hotspotName={hotspotName}
                   supportPhone={supportPhone}
                   announcementText={announcementText}
@@ -1060,9 +1071,9 @@ function PortalPreview({
   const displayName = hotspotName || "WiFi Hotspot"
   const logoSrc = logoPreview || existingLogo || null
 
-  // Themes with their own layout render the real plan components (unless the
-  // Plan Layout card forces grid/list, which the portal then uses instead)
-  if (planLayout === "default" && SIGNATURE_TEMPLATE_IDS.includes(templateId)) {
+  // Themes with their own layout always render the real plan components
+  // (the portal ignores Grid/List for them too)
+  if (SIGNATURE_TEMPLATE_IDS.includes(templateId)) {
     return (
       <SignaturePortalPreview
         templateId={templateId}
