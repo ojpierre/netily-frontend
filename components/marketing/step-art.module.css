@@ -1,0 +1,142 @@
+/*
+ * Step illustrations. One switch drives every animation:
+ *   --on   0 at rest, 1 while the card is hovered / focused / (touch) in view
+ *   --play paused at rest, running while active (for looping effects)
+ * Faces are shaded from the marketing tokens so the art follows light and dark mode.
+ */
+
+.wrap {
+  --on: 0;
+  --play: paused;
+  --edge: color-mix(in srgb, var(--ink, #17252d) 42%, transparent);
+  --face-top: var(--paper, #fff);
+  --face-front: color-mix(in srgb, var(--ink, #17252d) 6%, var(--paper, #fff));
+  --face-side: color-mix(in srgb, var(--ink, #17252d) 13%, var(--paper, #fff));
+  --plate-top: color-mix(in srgb, var(--a) 7%, var(--wash, #f3f7f8));
+  --plate-front: color-mix(in srgb, var(--a) 10%, color-mix(in srgb, var(--ink, #17252d) 8%, var(--wash, #f3f7f8)));
+  --plate-side: color-mix(in srgb, var(--a) 12%, color-mix(in srgb, var(--ink, #17252d) 15%, var(--wash, #f3f7f8)));
+  --a-dark: color-mix(in srgb, var(--a) 78%, #000);
+  --a-darker: color-mix(in srgb, var(--a) 62%, #000);
+  --screen: #0f1c23;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  margin: 4px 0 18px;
+  max-width: 300px;
+}
+
+:global([data-art-host]:hover) .wrap,
+:global([data-art-host]:focus-within) .wrap,
+.wrap[data-play] {
+  --on: 1;
+  --play: running;
+}
+
+.art { display: block; width: 100%; height: auto; overflow: visible; }
+.art * { vector-effect: non-scaling-stroke; }
+
+/* ── faces ── */
+.faceTop, .faceFront, .faceSide { stroke: var(--edge); stroke-width: 1; stroke-linejoin: round; }
+.base .faceTop { fill: var(--face-top); }
+.base .faceFront { fill: var(--face-front); }
+.base .faceSide { fill: var(--face-side); }
+.plate .faceTop { fill: var(--plate-top); }
+.plate .faceFront { fill: var(--plate-front); }
+.plate .faceSide { fill: var(--plate-side); }
+.accent .faceTop { fill: var(--a); }
+.accent .faceFront { fill: var(--a-dark); }
+.accent .faceSide { fill: var(--a-darker); }
+.accent .faceTop, .accent .faceFront, .accent .faceSide { stroke: var(--a-darker); }
+
+/* ── shared detail ── */
+.screen { fill: var(--screen); }
+.screenBar, .screenLine { fill: #ffffff; opacity: .28; }
+.card { fill: #ffffff; }
+.cardLine { fill: color-mix(in srgb, var(--ink, #17252d) 55%, transparent); }
+.cardLineSoft { fill: color-mix(in srgb, var(--ink, #17252d) 25%, transparent); }
+.accentFill { fill: var(--a); }
+.port { fill: var(--screen); }
+.key { fill: color-mix(in srgb, var(--ink, #17252d) 10%, var(--paper, #fff)); stroke: var(--edge); stroke-width: .6; }
+.markBolt { fill: #1b8cff; }
+.markBar { fill: var(--ink, #17252d); }
+
+.check { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--on)); transition: stroke-dashoffset .45s var(--ease); }
+.checkLate { transition-delay: calc(var(--on) * 520ms); }
+
+/* ── motion: lifts ── */
+.lift, .knob, .toast, .bubbleA, .bubbleB, .drop, .pop { transition: transform .55s var(--spring), opacity .4s var(--ease); }
+.lift { transform: translateY(calc(var(--on) * -5px)); }
+
+/* ── pay ── */
+.pop { transform-box: fill-box; transform-origin: 50% 60%; transform: translateY(calc(var(--on) * -2px)) scale(calc(.94 + var(--on) * .06)); }
+.pinDots circle { fill: color-mix(in srgb, var(--ink, #17252d) 22%, transparent); transition: fill .2s ease; }
+.wrap[data-play] .pinDots circle,
+:global([data-art-host]:hover) .pinDots circle,
+:global([data-art-host]:focus-within) .pinDots circle { fill: var(--ink, #17252d); }
+.okDisc { fill: color-mix(in srgb, #22a67d calc(var(--on) * 100%), #5d6b73); transition: fill .3s ease calc(var(--on) * 500ms); }
+.drop { opacity: var(--on); transform: translateY(calc((1 - var(--on)) * -22px)); transition-delay: calc(var(--on) * 380ms); }
+.coinSide, .coinSideFill { fill: #b9821a; }
+.coinSide { stroke: #8a5f10; stroke-width: 1; }
+.coinEdge { stroke: #8a5f10; stroke-width: 1; }
+.coinTop { fill: #e4b23c; stroke: #8a5f10; stroke-width: 1; }
+.coinRing { fill: none; stroke: #b9821a; stroke-width: 1; }
+
+.toast { opacity: calc(.0 + var(--on)); transform: translateY(calc((1 - var(--on)) * 8px)); transition-delay: calc(var(--on) * 620ms); }
+.toastCard { fill: var(--paper, #fff); stroke: var(--line, #dce4e8); stroke-width: 1; filter: drop-shadow(0 6px 10px rgba(15, 28, 35, .12)); }
+.toastDot { fill: #22a67d; }
+.toastCheck { stroke-width: 1.5; transition-delay: calc(var(--on) * 820ms); }
+.toastText { font: 600 8.5px var(--font-outfit), system-ui, sans-serif; fill: var(--ink, #17252d); }
+.toastSub { font: 500 7.5px var(--font-plus-jakarta-sans), system-ui, sans-serif; fill: var(--muted, #56656f); }
+.toastTrack { fill: color-mix(in srgb, var(--ink, #17252d) 10%, transparent); }
+.toastFill { fill: var(--a); transform-box: fill-box; transform-origin: left center; transform: scaleX(calc(.2 + var(--on) * .62)); transition: transform .8s var(--ease) calc(var(--on) * 700ms); }
+
+/* ── router ── */
+.led { fill: color-mix(in srgb, var(--ink, #17252d) 30%, transparent); animation: blink 1.1s steps(2, jump-none) infinite; animation-play-state: var(--play); }
+.wrap[data-play] .led,
+:global([data-art-host]:hover) .led,
+:global([data-art-host]:focus-within) .led { fill: #2fd08f; }
+@keyframes blink { 50% { opacity: .35; } }
+
+.waves path { fill: none; stroke: var(--a); stroke-width: 1.8; stroke-linecap: round; opacity: calc(.25 + var(--on) * .2); animation: wave 1.5s var(--ease) infinite; animation-play-state: var(--play); }
+@keyframes wave { 0% { opacity: .1; } 40% { opacity: 1; } 100% { opacity: .1; } }
+
+.cableEdge { fill: none; stroke: color-mix(in srgb, var(--ink, #17252d) 60%, transparent); stroke-width: 4.4; stroke-linecap: round; }
+.cable { fill: none; stroke: color-mix(in srgb, var(--ink, #17252d) 30%, var(--paper, #fff)); stroke-width: 2.6; stroke-linecap: round; }
+.packet { fill: none; stroke: var(--a); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: .12 1.2; stroke-dashoffset: 1.32; opacity: var(--on); animation: run 1.4s linear infinite; animation-play-state: var(--play); }
+@keyframes run { to { stroke-dashoffset: 0; } }
+
+/* ── dashboard ── */
+.bar { fill: var(--a); transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(calc(.45 + var(--on) * .55)); transition: transform .6s var(--spring); }
+.trend { fill: none; stroke: #2fd08f; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--on)); transition: stroke-dashoffset .7s var(--ease) calc(var(--on) * 300ms); }
+
+/* ── brief ── */
+.sheet { fill: var(--paper, #fff); stroke: var(--edge); stroke-width: .8; }
+.clip { fill: var(--a); }
+.box { fill: none; stroke: color-mix(in srgb, var(--ink, #17252d) 45%, transparent); stroke-width: 1; }
+.tick { fill: none; stroke: var(--a); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--on)); transition: stroke-dashoffset .35s var(--ease); }
+.bubbleA { transform: translateY(calc(var(--on) * -5px)); }
+.bubbleB { transform: translateY(calc(var(--on) * -3px)); transition-delay: calc(var(--on) * 120ms); }
+.bubbleAccent { fill: var(--a); }
+.bubblePlain { fill: var(--paper, #fff); stroke: var(--edge); stroke-width: 1; }
+.typing { fill: #fff; animation: hop 1s var(--ease) infinite; animation-play-state: var(--play); transform-box: fill-box; }
+@keyframes hop { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
+
+/* ── live ── */
+.track { fill: color-mix(in srgb, var(--ink, #17252d) 22%, var(--paper, #fff)); }
+.trackOn { fill: var(--a); opacity: var(--on); transition: opacity .35s ease calc(var(--on) * 150ms); }
+.knob { transform: translate(calc(var(--on) * 28px), calc(var(--on) * 14px)); }
+.liveDot { fill: color-mix(in srgb, #2fd08f calc(var(--on) * 100%), #8a979e); transition: fill .3s ease calc(var(--on) * 400ms); }
+.liveText { font: 700 5px var(--font-outfit), system-ui, sans-serif; fill: var(--muted, #56656f); }
+.badge { transform-box: fill-box; transform-origin: center; transition: transform .55s var(--spring) calc(var(--on) * 250ms); }
+.badge { transform: translate(120px, 40px) scale(calc(.82 + var(--on) * .18)); }
+.badgeDisc { fill: color-mix(in srgb, var(--a) calc(var(--on) * 100%), #9aa6ad); transition: fill .3s ease calc(var(--on) * 250ms); }
+.badgeRing { fill: none; stroke: var(--a); stroke-width: 1.5; opacity: calc(var(--on) * .45); transform-box: fill-box; transform-origin: center; animation: ring 1.6s var(--ease) infinite; animation-play-state: var(--play); }
+@keyframes ring { from { transform: scale(.8); opacity: .55; } to { transform: scale(1.35); opacity: 0; } }
+.badgeCheck { stroke-width: 2.4; transition-delay: calc(var(--on) * 420ms); }
+.confetti rect { opacity: var(--on); transform: translate(calc(var(--on) * var(--tx)), calc(var(--on) * var(--ty))) rotate(calc(var(--on) * 160deg)); transform-box: fill-box; transform-origin: center; transition: transform .7s var(--ease), opacity .3s ease; }
+.bit0 { fill: var(--a); }
+.bit1 { fill: #22a67d; }
+.bit2 { fill: #0874cf; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap *, .wrap *::before { transition-duration: 0s !important; transition-delay: 0s !important; animation: none !important; }
+}

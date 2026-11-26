@@ -9,6 +9,7 @@ import { PaymentGateways, SmsGateways } from "./integrations-showcase"
 import { AnniversaryConfetti } from "./anniversary"
 import { LoadBalancingShowcase } from "./load-balancing-showcase"
 import { ProductProof } from "./product-preview"
+import { StepArt, type StepArtName } from "./step-art"
 import s from "./marketing.module.css"
 
 const trustpilotProfileUrl = process.env.NEXT_PUBLIC_TRUSTPILOT_PROFILE_URL || "https://www.trustpilot.com/review/netily.co.ke"
@@ -28,10 +29,10 @@ export default function MarketingHomePage() {
       { icon: Layers, title: "Blind spots everywhere", text: "Router status in one tab. Payments in another. Subscriber records in a spreadsheet. Nothing shows the whole picture." },
     ].map(({ icon: Icon, title, text }) => <div className={s.plainItem} key={title}><Icon size={25} /><p className={s.itemTitle}>{title}</p><p>{text}</p></div>)}</div></div></section>
     <section id="solution" className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="One connected workflow" title="From payment to connection." /><div className={s.workflow}>{[
-      { icon: Banknote, title: "Subscriber pays", text: "M-Pesa STK Push or paybill. The payment is matched to the account." },
-      { icon: Router, title: "Router applies access", text: "The PPPoE profile activates or the hotspot session opens. No router login." },
-      { icon: ChartNoAxesCombined, title: "You see everything", text: "Revenue, subscribers, renewals, and support. One dashboard, not three systems." },
-    ].map(({ icon: Icon, title, text }, index) => <div className={s.workflowStep} key={title}><div><span>0{index + 1}</span><Icon size={28} /></div><p className={s.itemTitle}>{title}</p><p>{text}</p></div>)}</div></div></section>
+      { art: "pay", icon: Banknote, title: "Subscriber pays", text: "M-Pesa STK Push or paybill. The payment is matched to the account." },
+      { art: "router", icon: Router, title: "Router applies access", text: "The PPPoE profile activates or the hotspot session opens. No router login." },
+      { art: "dashboard", icon: ChartNoAxesCombined, title: "You see everything", text: "Revenue, subscribers, renewals, and support. One dashboard, not three systems." },
+    ].map(({ art, icon: Icon, title, text }, index) => <div className={s.workflowStep} data-art-host key={title}><StepArt name={art as StepArtName} accent={index as 0 | 1 | 2} /><div><span>0{index + 1}</span><Icon size={28} /></div><p className={s.itemTitle}>{title}</p><p>{text}</p></div>)}</div></div></section>
     <PaymentGateways />
     <SmsGateways />
     <section id="features" className={s.section}><div className={s.container}><SectionHeading label="Made for your working day" title="Everything your ISP runs on. One place." /><DetailCards pages={featuredSlugs.map((slug) => featurePages.find((page) => page.path.endsWith(`/${slug}`))!)} /><Link className={s.textLink} href={marketingHref("/features")}>Explore all features <ArrowRight size={18} /></Link></div></section>
@@ -48,10 +49,10 @@ export default function MarketingHomePage() {
     <section className={s.section}><div className={`${s.container} ${s.editorial}`}><div className={s.editorialImage}><Image src="/academy/mikrotik-pppoe.webp" alt="Networking team setting up router equipment together" fill sizes="(max-width: 760px) 100vw, 50vw" /></div><div><SectionHeading label="See for yourself" title="Take a look around before we talk.">Explore the dashboard, subscriber records, and network tools in our read-only demo. Bring your questions to a walkthrough of your own setup.</SectionHeading><a href="https://demo.netily.co.ke/admin/login" className={s.secondary}>Open the demo workspace <ArrowRight size={18} /></a></div></div></section>
     <section id="pricing" className={`${s.section} ${s.tinted}`}><div className={s.container}><SectionHeading label="Straightforward pricing" title="Pricing that grows with your subscribers." /><PricingSummary /></div></section>
     <section className={s.section}><div className={s.container}><SectionHeading label="Getting started" title="Your next steps, made simple." /><div className={s.threeColumns}>{[
-      ["Tell us about your ISP", "Your subscribers, routers, and payment setup. We start with what you already have."],
-      ["Connect the essentials", "Set up M-Pesa, connect MikroTik, and bring your subscriber records across."],
-      ["Go live with support", "Check the full payment-to-connection flow together, then let your team take over."],
-    ].map(([title, text], index) => <div className={s.plainItem} key={title}><span className={s.stepNumber}>0{index + 1}</span><p className={s.itemTitle}>{title}</p><p>{text}</p></div>)}</div></div></section>
+      ["brief", "Tell us about your ISP", "Your subscribers, routers, and payment setup. We start with what you already have."],
+      ["connect", "Connect the essentials", "Set up M-Pesa, connect MikroTik, and bring your subscriber records across."],
+      ["live", "Go live with support", "Check the full payment-to-connection flow together, then let your team take over."],
+    ].map(([art, title, text], index) => <div className={s.plainItem} data-art-host key={title}><StepArt name={art as StepArtName} accent={index as 0 | 1 | 2} /><span className={s.stepNumber}>0{index + 1}</span><p className={s.itemTitle}>{title}</p><p>{text}</p></div>)}</div></div></section>
     <section className={`${s.section} ${s.reviewSection}`}><div className={`${s.container} ${s.reviewLayout}`}><SectionHeading label="Independent feedback" title="Already using Internetily? Tell the next operator what stood out.">Read verified public feedback before you book a walkthrough, or share an honest review after working with the platform.</SectionHeading><div className={s.reviewGrid}><article className={s.reviewCard}><span className={s.reviewBrand}><Star size={22} /> Trustpilot</span><strong>See what customers say about Internetily</strong><div className={s.reviewActions}><a href={trustpilotProfileUrl} target="_blank" rel="noopener noreferrer">Read reviews <ArrowUpRight size={17} /></a><a href={trustpilotReviewUrl} target="_blank" rel="noopener noreferrer">Write a review <ArrowUpRight size={17} /></a></div></article><article className={s.reviewCard}><span className={s.reviewBrand}><span className={s.googleG}>G</span> Google</span><strong>Help another ISP choose with confidence</strong><div className={s.reviewActions}><a href={googleReviewUrl} target="_blank" rel="noopener noreferrer">Review us on Google <ArrowUpRight size={17} /></a></div></article></div></div></section>
     <section id="contact" className={`${s.section} ${s.tinted}`}><div className={s.container}><ContactForm /></div></section>
   </>
