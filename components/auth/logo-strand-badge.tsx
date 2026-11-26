@@ -6,7 +6,8 @@ import { Wifi } from "lucide-react"
 // ogl touches the DOM canvas directly — load client-only, no SSR
 const Strands = dynamic(() => import("@/components/effects/strands"), { ssr: false })
 
-export function LogoStrandBadge() {
+/** `themed` paints the badge with the theme colour (--primary) instead of the fixed brand gradient. */
+export function LogoStrandBadge({ themed = false }: { themed?: boolean } = {}) {
   return (
     <div className="relative w-20 h-20 mx-auto mb-4">
       {/* Strands contained in a small circular viewport behind the icon */}
@@ -25,9 +26,9 @@ export function LogoStrandBadge() {
         />
       </div>
 
-      {/* Logo badge sits on top, unchanged */}
-      <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl border border-white/20">
-        <Wifi className="w-10 h-10 text-white drop-shadow-lg" />
+      {/* Logo badge sits on top */}
+      <div className={`relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border border-white/20 ${themed ? "bg-primary text-primary-foreground shadow-primary/30" : "bg-gradient-to-br from-cyan-500 to-blue-600 text-white"}`}>
+        <Wifi className="w-10 h-10 drop-shadow-lg" />
       </div>
     </div>
   )

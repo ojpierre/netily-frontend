@@ -100,39 +100,44 @@ export default function CustomerLoginPage() {
     }
   }
 
+  // Everything below uses the theme tokens (--background, --card, --primary, ...) so the
+  // tenant's customer portal theme (Admin → PPPoE Captive Portal) and light/dark mode apply.
+  const inputClass =
+    "h-11 rounded-lg bg-muted/40 border-input text-foreground placeholder:text-muted-foreground transition-all duration-200 focus-visible:bg-background focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
+
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-white">
-      {/* Ambient depth — soft color washes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/[0.06] blur-[140px]" />
-        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/[0.06] blur-[150px]" />
+    <div className="portal-canvas relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-background text-foreground">
+      {/* Ambient depth — soft washes in the theme colour */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-primary/[0.08] blur-[140px]" />
+        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-accent/[0.08] blur-[150px]" />
       </div>
 
       <ParticleBackground />
 
       <Card
         ref={cardRef}
-        className="relative w-full max-w-md bg-white border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_60px_-10px_rgba(15,23,42,0.12)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden"
+        className="relative w-full max-w-md bg-card text-card-foreground border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_60px_-10px_rgba(15,23,42,0.14)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 overflow-hidden"
       >
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-[0.04]"
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-[0.06]"
           style={{
-            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, rgba(37,99,235,1), transparent 60%)`,
+            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, var(--primary), transparent 60%)`,
           }}
         />
 
         <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
-          <LogoStrandBadge />
+          <LogoStrandBadge themed />
           <div className="flex items-center gap-2 mb-2">
-            <div className="h-6 w-1 rounded-full bg-blue-600" />
-            <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
+            <div className="h-6 w-1 rounded-full bg-primary" />
+            <span className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
               Netily Customer
             </span>
           </div>
-          <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
+          <CardTitle className="text-2xl font-semibold text-foreground tracking-tight">
             Welcome back
           </CardTitle>
-          <CardDescription className="text-slate-500 text-sm">
+          <CardDescription className="text-muted-foreground text-sm">
             Sign in to manage your subscription and stay connected.
           </CardDescription>
         </CardHeader>
@@ -140,7 +145,7 @@ export default function CustomerLoginPage() {
         <CardContent className="relative z-10 pt-4">
           <form onSubmit={handleSubmit} className="space-y-5">
             {expiredNotice && (
-              <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+              <Alert className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
                 <AlertCircle className="w-4 h-4" />
                 <AlertDescription>
                   Your subscription has expired. Sign in to renew and restore your internet instantly.
@@ -152,14 +157,14 @@ export default function CustomerLoginPage() {
             )}
 
             {error && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700">
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/30 text-destructive">
                 <AlertCircle className="w-4 h-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <div className="flex items-start gap-2.5 rounded-lg border border-blue-100 bg-blue-50 px-3.5 py-3 text-[13px] leading-relaxed text-blue-900">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+            <div className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/[0.07] px-3.5 py-3 text-[13px] leading-relaxed text-foreground">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <p>
                 <span className="font-semibold">First time here?</span> Your{" "}
                 <span className="font-semibold">username and password are both your phone number</span>{" "}
@@ -168,7 +173,7 @@ export default function CustomerLoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="identifier" className="text-slate-700 text-sm font-medium">
+              <Label htmlFor="identifier" className="text-foreground text-sm font-medium">
                 Phone or Account Number
               </Label>
               <Input
@@ -181,15 +186,15 @@ export default function CustomerLoginPage() {
                 onChange={(e) => setIdentifier(e.target.value)}
                 disabled={isLoading}
                 required
-                className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                className={inputClass}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Your username is your phone number. Extra accounts add a letter, e.g. 0712345678B.
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-slate-700 text-sm font-medium">
+              <Label htmlFor="password" className="text-foreground text-sm font-medium">
                 Password
               </Label>
               <Input
@@ -202,9 +207,9 @@ export default function CustomerLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 required
-                className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                className={inputClass}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Your password is the same phone number.
               </p>
             </div>
@@ -215,16 +220,16 @@ export default function CustomerLoginPage() {
                 checked={rememberMe}
                 onCheckedChange={(v) => setRememberMe(v === true)}
                 disabled={isLoading}
-                className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                className="border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground"
               />
-              <Label htmlFor="rememberMe" className="text-sm text-slate-500 cursor-pointer hover:text-slate-700 transition-colors">
+              <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                 Remember me
               </Label>
             </div>
 
             <Button
               type="submit"
-              className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
+              className="w-full h-11 rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20 transition-colors duration-200"
               disabled={isLoading || !ready || !isValidPhone(splitAccount(identifier).phone) || !password.trim()}
             >
               {isLoading ? (

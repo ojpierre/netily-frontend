@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import {
-  TrendingUp,
-  TrendingDown,
   Users,
   DollarSign,
-  Activity,
   Wifi,
   ArrowUpRight,
   ArrowDownRight,
@@ -14,11 +11,12 @@ import {
   RefreshCw,
   BarChart3,
   Calendar,
-  Server,
-  AlertTriangle,
-  Clock,
   FileDown,
+  Receipt,
+  CalendarDays,
+  CalendarRange,
 } from "lucide-react"
+import { KpiTile, PlanPerformanceCard, TopCustomersCard, DataFlowCard } from "./report-cards"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -42,10 +40,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
   ComposedChart,
-  Scatter,
   RadialBarChart,
   RadialBar,
 } from "recharts"
@@ -144,9 +139,10 @@ interface ReportsData {
   top_customers: {
     type: string
     display_name: string
-    identifier: string
+    identifier?: string
     total_amount: number
     tx_count: number
+    last_payment_date?: string | null
   }[]
   plan_analytics: {
     plan_type: string
@@ -188,12 +184,14 @@ export default function ReportsPage() {
   } | null>(null)
   
   const fetchedRef = useRef(false)
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
 
   const fetchData = useCallback(async () => {
     if (!adminApi.getAdminToken()) { setLoading(false); return }
     try {
       const res = await adminApi.getReportsData(timeRange)
       setData(res)
+      setUpdatedAt(new Date())
     } catch (err) {
       console.error("Failed to fetch reports data:", err)
     } finally {
@@ -253,11 +251,19 @@ export default function ReportsPage() {
 
   // Fetch network deep analytics on mount and timeRange change
   useEffect(() => {
-    if (!networkFetchedRef.current) {
-      networkFetchedRef.current = true
-      fetchNetworkDeep(timeRange === "7d" ? "7d" : timeRange === "30d" ? "30d" : "90d")
-    }
+    networkFetchedRef.current = true
+    fetchNetworkDeep(timeRange === "7d" ? "7d" : timeRange === "30d" ? "30d" : "90d")
   }, [timeRange, fetchNetworkDeep])
+
+  // Keep figures fresh while the page is open: refresh every 2 minutes when the tab is visible
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") fetchData()
+    }, 120_000)
+    const onVisible = () => { if (document.visibilityState === "visible") fetchData() }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", onVisible) }
+  }, [fetchData])
 
   // Fetch revenue split on timeRange change
   useEffect(() => {
@@ -318,29 +324,8 @@ export default function ReportsPage() {
   const u = data?.users
   const n = data?.network
 
-  // ─── Premium Revenue Stat Card ─────────────────────────────────────────────
-  const RevenueCard = ({ label, amount, change, extra, accent = "bg-primary" }: { 
-    label: string; amount: number; change: number; extra?: string; accent?: string 
-  }) => {
-    const positive = change >= 0
-    return (
-      <Card className={`relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow`}>
-        <div className={`absolute inset-0 opacity-5 ${accent}`} />
-        <div className={`absolute top-0 left-0 w-1 h-full ${accent}`} />
-        <CardContent className="p-5 pl-6">
-          <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
-            <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-destructive/15 text-destructive dark:bg-red-950 dark:text-destructive"}`}>
-              {positive ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-              {positive ? "+" : ""}{change}%
-            </span>
-          </div>
-          <p className="text-2xl font-bold tracking-tight text-foreground">{fmtKshFull(amount)}</p>
-          {extra && <p className="text-[11px] text-muted-foreground mt-1">{extra}</p>}
-        </CardContent>
-      </Card>
-    )
-  }
+  const hourlyTotals = (o?.hourly_revenue || []).map((h) => (h.peak_hours || 0) + (h.business_hours || 0) + (h.off_hours || 0))
+  const avgTicket = (o?.total_transactions_today ?? 0) > 0 ? (o?.today_revenue ?? 0) / (o?.total_transactions_today ?? 1) : 0
 
   return (
     <div className="space-y-6">
@@ -391,23 +376,51 @@ export default function ReportsPage() {
             OVERVIEW TAB (unchanged)
            ════════════════════════════════════════════════ */}
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {/* Premium Revenue cards row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <RevenueCard label="Today's Revenue" amount={o?.today_revenue ?? 0} change={o?.today_change ?? 0} extra="vs yesterday" accent="bg-primary" />
-            <RevenueCard label="This Week" amount={o?.week_revenue ?? 0} change={o?.week_change ?? 0} extra="vs last week" accent="bg-violet-500" />
-            <RevenueCard label="This Month" amount={o?.month_revenue ?? 0} change={o?.month_change ?? 0} extra="vs last month" accent="bg-emerald-500" />
-            <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
-              <div className="absolute inset-0 opacity-5 bg-warning" />
-              <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
-              <CardContent className="p-5 pl-6">
-                <div className="flex items-start justify-between mb-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transactions Today</p>
-                  <Activity className="w-4 h-4 text-warning" />
-                </div>
-                <p className="text-2xl font-bold tracking-tight text-foreground">{(o?.total_transactions_today ?? 0).toLocaleString()}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">Completed payments</p>
-              </CardContent>
-            </Card>
+          {/* Headline KPIs */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiTile
+              lead
+              label="Today's Revenue"
+              value={o?.today_revenue ?? 0}
+              money
+              change={o?.today_change ?? 0}
+              changeLabel="vs yesterday"
+              footnote={f?.income_comparison?.yesterday ? `Ksh ${Math.round(f.income_comparison.yesterday.amount).toLocaleString()}` : undefined}
+              icon={<DollarSign className="h-4.5 w-4.5" />}
+              trend={hourlyTotals}
+              trendLabel="By hour today"
+            />
+            <KpiTile
+              label="This Week"
+              value={o?.week_revenue ?? 0}
+              money
+              change={o?.week_change ?? 0}
+              changeLabel="vs last week"
+              footnote={f?.income_comparison?.last_week ? `Ksh ${Math.round(f.income_comparison.last_week.amount).toLocaleString()}` : undefined}
+              icon={<CalendarDays className="h-4.5 w-4.5" />}
+              trend={(o?.weekly_income || []).map((d) => d.amount)}
+              trendLabel="Mon – Sun"
+            />
+            <KpiTile
+              label="This Month"
+              value={o?.month_revenue ?? 0}
+              money
+              change={o?.month_change ?? 0}
+              changeLabel="vs last month"
+              footnote={f?.monthly_performance?.last_month ? `Ksh ${Math.round(f.monthly_performance.last_month.amount).toLocaleString()}` : undefined}
+              icon={<CalendarRange className="h-4.5 w-4.5" />}
+              trend={(o?.monthly_earnings || []).map((d) => d.amount)}
+              trendLabel="Month by month this year"
+            />
+            <KpiTile
+              label="Transactions Today"
+              value={o?.total_transactions_today ?? 0}
+              changeLabel="Completed payments"
+              footnote={avgTicket ? `avg Ksh ${Math.round(avgTicket).toLocaleString()}` : undefined}
+              icon={<Receipt className="h-4.5 w-4.5" />}
+              trend={hourlyTotals}
+              trendLabel="Revenue by hour"
+            />
           </div>
 
           {/* Hourly Revenue Distribution - Premium */}
@@ -425,7 +438,7 @@ export default function ReportsPage() {
               {!o?.hourly_revenue?.length ? <div className="h-[260px] flex items-center justify-center"><EmptyChart /></div> : (
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={o.hourly_revenue} barSize={14} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="hour" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={1} />
                     <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
                     <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
@@ -485,7 +498,7 @@ export default function ReportsPage() {
                     : (
                       <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={weekData} barSize={32} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                           <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
                           <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
@@ -551,7 +564,7 @@ export default function ReportsPage() {
                     : (
                       <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={monthData} barSize={22} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                           <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
                           <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
@@ -599,7 +612,7 @@ export default function ReportsPage() {
                           <stop offset="95%" stopColor={C.emerald} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor((u.registration_trends.length) / 8))} />
                       <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
                       <Tooltip content={(p) => <ChartTooltip {...p} />} />
@@ -610,43 +623,8 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            {/* Network Data Flow - Premium */}
-            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 rounded-full bg-violet-500" />
-                  <div>
-                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Data Flow</CardTitle>
-                    <CardDescription className="text-[11px]">Interactive download and upload data usage patterns</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {!o?.network_data_flow?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={o.network_data_flow} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                      <defs>
-                        <linearGradient id="dlGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={C.green} stopOpacity={0.2} />
-                          <stop offset="95%" stopColor={C.green} stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="ulGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={C.blue} stopOpacity={0.15} />
-                          <stop offset="95%" stopColor={C.blue} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor((o.network_data_flow.length) / 8))} />
-                      <YAxis tickFormatter={(v) => `${v} GB`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={55} />
-                      <Tooltip content={(p) => <ChartTooltip {...p} fmt={(v) => `${v.toFixed(1)} GB`} />} />
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                      <Area type="monotone" dataKey="upload" name="Upload" stroke={C.blue} strokeWidth={2} fill="url(#ulGrad)" dot={false} />
-                      <Area type="monotone" dataKey="download" name="Download" stroke={C.green} strokeWidth={2} fill="url(#dlGrad)" dot={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+            {/* Network Data Flow */}
+            <DataFlowCard rows={o?.network_data_flow} updatedAt={updatedAt} compact />
           </div>
         </TabsContent>
 
@@ -737,7 +715,7 @@ export default function ReportsPage() {
               {!f?.hourly_revenue?.length ? <div className="h-[320px] flex items-center justify-center"><EmptyChart /></div> : (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={f.hourly_revenue} barSize={20} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="hour" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
                     <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
@@ -774,7 +752,7 @@ export default function ReportsPage() {
               {!revenueSplit?.daily_revenue?.length ? <div className="h-[260px] flex items-center justify-center"><EmptyChart /></div> : (
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={revenueSplit.daily_revenue} barSize={12} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(revenueSplit.daily_revenue.length / 10))} />
                     <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
                     <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
@@ -787,82 +765,8 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* ── Plan Transaction & Revenue Analytics ── */}
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-teal-500" />
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-teal-500" /> Plan Performance
-                  </CardTitle>
-                  <CardDescription className="text-[11px]">All active plans — total transactions &amp; lifetime revenue generated</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!data?.plan_analytics?.length ? (
-                <EmptyChart label="No plan data yet" />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-xs text-muted-foreground">
-                        <th className="pb-2 pr-4 font-medium">Plan</th>
-                        <th className="pb-2 pr-4 font-medium">Type</th>
-                        <th className="pb-2 pr-4 font-medium text-right">Base Price</th>
-                        <th className="pb-2 pr-4 font-medium text-right">Transactions</th>
-                        <th className="pb-2 font-medium text-right">Lifetime Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {data.plan_analytics.map((p, i) => {
-                        const isHotspot = p.plan_type === "hotspot"
-                        const maxRev = Math.max(...data.plan_analytics.map((x) => x.total_revenue), 1)
-                        const barPct = Math.round((p.total_revenue / maxRev) * 100)
-                        return (
-                          <tr key={i} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="py-3 pr-4 font-medium text-slate-800 max-w-[200px]">
-                              <p className="truncate">{p.name}</p>
-                              <div
-                                className="mt-1 h-1 rounded-full bg-teal-500 opacity-60"
-                                style={{ width: `${barPct}%` }}
-                              />
-                            </td>
-                            <td className="py-3 pr-4">
-                              <Badge
-                                variant="outline"
-                                className={
-                                  isHotspot
-                                    ? "text-[10px] bg-primary/10 text-primary border-primary/20"
-                                    : "text-[10px] bg-purple-50 text-purple-700 border-purple-200"
-                                }
-                              >
-                                {isHotspot ? "📶 Hotspot" : "🔌 " + p.connection_type}
-                              </Badge>
-                            </td>
-                            <td className="py-3 pr-4 text-right text-slate-600">
-                              {fmtKshFull(p.base_price)}
-                            </td>
-                            <td className="py-3 pr-4 text-right">
-                              <span className="font-semibold text-slate-800">
-                                {p.total_transactions.toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="py-3 text-right">
-                              <span className={`font-bold ${p.total_revenue > 0 ? "text-teal-700" : "text-slate-400"}`}>
-                                {fmtKshFull(p.total_revenue)}
-                              </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* ── Plan Performance ── */}
+          <PlanPerformanceCard plans={data?.plan_analytics || []} />
 
           {/* ── Per-Router Daily Hotspot Revenue with Premium Dropdown ── */}
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -969,7 +873,7 @@ export default function ReportsPage() {
                     barSize={routerTimeRange === "90d" ? 4 : routerTimeRange === "30d" ? 8 : 16}
                     margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 10 }}
@@ -1022,7 +926,7 @@ export default function ReportsPage() {
                         <stop offset="95%" stopColor={C.emerald} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor((u.registration_trends.length) / 10))} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
                     <Tooltip content={(p) => <ChartTooltip {...p} />} />
@@ -1058,95 +962,7 @@ export default function ReportsPage() {
           </Card>
 
           {/* ── Top 10 Impactful Customers ── */}
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-violet-500" />
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-violet-500" /> Top 10 Most Impactful Customers
-                  </CardTitle>
-                  <CardDescription className="text-[11px]">Ranked by lifetime spend — PPPoE &amp; Hotspot combined</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!data?.top_customers?.length ? (
-                <EmptyChart label="No customer data yet" />
-              ) : (
-                <div className="space-y-2">
-                  {data.top_customers.map((c, i) => {
-                    const rank = i + 1
-                    const badgeConfig =
-                      rank === 1
-                        ? { label: "👑 Most Valuable", cls: "bg-warning/15 text-yellow-800 border-warning/30" }
-                        : rank === 2
-                        ? { label: "🥈 Elite Client", cls: "bg-slate-100 text-slate-700 border-slate-300" }
-                        : rank === 3
-                        ? { label: "🥉 Top Performer", cls: "bg-warning/15 text-warning border-orange-300" }
-                        : rank <= 5
-                        ? { label: "⭐ High Value", cls: "bg-primary/10 text-primary border-primary/20" }
-                        : { label: c.type === "HOTSPOT" ? "📶 Hotspot Pro" : "🔌 PPPoE Client", cls: "bg-gray-50 text-gray-600 border-gray-200" }
-
-                    const isTop3 = rank <= 3
-                    return (
-                      <div
-                        key={i}
-                        className={`flex items-center gap-4 rounded-xl px-4 py-3 border transition-all ${
-                          isTop3
-                            ? "bg-gradient-to-r from-violet-50 to-white border-violet-200 shadow-sm"
-                            : "bg-white border-slate-100 hover:border-slate-200"
-                        }`}
-                      >
-                        {/* Rank */}
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                            rank === 1
-                              ? "bg-warning text-yellow-900"
-                              : rank === 2
-                              ? "bg-slate-300 text-slate-800"
-                              : rank === 3
-                              ? "bg-orange-300 text-orange-900"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {rank}
-                        </div>
-
-                        {/* Name + badge */}
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-semibold truncate ${isTop3 ? "text-foreground text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
-                            {c.display_name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${badgeConfig.cls}`}>
-                              {badgeConfig.label}
-                            </Badge>
-                            {c.identifier && (
-                              <span className="text-[10px] text-muted-foreground truncate">{c.identifier}</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Transactions */}
-                        <div className="text-right shrink-0 hidden sm:block">
-                          <p className="text-xs text-muted-foreground">{c.tx_count} transactions</p>
-                        </div>
-
-                        {/* Amount */}
-                        <div className={`text-right shrink-0 ${isTop3 ? "min-w-[110px]" : "min-w-[90px]"}`}>
-                          <p className={`font-bold ${isTop3 ? "text-violet-700 text-base" : "text-slate-700 text-sm"}`}>
-                            {fmtKshFull(c.total_amount)}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">lifetime</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <TopCustomersCard customers={data?.top_customers || []} />
         </TabsContent>
 
         {/* ════════════════════════════════════════════════
@@ -1337,7 +1153,7 @@ export default function ReportsPage() {
                           <stop offset="95%" stopColor={C.green} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                       <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
                         interval={Math.max(1, Math.floor((networkDeep.auth_trend.length) / 7))}
                         tickFormatter={(v) => v.slice(5)}
@@ -1374,7 +1190,7 @@ export default function ReportsPage() {
                           <stop offset="95%" stopColor={C.blue} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                       <XAxis dataKey="hour" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
                         interval={3} />
                       <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={35} />
@@ -1410,7 +1226,7 @@ export default function ReportsPage() {
                       data={networkDeep.top_bandwidth_users.slice(0, 10)}
                       margin={{ top: 4, right: 40, bottom: 0, left: 0 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
                         tickFormatter={(v) => `${v}GB`} />
                       <YAxis type="category" dataKey="username" tick={{ fontSize: 9 }} axisLine={false}
@@ -1478,40 +1294,8 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* ── Row 5: Legacy Data Flow (kept from original) ── */}
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-violet-500" />
-                <div>
-                  <CardTitle className="text-sm font-bold">Network Data Flow</CardTitle>
-                  <CardDescription className="text-[11px]">Daily download and upload from DataUsage records</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!n?.daily_usage?.length ? <div className="h-[200px] flex items-center justify-center"><EmptyChart /></div> : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={n.daily_usage} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id="dlGrad2" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={C.green} stopOpacity={0.2} />
-                        <stop offset="95%" stopColor={C.green} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
-                      interval={Math.max(1, Math.floor(n.daily_usage.length / 8))} />
-                    <YAxis tickFormatter={(v) => `${v} GB`} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} width={55} />
-                    <Tooltip content={(p) => <ChartTooltip {...p} fmt={(v) => `${v.toFixed(1)} GB`} />} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                    <Area type="monotone" dataKey="download" name="Download" stroke={C.green} strokeWidth={2} fill="url(#dlGrad2)" dot={false} />
-                    <Area type="monotone" dataKey="upload" name="Upload" stroke={C.blue} strokeWidth={1.5} fill="none" dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          {/* ── Row 5: Network Data Flow ── */}
+          <DataFlowCard rows={n?.daily_usage} updatedAt={updatedAt} height={260} />
         </TabsContent>
       </Tabs>
     </div>

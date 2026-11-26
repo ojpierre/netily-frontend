@@ -261,7 +261,7 @@ class CustomerApiService {
   /**
    * Get available ISP plans (public, personalized if logged in)
    */
-  async getPlans(): Promise<{ plans: CustomerPlan[]; branding: any }> {
+  async getPlans(): Promise<{ plans: CustomerPlan[]; branding: any; portal_theme?: string }> {
     const token = typeof window !== 'undefined'
       ? localStorage.getItem('customerToken')
       : null
@@ -276,7 +276,7 @@ class CustomerApiService {
       credentials: 'include',
     })
     
-    return this.handleResponse<{ plans: CustomerPlan[]; branding: any }>(response)
+    return this.handleResponse<{ plans: CustomerPlan[]; branding: any; portal_theme?: string }>(response)
   }
 
   /**

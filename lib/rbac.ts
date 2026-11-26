@@ -214,9 +214,15 @@ export const adminRouteAccessRules: RouteAccessRule[] = [
   },
   {
     pathPrefix: "/admin/captive-portal",
-    label: "Captive Portal",
+    label: "Hotspot Captive Portal",
     allowedRoles: NETWORK_ROLES,
     allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
+    actions: ["view", "edit"],
+  },
+  {
+    pathPrefix: "/admin/pppoe-portal",
+    label: "PPPoE Captive Portal",
+    allowedRoles: ADMIN_ROLES,
     actions: ["view", "edit"],
   },
   {

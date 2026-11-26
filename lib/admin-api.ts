@@ -341,6 +341,10 @@ const getBaseUrl = (): string => {
 // ADMIN API SERVICE CLASS
 // ==========================================
 
+export interface CustomerPortalThemeSetting {
+  customer_portal_theme: string
+}
+
 class AdminApiService {
   private get baseUrl(): string {
     return getBaseUrl()
@@ -1242,6 +1246,20 @@ async activateService(
   // ------------------------------------------
   // SETTINGS - /core/settings/
   // ------------------------------------------
+
+  /** Customer (PPPoE) portal theme preset for this tenant. */
+  async getCustomerPortalTheme(): Promise<CustomerPortalThemeSetting> {
+    const data = await this.request<{ customer_portal_theme?: string }>('/core/settings/')
+    return { customer_portal_theme: data?.customer_portal_theme || 'classic' }
+  }
+
+  async updateCustomerPortalTheme(theme: string): Promise<CustomerPortalThemeSetting> {
+    const data = await this.request<{ customer_portal_theme?: string }>('/core/settings/', {
+      method: 'PATCH',
+      body: JSON.stringify({ customer_portal_theme: theme }),
+    })
+    return { customer_portal_theme: data?.customer_portal_theme || theme }
+  }
 
   async getSettings(): Promise<any[]> {
     return this.request<any[]>('/core/settings/')

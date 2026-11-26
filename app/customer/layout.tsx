@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { customerApi } from "@/lib/customer-api"
+import { PortalThemeProvider, usePortalTheme } from "@/components/customer-portal/portal-theme-provider"
 
 const navItems = [
   { name: "Dashboard", href: "/customer/dashboard", icon: LayoutDashboard },
@@ -35,11 +36,26 @@ const navItems = [
   { name: "Support", href: "/customer/support", icon: HelpCircle },
 ]
 
+const headerIconButton = "shrink-0 text-current hover:bg-black/10 hover:text-current dark:hover:bg-white/10"
+
 export default function CustomerPortalLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  return (
+    <PortalThemeProvider>
+      <CustomerPortalShell>{children}</CustomerPortalShell>
+    </PortalThemeProvider>
+  )
+}
+
+function CustomerPortalShell({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const { applyServerTheme, forcedMode } = usePortalTheme()
   const pathname = usePathname()
   const router = useRouter()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -57,6 +73,7 @@ export default function CustomerPortalLayout({
     const fetchBranding = async () => {
       try {
         const res = await customerApi.getPlans()
+        applyServerTheme(res.portal_theme ?? res.branding?.portal_theme)
         if (res.branding) {
           if (res.branding.logo_url) setCompanyLogo(res.branding.logo_url)
           if (res.branding.company_name) setCompanyName(res.branding.company_name)
@@ -66,6 +83,7 @@ export default function CustomerPortalLayout({
       }
     }
     fetchBranding()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Don't wrap login/verify pages in portal layout
@@ -83,16 +101,17 @@ export default function CustomerPortalLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="portal-canvas min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Mobile Header */}
-      <header className="sticky top-0 z-40 lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+      <header className="portal-header sticky top-0 z-40 lg:hidden bg-sidebar border-b border-sidebar-border">
         {/* FIX: Changed h-14 to min-h-14 and added py-2 for wrapping */}
         <div className="flex min-h-14 items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0"
+              className={headerIconButton}
+              aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
               onClick={() => setMobileNavOpen(!mobileNavOpen)}
             >
               {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -106,18 +125,19 @@ export default function CustomerPortalLayout({
                 </div>
               )}
               {/* FIX: Replace truncate with wrap-friendly classes */}
-              <span className="font-bold text-base text-slate-900 dark:text-white leading-tight break-words line-clamp-2 min-w-0">
+              <span className="font-bold text-base text-current leading-tight break-words line-clamp-2 min-w-0">
                 {companyName}
               </span>
             </Link>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <ThemeToggle />
+            {!forcedMode && <ThemeToggle className={headerIconButton} />}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleLogout}
-              className="text-slate-600 dark:text-slate-400"
+              aria-label="Log out"
+              className={headerIconButton}
             >
               <LogOut className="w-4 h-4" />
             </Button>
@@ -135,13 +155,13 @@ export default function CustomerPortalLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 ${
+        className={`portal-sidebar fixed top-0 left-0 z-50 h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-all duration-300 ${
           mobileNavOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 ${sidebarCollapsed ? "lg:w-[68px]" : "lg:w-60"} w-64`}
       >
         {/* Sidebar Header */}
         {/* FIX: Changed h-14 to min-h-14 and added py-2 for wrapping */}
-        <div className="flex min-h-14 items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="portal-header flex min-h-14 items-center justify-between px-4 py-2 border-b border-sidebar-border shrink-0">
           {!sidebarCollapsed && (
             <Link href="/customer/dashboard" className="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
               {companyLogo ? (
@@ -152,7 +172,7 @@ export default function CustomerPortalLayout({
                 </div>
               )}
               {/* FIX: Replace truncate with wrap-friendly classes */}
-              <span className="font-bold text-base text-slate-900 dark:text-white leading-tight break-words line-clamp-2 min-w-0">
+              <span className="font-bold text-base text-current leading-tight break-words line-clamp-2 min-w-0">
                 {companyName}
               </span>
             </Link>
@@ -172,7 +192,8 @@ export default function CustomerPortalLayout({
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden shrink-0"
+            className={`lg:hidden ${headerIconButton}`}
+            aria-label="Close menu"
             onClick={() => setMobileNavOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -192,8 +213,8 @@ export default function CustomerPortalLayout({
                 title={sidebarCollapsed ? item.name : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-primary/10 dark:bg-blue-950 text-primary dark:text-primary/60"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-sidebar-primary/10 text-sidebar-primary font-semibold"
+                    : "text-sidebar-foreground hover:text-foreground hover:bg-sidebar-accent/70"
                 } ${sidebarCollapsed ? "justify-center" : ""}`}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
@@ -204,14 +225,14 @@ export default function CustomerPortalLayout({
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="border-t border-slate-200 dark:border-slate-800 p-3 space-y-1 shrink-0">
+        <div className="border-t border-sidebar-border p-3 space-y-1 shrink-0">
           <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
-            {!sidebarCollapsed && <ThemeToggle />}
-            {sidebarCollapsed && <ThemeToggle />}
+            {!forcedMode && <ThemeToggle />}
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:flex text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              className="hidden lg:flex text-sidebar-foreground hover:text-foreground"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
               <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`} />
@@ -220,7 +241,7 @@ export default function CustomerPortalLayout({
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className={`w-full text-slate-600 dark:text-slate-400 hover:text-destructive dark:hover:text-destructive hover:bg-destructive/10 dark:hover:bg-red-950/30 ${
+            className={`w-full text-sidebar-foreground hover:text-destructive dark:hover:text-destructive hover:bg-destructive/10 dark:hover:bg-red-950/30 ${
               sidebarCollapsed ? "justify-center px-0" : "justify-start"
             }`}
           >
