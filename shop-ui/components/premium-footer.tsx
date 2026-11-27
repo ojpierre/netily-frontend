@@ -1,141 +1,109 @@
 "use client"
 
-import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from "lucide-react"
+import { Mail, MessageCircle, Phone, Smartphone } from "lucide-react"
+import { featuredCategories } from "@/shop-ui/lib/featured-catalog"
+import { useShopSettings } from "@/shop-ui/lib/use-shop-settings"
+import { categoryHref, HEADING_FONT, whatsappLink } from "@/shop-ui/lib/shop-helpers"
+
+const help = [
+  { label: "How to order", href: "/shop/how-to-order" },
+  { label: "Track an order", href: "/shop/track" },
+  { label: "Shipping and returns", href: "/shop/policies/shipping-returns" },
+  { label: "Warranty policy", href: "/shop/policies/warranty" },
+  { label: "Terms of sale", href: "/shop/policies/terms" },
+  { label: "Privacy policy", href: "/shop/policies/privacy" },
+]
 
 export function PremiumFooter() {
-  const footerLinks = {
-    shop: [
-      { label: "Routers & Gateways", href: "/shop/catalog?cat=Routers+%26+Gateways" },
-      { label: "Switches & PoE", href: "/shop/catalog?cat=Switches+%26+PoE" },
-      { label: "Fibre & Optics", href: "/shop/catalog?cat=Fibre+%26+Optics" },
-      { label: "Wireless & Access Points", href: "/shop/catalog?cat=Wireless+%26+Access+Points" },
-      { label: "Tools & Test Equipment", href: "/shop/catalog?cat=Tools+%26+Test+Equipment" },
-    ],
-    account: [
-      { label: "Browse Catalog", href: "/shop/catalog" },
-      { label: "How to Order", href: "/shop/how-to-order" },
-      { label: "Request a Bulk Quote", href: "mailto:netilysupport@gmail.com?subject=Bulk%20quote%20request" },
-      { label: "WhatsApp Sales", href: "https://wa.me/254100034307" },
-    ],
-    policy: [
-      { label: "Shopping Privacy Policy", href: "/shop/policies/privacy" },
-      { label: "Cookie Policy", href: "/shop/policies/cookies" },
-      { label: "Shipping & Returns", href: "/shop/policies/shipping-returns" },
-      { label: "Warranty Policy", href: "/shop/policies/warranty" },
-      { label: "Terms of Sale", href: "/shop/policies/terms" },
-    ],
-  }
+  const settings = useShopSettings()
+  const email = settings?.support_email || "netilysupport@gmail.com"
+  const phone = (settings?.support_phone || "0100034307").replace(/\s/g, "")
+  const wa = settings?.whatsapp_number || "254100034307"
+  const colTitle = "text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50"
+  const linkClass = "text-sm text-white/80 outline-none transition hover:text-white focus-visible:text-white focus-visible:underline"
 
   return (
-    <footer className="bg-[#06183b] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8 lg:py-24">
-        <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <Link href="/shop" className="mb-5 inline-flex">
-              <Image
-                src="/internetily-white-logo-320.webp"
-                alt="Internetily Shop"
-                width={510}
-                height={156}
-                className="h-32 w-auto object-contain"
-              />
+    <footer className="bg-[#17252d] text-white">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+          <div>
+            <Link href="/shop" className="inline-flex">
+              <Image src="/internetily-white-logo-320.webp" alt="Internetily Shop" width={510} height={156} className="h-24 w-24 object-contain" />
             </Link>
-            <h3 className="mb-4 text-xl font-semibold">Network hardware, sourced with care.</h3>
-            <p className="mb-6 text-sm leading-7 text-white/62">
-              Subscribe for stock alerts, installation-friendly bundles, firmware notes, and private ISP pricing.
+            <p className={`${HEADING_FONT} mt-5 max-w-xs text-lg font-semibold leading-snug`}>Network equipment, picked by people who run networks.</p>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-white/65">
+              Routers, fibre, Wi-Fi and power for ISPs, installers, offices and homes across Kenya.
             </p>
-            <div className="relative">
-              <input
-                type="email"
-                placeholder="Enter your corporate email"
-                className="w-full border-0 border-b border-white/25 bg-transparent py-3 pr-24 text-sm placeholder:text-white/42 focus:border-white focus:outline-none"
-              />
-              <button className="absolute right-0 top-1/2 -translate-y-1/2 text-xs uppercase tracking-[0.15em] transition hover:opacity-70">
-                Subscribe
-              </button>
-            </div>
-            <div className="mt-6 space-y-2 text-sm text-white/68">
-              <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> 0100034307</p>
-              <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> netilysupport@gmail.com</p>
-              <p className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Kenya, serving regional ISP projects</p>
-            </div>
-          </motion.div>
+            <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80">
+              <Smartphone className="h-3.5 w-3.5 text-[#22a67d]" aria-hidden="true" />
+              Pay with M-Pesa at checkout
+            </span>
+          </div>
 
-          <FooterColumn title="Hardware" links={footerLinks.shop} delay={0.1} />
-          <FooterColumn title="Store" links={footerLinks.account} delay={0.2} />
-          <FooterColumn title="Policies" links={footerLinks.policy} delay={0.3} />
+          <nav aria-label="Categories">
+            <h2 className={colTitle}>Categories</h2>
+            <ul className="mt-4 space-y-2.5">
+              {featuredCategories.map((c) => (
+                <li key={c.slug}>
+                  <Link href={categoryHref(c.slug)} className={linkClass}>
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <nav aria-label="Help">
+            <h2 className={colTitle}>Help</h2>
+            <ul className="mt-4 space-y-2.5">
+              {help.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className={linkClass}>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div>
+            <h2 className={colTitle}>Talk to us</h2>
+            <ul className="mt-4 space-y-3 text-sm">
+              <li>
+                <a href={whatsappLink(wa, "Hi Internetily, I have a question about network equipment.")} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-white/85 hover:text-white">
+                  <MessageCircle className="h-4 w-4 text-[#22a67d]" aria-hidden="true" />
+                  WhatsApp an engineer
+                </a>
+              </li>
+              <li>
+                <a href={`tel:${phone}`} className="flex items-center gap-2.5 text-white/85 hover:text-white">
+                  <Phone className="h-4 w-4 text-white/50" aria-hidden="true" />
+                  {phone}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${email}?subject=Quote%20request`} className="flex items-center gap-2.5 break-all text-white/85 hover:text-white">
+                  <Mail className="h-4 w-4 shrink-0 text-white/50" aria-hidden="true" />
+                  {email}
+                </a>
+              </li>
+            </ul>
+            <p className="mt-5 text-sm leading-6 text-white/60">Send your parts list for a quote on bulk and ISP orders.</p>
+          </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-6 border-t border-white/15 pt-8 md:flex-row">
-          <div className="flex items-center gap-8">
-            <Link href="/shop" className="flex items-center">
-              <Image
-                src="/internetily-white-logo-320.webp"
-                alt="Internetily Shop"
-                width={420}
-                height={126}
-                className="h-28 w-auto object-contain"
-              />
-            </Link>
-            <div className="flex items-center gap-4">
-              <a href="https://instagram.com" className="transition hover:opacity-65" aria-label="Instagram">
-                <Instagram className="h-4 w-4 stroke-[1.5]" />
-              </a>
-              <a href="https://facebook.com" className="transition hover:opacity-65" aria-label="Facebook">
-                <Facebook className="h-4 w-4 stroke-[1.5]" />
-              </a>
-              <a href="https://twitter.com" className="transition hover:opacity-65" aria-label="Twitter">
-                <Twitter className="h-4 w-4 stroke-[1.5]" />
-              </a>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-white/55">
-            <Link href="/shop/policies/privacy" className="transition hover:text-white/85">Privacy</Link>
-            <Link href="/shop/policies/terms" className="transition hover:text-white/85">Terms</Link>
-            <Link href="/shop/policies/cookies" className="transition hover:text-white/85">Cookies</Link>
-            <span>(c) 2026 Internetily Shop. All rights reserved.</span>
-          </div>
+        <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; {new Date().getFullYear()} Internetily Shop. Prices in Kenyan shillings.</p>
+          <p>
+            Running an ISP?{" "}
+            <a href="https://netily.co.ke/" className="text-white/80 underline-offset-4 hover:text-white hover:underline">
+              Bill it with Internetily
+            </a>
+          </p>
         </div>
       </div>
     </footer>
-  )
-}
-
-function FooterColumn({
-  title,
-  links,
-  delay,
-}: {
-  title: string
-  links: Array<{ label: string; href: string }>
-  delay: number
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6, delay }}
-    >
-      <h4 className="mb-6 text-xs uppercase tracking-[0.2em] text-white/55">{title}</h4>
-      <ul className="space-y-3">
-        {links.map((link) => (
-          <li key={link.href}>
-            <Link href={link.href} className="text-sm text-white/78 transition hover:text-white">
-              {link.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
   )
 }

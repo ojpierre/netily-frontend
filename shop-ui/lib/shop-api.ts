@@ -136,7 +136,12 @@ export const shopApi = {
       return normalizeProduct(await request<unknown>(`/shop/products/${encodeURIComponent(slug)}/`))
     } catch (e) {
       const fallback = featuredCatalog.find((product) => product.id === slug) || null
-      if (e instanceof ShopApiError && e.status === 404) return fallback
+      if (e instanceof ShopApiError && e.status === 404) {
+        // A real 404 hides the product, unless the shop has not been stocked yet.
+        if (!fallback) return null
+        const live = await shopApi.getProducts({ page_size: "1" }).catch(() => null)
+        return live && live.count > 0 ? null : fallback
+      }
       if (fallback) return fallback
       throw e
     }

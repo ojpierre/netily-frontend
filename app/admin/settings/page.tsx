@@ -69,7 +69,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { COLOR_THEMES, useColorTheme, type ColorTheme } from "@/components/theme-provider"
-import { MotionThemesCard } from "@/components/settings/motion-themes-card"
+import { ChristmasThemesCard, MotionThemesCard } from "@/components/settings/motion-themes-card"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
 import { PaymentMethodPinSettingsCard } from "@/components/settings/payment-method-pin-settings"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
@@ -645,6 +645,8 @@ function AppearanceTab() {
           </div>
         </CardContent>
       </Card>
+
+      <ChristmasThemesCard />
 
       <MotionThemesCard />
 

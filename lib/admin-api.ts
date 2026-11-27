@@ -674,6 +674,24 @@ class AdminApiService {
     return this.request<T>(endpoint, options)
   }
 
+  /**
+   * Authenticated fetch that returns the raw Response (no error translation, no global
+   * access-blocked events). Retries once after a token refresh on 401. Used by the AI
+   * assistant client, which needs the backend's `code` / `retry_after` error fields.
+   */
+  async authorizedFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    const send = () =>
+      fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers: { ...this.getAuthHeaders(), ...(options.headers || {}) },
+      })
+    let response = await send()
+    if (response.status === 401 && (await this.tryRefreshToken())) {
+      response = await send()
+    }
+    return response
+  }
+
   /** Authenticated binary download (PDF etc.). Retries once after a token refresh. */
   async downloadFile(endpoint: string, fallbackName: string): Promise<void> {
     const send = () => {

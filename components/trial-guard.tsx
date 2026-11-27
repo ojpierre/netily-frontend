@@ -846,6 +846,17 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           return
         }
 
+        // Perpetual workspaces (e.g. demo) never show the payment wall.
+        if (subscription.never_expires) {
+          setIsExpired(false)
+          setSubscriptionType("active")
+          setCycleAmountDue(null)
+          setCycleInvoiceNumber(null)
+          setBillingBreakdown(null)
+          setIsChecking(false)
+          return
+        }
+
         // Store trial start for countdown display
         if (subscription.trial_ends_at) {
           const trialEndDate = new Date(subscription.trial_ends_at)

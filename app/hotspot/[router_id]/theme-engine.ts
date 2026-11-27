@@ -31,7 +31,7 @@ export interface ThemeStyles {
   successBg: string
   successPageBg: string
   // Layout variations
-  layoutType: "grid" | "list" | "featured" | "compact" | "bubbles" | "spotlight" | "pass" | "chat" | "vending"
+  layoutType: "grid" | "list" | "featured" | "compact" | "bubbles" | "spotlight" | "pass" | "chat" | "vending" | "advent"
   // Structural variations
   headerStyle: "centered" | "left-aligned" | "large-hero" | "minimal"
   cardShape: "rounded-2xl" | "rounded-3xl" | "rounded-none" | "rounded-lg"
@@ -884,6 +884,87 @@ export function getTheme(id: number): ThemeStyles {
         successBg: "bg-amber-50",
         successPageBg: "min-h-screen bg-[#fde8c8]",
       }
+    case 23: // Advent Calendar - every plan a numbered door on a festive board (AdventPlans.tsx); snow in SnowBackdrop.tsx
+      return {
+        layoutType: "advent",
+        headerStyle: "centered",
+        cardShape: "rounded-3xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: false,
+        pageBg: "min-h-screen bg-[#0d3b2c] bg-[radial-gradient(ellipse_90%_45%_at_50%_0%,#1d6b4f_0%,transparent_70%)]",
+        // Modals and chat still use this; the main view puts the board straight on the page
+        cardClass: "bg-[#0f2f24] border border-[#f6d98b]/30 rounded-3xl shadow-2xl shadow-black/50",
+        headerBg: "bg-transparent",
+        headerText: "text-[#fbe7b5]",
+        headerSub: "text-emerald-100/85",
+        annBg: "bg-[#fbf3e4] border border-[#e8c77d]",
+        annText: "text-[#5c1220]",
+        annIcon: "text-[#b3122e]",
+        planSelectedBorder: "border-[#f6d98b]",
+        planSelectedBg: "bg-[#f6d98b]/10",
+        planBorder: "border-[#f6d98b]/25",
+        planBg: "bg-white/[0.06]",
+        planTitle: "text-[#fbf3e4]",
+        planSub: "text-emerald-100/75",
+        planPrice: "text-[#f6d98b]",
+        planPopularBg: "bg-[#d11f3b]",
+        planPopularText: "text-white",
+        inputBorder: "border-[#f6d98b]/35",
+        inputBg: "bg-white/[0.07]",
+        inputText: "text-[#fbf3e4]",
+        inputPlaceholder: "placeholder:text-emerald-100/50",
+        ctaBg: "bg-gradient-to-r from-[#f6d98b] to-[#e3b553] hover:from-[#f9e3a6] hover:to-[#ebc46c]",
+        ctaText: "text-[#4a0b16] font-bold",
+        ctaHover: "hover:shadow-[#f6d98b]/30",
+        bodyText: "text-emerald-50",
+        mutedText: "text-emerald-100/75",
+        footerText: "text-emerald-100/60",
+        errorBg: "bg-red-950/50 border-red-400/40",
+        errorText: "text-red-200",
+        successBg: "bg-emerald-900/50 border border-emerald-400/30",
+        successPageBg: "min-h-screen bg-[#0d3b2c] bg-[radial-gradient(ellipse_90%_45%_at_50%_0%,#1d6b4f_0%,transparent_70%)]",
+      }
+    case 24: // Silent Night - midnight blue and candle gold over falling snow, a moon and a pine line (SnowBackdrop.tsx); Grid/List apply
+      return {
+        layoutType: "grid",
+        headerStyle: "centered",
+        cardShape: "rounded-3xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
+        pageBg: "min-h-screen bg-gradient-to-b from-[#050a1c] via-[#0a1634] to-[#13254d]",
+        cardClass: "bg-[#0a1430]/80 backdrop-blur-xl border border-amber-200/20 rounded-3xl shadow-2xl shadow-black/50",
+        headerBg: "bg-gradient-to-b from-[#16306a]/70 to-transparent border-b border-amber-200/15",
+        headerText: "text-amber-100",
+        headerSub: "text-slate-300",
+        annBg: "bg-amber-200/10 border border-amber-200/25",
+        annText: "text-amber-50",
+        annIcon: "text-amber-300",
+        planSelectedBorder: "border-amber-300",
+        planSelectedBg: "bg-amber-300/10",
+        planBorder: "border-white/10",
+        planBg: "bg-white/[0.04]",
+        planTitle: "text-white",
+        planSub: "text-slate-400",
+        planPrice: "text-amber-300",
+        planPopularBg: "bg-[#c8102e]",
+        planPopularText: "text-white",
+        inputBorder: "border-white/15",
+        inputBg: "bg-white/[0.06]",
+        inputText: "text-white",
+        inputPlaceholder: "placeholder:text-slate-500",
+        ctaBg: "bg-gradient-to-r from-amber-300 to-amber-200 hover:from-amber-200 hover:to-amber-100",
+        ctaText: "text-[#0a1430] font-bold",
+        ctaHover: "hover:shadow-amber-300/30",
+        bodyText: "text-slate-200",
+        mutedText: "text-slate-400",
+        footerText: "text-slate-500",
+        errorBg: "bg-red-950/50 border-red-500/40",
+        errorText: "text-red-300",
+        successBg: "bg-emerald-950/40",
+        successPageBg: "min-h-screen bg-gradient-to-b from-[#050a1c] via-[#0a1634] to-[#13254d]",
+      }
     default: // Classic (1) - Grid Layout (Professional, ISP standard)
       return {
         layoutType: "grid",
@@ -927,13 +1008,16 @@ export function getTheme(id: number): ThemeStyles {
   }
 }
 
-/** Display names of the portal themes (template ids 1-22), e.g. for router pickers. */
+/** Display names of the portal themes (template ids 1-24), e.g. for router pickers. */
 export const PORTAL_THEME_NAMES: Record<number, string> = {
   1: "Classic", 2: "Dark Mode", 3: "Gradient", 4: "Minimal", 5: "Vibrant", 6: "Corporate", 7: "Glass", 8: "Neon Noir",
   9: "Safari Warmth", 10: "Ocean Breeze", 11: "Midnight Luxury", 12: "Blossom", 13: "Neumorphic", 14: "Brutalist Sun",
   15: "Brutalist Ink", 16: "Cyber Orchid", 17: "Retro Terminal", 18: "Bubbles", 19: "Aurora Spotlight", 20: "Boarding Pass",
-  21: "Chat Bundles", 22: "Wi-Fi Vending",
+  21: "Chat Bundles", 22: "Wi-Fi Vending", 23: "Advent Calendar", 24: "Silent Night",
 }
+
+/** Christmas themes get the snow backdrop and a "Merry Christmas" line in the header. */
+export const FESTIVE_TEMPLATE_IDS = [23, 24]
 
 /** Name for a saved template id, including the +100 (list) / +200 (grid) layout forms. */
 export function portalThemeName(templateId?: number | null): string {

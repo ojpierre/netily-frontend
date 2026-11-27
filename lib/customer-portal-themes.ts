@@ -15,7 +15,7 @@
  * `data-portal-mode="light|dark"`.
  */
 
-export type PortalThemeId = "classic" | "midnight" | "sunrise" | "forest" | "aurora"
+export type PortalThemeId = "classic" | "midnight" | "sunrise" | "forest" | "aurora" | "yuletide" | "snowfall"
 export type PortalThemeMode = "light" | "dark"
 
 export const DEFAULT_PORTAL_THEME: PortalThemeId = "classic"
@@ -50,7 +50,17 @@ interface ModeSpec {
   cardBlur?: string
   cardShadow?: string
   sidebarBlur?: string
+  /** Colour of the falling snow (themes with `decor: "snow"`). */
+  snow?: string
 }
+
+/**
+ * Seasonal decoration drawn by CSS only (no extra markup):
+ *  - "lights": a string of twinkling Christmas bulbs along the bottom edge of the portal header
+ *  - "snow": slow snowfall behind the page content
+ * Both stop under prefers-reduced-motion.
+ */
+export type PortalDecor = "lights" | "snow"
 
 export interface PortalTheme {
   id: PortalThemeId
@@ -63,6 +73,10 @@ export interface PortalTheme {
   radius: string
   /** If set, the theme only has this mode (the portal pins it and hides the toggle). */
   forcedMode?: PortalThemeMode
+  /** Seasonal decoration, see PortalDecor. */
+  decor?: PortalDecor
+  /** Short seasonal tag shown on the picker card, e.g. "Christmas". */
+  season?: string
   light: ModeSpec
   dark: ModeSpec
 }
@@ -119,6 +133,9 @@ const midnightDark: ModeSpec = {
   headerForeground: "oklch(0.96 0.01 275)",
   cardShadow: "0 0 0 1px oklch(0.78 0.12 210 / 0.06), 0 8px 24px -12px oklch(0 0 0 / 0.6)",
 }
+
+/** Gold star field for the Yuletide header. Fixed positions, so it never needs tiling. */
+const HEADER_STARS = "radial-gradient(circle at 8% 30%, oklch(0.9 0.11 88 / 0.9) 0 1px, transparent 1.6px),radial-gradient(circle at 22% 72%, oklch(0.9 0.11 88 / 0.6) 0 1px, transparent 1.6px),radial-gradient(circle at 37% 22%, oklch(0.9 0.11 88 / 0.75) 0 1px, transparent 1.6px),radial-gradient(circle at 55% 64%, oklch(0.9 0.11 88 / 0.55) 0 1px, transparent 1.6px),radial-gradient(circle at 71% 28%, oklch(0.9 0.11 88 / 0.85) 0 1px, transparent 1.6px),radial-gradient(circle at 86% 70%, oklch(0.9 0.11 88 / 0.6) 0 1px, transparent 1.6px),radial-gradient(circle at 94% 34%, oklch(0.9 0.11 88 / 0.7) 0 1px, transparent 1.6px)"
 
 export const PORTAL_THEMES: PortalTheme[] = [
   {
@@ -345,6 +362,139 @@ export const PORTAL_THEMES: PortalTheme[] = [
       sidebarBlur: "blur(16px)",
     },
   },
+  // Christmas themes
+  {
+    id: "yuletide",
+    name: "Yuletide",
+    description: "Christmas pine, cranberry and candle gold. A starry pine header with a string of twinkling lights.",
+    traits: ["Christmas", "Twinkling lights", "Light and dark"],
+    season: "Christmas",
+    decor: "lights",
+    swatch: ["oklch(0.34 0.075 160)", "oklch(0.5 0.18 25)", "oklch(0.84 0.12 85)", "oklch(0.982 0.012 85)"],
+    radius: "1rem",
+    light: {
+      background: "oklch(0.982 0.012 85)",
+      foreground: "oklch(0.24 0.04 160)",
+      card: "oklch(0.997 0.006 85)",
+      secondary: "oklch(0.955 0.02 85)",
+      muted: "oklch(0.945 0.02 85)",
+      mutedForeground: "oklch(0.49 0.04 150)",
+      accent: "oklch(0.94 0.045 25)",
+      accentForeground: "oklch(0.42 0.15 25)",
+      border: "oklch(0.9 0.025 85)",
+      primary: "oklch(0.5 0.18 25)",
+      primaryForeground: "oklch(0.99 0.01 85)",
+      ring: "oklch(0.72 0.13 85)",
+      sidebar: "oklch(0.985 0.012 85)",
+      sidebarForeground: "oklch(0.4 0.05 160)",
+      sidebarPrimary: "oklch(0.48 0.17 25)",
+      sidebarAccent: "oklch(0.95 0.03 145)",
+      sidebarBorder: "oklch(0.9 0.025 85)",
+      slate: { hue: 85, chroma: 0.014 },
+      surface: "oklch(0.997 0.006 85)",
+      canvasImage:
+        "radial-gradient(42rem 24rem at 100% 0%, oklch(0.9 0.06 25 / 0.45), transparent 70%), radial-gradient(44rem 26rem at 0% 0%, oklch(0.9 0.05 150 / 0.5), transparent 70%)",
+      headerImage: `${HEADER_STARS}, linear-gradient(120deg, oklch(0.36 0.08 160), oklch(0.29 0.065 168))`,
+      headerForeground: "oklch(0.97 0.02 90)",
+      cardShadow: "0 8px 24px -14px oklch(0.36 0.08 160 / 0.35)",
+    },
+    dark: {
+      background: "oklch(0.17 0.03 160)",
+      foreground: "oklch(0.95 0.015 90)",
+      card: "oklch(0.22 0.035 160)",
+      secondary: "oklch(0.27 0.04 160)",
+      muted: "oklch(0.27 0.03 160)",
+      mutedForeground: "oklch(0.75 0.03 120)",
+      accent: "oklch(0.32 0.06 25)",
+      accentForeground: "oklch(0.95 0.02 90)",
+      border: "oklch(0.32 0.04 160)",
+      primary: "oklch(0.68 0.17 25)",
+      primaryForeground: "oklch(0.16 0.03 160)",
+      ring: "oklch(0.82 0.12 85)",
+      sidebar: "oklch(0.19 0.032 160)",
+      sidebarForeground: "oklch(0.82 0.03 120)",
+      sidebarPrimary: "oklch(0.84 0.12 85)",
+      sidebarAccent: "oklch(0.27 0.045 160)",
+      sidebarBorder: "oklch(0.29 0.04 160)",
+      slate: { hue: 160, chroma: 0.025 },
+      surface: "oklch(0.22 0.035 160)",
+      canvasImage:
+        "radial-gradient(48rem 26rem at 100% -6%, oklch(0.6 0.17 25 / 0.16), transparent 70%), radial-gradient(44rem 26rem at 0% 0%, oklch(0.6 0.1 150 / 0.18), transparent 70%)",
+      headerImage: `${HEADER_STARS}, linear-gradient(120deg, oklch(0.29 0.07 160), oklch(0.24 0.055 168))`,
+      headerForeground: "oklch(0.97 0.02 90)",
+      cardShadow: "0 8px 24px -14px oklch(0 0 0 / 0.55)",
+    },
+  },
+  {
+    id: "snowfall",
+    name: "Snowfall",
+    description: "A quiet white Christmas. Frosted glass cards on winter blue, with soft snow drifting behind your pages.",
+    traits: ["Christmas", "Falling snow", "Glass cards"],
+    season: "Christmas",
+    decor: "snow",
+    swatch: ["oklch(0.47 0.14 255)", "oklch(0.6 0.2 15)", "oklch(0.972 0.014 235)", "oklch(1 0 0 / 0.78)"],
+    radius: "1.125rem",
+    light: {
+      background: "oklch(0.972 0.014 235)",
+      foreground: "oklch(0.24 0.05 255)",
+      card: "oklch(1 0 0 / 0.78)",
+      popover: "oklch(0.995 0.005 235)",
+      secondary: "oklch(0.95 0.02 235)",
+      muted: "oklch(0.94 0.02 235)",
+      mutedForeground: "oklch(0.49 0.04 250)",
+      accent: "oklch(0.94 0.035 15)",
+      accentForeground: "oklch(0.45 0.16 15)",
+      border: "oklch(0.89 0.03 235 / 0.9)",
+      primary: "oklch(0.47 0.14 255)",
+      primaryForeground: "oklch(0.99 0.005 235)",
+      ring: "oklch(0.6 0.2 15)",
+      sidebar: "oklch(1 0 0 / 0.62)",
+      sidebarForeground: "oklch(0.42 0.05 250)",
+      sidebarPrimary: "oklch(0.47 0.14 255)",
+      sidebarAccent: "oklch(0.94 0.03 235)",
+      sidebarBorder: "oklch(0.9 0.03 235 / 0.8)",
+      slate: { hue: 240, chroma: 0.02 },
+      surface: "oklch(1 0 0 / 0.78)",
+      canvasImage:
+        "linear-gradient(180deg, oklch(0.9 0.05 240 / 0.6), transparent 26rem), radial-gradient(40rem 24rem at 100% 0%, oklch(0.92 0.05 15 / 0.35), transparent 70%)",
+      headerImage: "linear-gradient(120deg, oklch(0.42 0.13 258), oklch(0.52 0.12 232))",
+      headerForeground: "oklch(1 0 0)",
+      cardBlur: "blur(12px) saturate(140%)",
+      cardShadow: "0 10px 30px -16px oklch(0.47 0.14 255 / 0.35)",
+      sidebarBlur: "blur(14px)",
+      snow: "oklch(0.72 0.06 245 / 0.75)",
+    },
+    dark: {
+      background: "oklch(0.16 0.04 258)",
+      foreground: "oklch(0.95 0.015 240)",
+      card: "oklch(0.24 0.05 258 / 0.6)",
+      popover: "oklch(0.22 0.045 258)",
+      secondary: "oklch(0.26 0.05 258)",
+      muted: "oklch(0.28 0.045 258)",
+      mutedForeground: "oklch(0.75 0.04 240)",
+      accent: "oklch(0.33 0.08 15)",
+      accentForeground: "oklch(0.95 0.015 240)",
+      border: "oklch(1 0 0 / 0.12)",
+      primary: "oklch(0.76 0.11 235)",
+      primaryForeground: "oklch(0.16 0.04 258)",
+      ring: "oklch(0.7 0.18 15)",
+      sidebar: "oklch(0.18 0.045 258 / 0.6)",
+      sidebarForeground: "oklch(0.82 0.04 240)",
+      sidebarPrimary: "oklch(0.8 0.1 230)",
+      sidebarAccent: "oklch(0.28 0.06 258)",
+      sidebarBorder: "oklch(1 0 0 / 0.1)",
+      slate: { hue: 258, chroma: 0.04 },
+      surface: "oklch(0.24 0.05 258 / 0.6)",
+      canvasImage:
+        "radial-gradient(46rem 26rem at 90% -6%, oklch(0.5 0.12 240 / 0.35), transparent 70%), radial-gradient(40rem 26rem at 0% 0%, oklch(0.45 0.14 15 / 0.16), transparent 70%)",
+      headerImage: "linear-gradient(120deg, oklch(0.32 0.1 258), oklch(0.4 0.1 238))",
+      headerForeground: "oklch(0.97 0.01 240)",
+      cardBlur: "blur(12px) saturate(140%)",
+      cardShadow: "0 10px 30px -14px oklch(0 0 0 / 0.6)",
+      sidebarBlur: "blur(14px)",
+      snow: "oklch(1 0 0 / 0.85)",
+    },
+  },
 ]
 
 export function isPortalThemeId(value: unknown): value is PortalThemeId {
@@ -417,6 +567,7 @@ function declarations(theme: PortalTheme, spec: ModeSpec, scheme: PortalThemeMod
   add("--portal-card-blur", spec.cardBlur || "none")
   add("--portal-card-shadow", spec.cardShadow || "none")
   add("--portal-sidebar-blur", spec.sidebarBlur || "none")
+  add("--portal-snow", spec.snow)
   if (spec.slate) {
     for (const [step, l] of SLATE_STEPS) {
       const c = step <= 100 ? spec.slate.chroma * 0.5 : spec.slate.chroma
@@ -424,6 +575,51 @@ function declarations(theme: PortalTheme, spec: ModeSpec, scheme: PortalThemeMod
     }
   }
   return d.join(";")
+}
+
+// Christmas bulbs: red, gold, green, blue on a 72px repeat. Shifting the pattern by one
+// bulb per step makes the colours "chase" along the string.
+const BULBS = [
+  ["9px", "oklch(0.62 0.22 25)"],
+  ["27px", "oklch(0.85 0.15 85)"],
+  ["45px", "oklch(0.66 0.16 150)"],
+  ["63px", "oklch(0.7 0.15 245)"],
+]
+  .map(([x, c]) => `radial-gradient(circle at ${x} 6px, ${c} 0 2.6px, color-mix(in oklab, ${c} 35%, transparent) 3.4px, transparent 6px)`)
+  .join(",")
+
+// Snow on two tile sizes (220px and 330px) so the flakes never line up in visible rows.
+// The layer falls 660px per cycle (a multiple of both tiles), so the loop is seamless.
+const flake = ([x, y, r]: number[]) =>
+  `radial-gradient(circle at ${x}px ${y}px, var(--portal-snow, #fff) 0 ${r}px, transparent ${r + 0.7}px)`
+const SNOW_SMALL = [[18, 24, 1.2], [96, 70, 1], [150, 14, 1.6], [58, 132, 1.1], [190, 110, 2.2], [126, 176, 1.4], [30, 200, 2.6], [210, 196, 1]]
+const SNOW_LARGE = [[70, 40, 2], [250, 120, 1.3], [160, 230, 2.8], [300, 290, 1.6], [24, 300, 1.2], [210, 20, 1.1]]
+const SNOW_IMAGE = [...SNOW_SMALL, ...SNOW_LARGE].map(flake).join(",")
+const SNOW_SIZE = [...SNOW_SMALL.map(() => "220px 220px"), ...SNOW_LARGE.map(() => "330px 330px")].join(",")
+
+function decorCss(id: string, decor: PortalDecor): string {
+  const a = `[data-portal-theme="${id}"]`
+  if (decor === "lights") {
+    return [
+      `${a} .portal-header:not(.sticky),.portal-header${a}:not(.sticky){position:relative}`,
+      `${a} .portal-header::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:12px;pointer-events:none;z-index:2;` +
+        `background:${BULBS},linear-gradient(oklch(0.22 0.04 160 / 0.55),oklch(0.22 0.04 160 / 0.55)) 0 5px/100% 1px no-repeat;` +
+        `background-size:72px 12px,72px 12px,72px 12px,72px 12px,100% 1px;background-repeat:repeat-x,repeat-x,repeat-x,repeat-x,no-repeat;` +
+        `animation:portal-lights-chase 2.8s steps(4) infinite}`,
+      `@keyframes portal-lights-chase{to{background-position:72px 0,72px 0,72px 0,72px 0,0 5px}}`,
+      `@media (prefers-reduced-motion:reduce){${a} .portal-header::after{animation:none}}`,
+    ].join("\n")
+  }
+  return [
+    `${a} .portal-canvas,.portal-canvas${a}{isolation:isolate}`,
+    `${a} .portal-canvas::before,.portal-canvas${a}::before{content:"";position:fixed;left:-40px;right:-40px;top:-660px;bottom:0;` +
+      `z-index:-1;pointer-events:none;background-image:${SNOW_IMAGE};background-size:${SNOW_SIZE};will-change:transform;` +
+      `animation:portal-snow-fall 48s linear infinite}`,
+    // Previews: keep the snow inside the miniature
+    `.portal-canvas${a}::before{position:absolute}`,
+    `@keyframes portal-snow-fall{to{transform:translate3d(0,660px,0)}}`,
+    `@media (prefers-reduced-motion:reduce){${a} .portal-canvas::before,.portal-canvas${a}::before{animation:none}}`,
+  ].join("\n")
 }
 
 let cachedCss: string | null = null
@@ -447,6 +643,9 @@ export function portalThemeCss(): string {
     `[data-portal-theme] [data-slot="card"]{-webkit-backdrop-filter:var(--portal-card-blur,none);backdrop-filter:var(--portal-card-blur,none);box-shadow:var(--portal-card-shadow,none)}`,
     `[data-portal-theme]:not(.dark):not(.dark *) .bg-white{background-color:var(--portal-surface,#fff)}`,
   )
+  for (const theme of PORTAL_THEMES) {
+    if (theme.decor) parts.push(decorCss(theme.id, theme.decor))
+  }
   cachedCss = parts.join("\n")
   return cachedCss
 }

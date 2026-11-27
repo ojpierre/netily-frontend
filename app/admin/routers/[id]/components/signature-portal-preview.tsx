@@ -1,7 +1,7 @@
 "use client"
 
 // Live Preview for the portal themes with their own layouts (18 Bubbles, 19 Aurora
-// Spotlight, 20 Boarding Pass). It renders the same plan components the real portal
+// Spotlight, 20 Boarding Pass, 21 Chat, 22 Vending, 23 Advent Calendar). It renders the same plan components the real portal
 // uses, with sample plans, so what the admin sees here is what customers get.
 
 import { useState } from "react"
@@ -12,9 +12,10 @@ import SpotlightPlans from "@/app/hotspot/[router_id]/SpotlightPlans"
 import BoardingPassPlans from "@/app/hotspot/[router_id]/BoardingPassPlans"
 import ChatPlans from "@/app/hotspot/[router_id]/ChatPlans"
 import VendingPlans from "@/app/hotspot/[router_id]/VendingPlans"
+import AdventPlans from "@/app/hotspot/[router_id]/AdventPlans"
 import { bubblesSans } from "@/app/hotspot/[router_id]/bubbles-fonts"
 
-export const SIGNATURE_TEMPLATE_IDS = [18, 19, 20, 21, 22]
+export const SIGNATURE_TEMPLATE_IDS = [18, 19, 20, 21, 22, 23]
 
 function samplePlan(id: string, name: string, duration: string, price: number, speed: number, data: string | null, popular = false): HotspotPlan {
   return {
@@ -132,6 +133,26 @@ export function SignaturePortalPreview({
           {templateId === 22 && (
             <div className="min-h-full bg-[#fde8c8] bg-[repeating-linear-gradient(45deg,rgba(232,71,61,0.06)_0_14px,transparent_14px_28px)] px-3 py-5">
               <VendingPlans plans={SAMPLE_PLANS.slice(0, 4)} formatPrice={formatPrice} hideSpeed={hidePlanSpeed} displayName={displayName} logoUrl={logoSrc} onPay={pick} />
+            </div>
+          )}
+
+          {templateId === 23 && (
+            <div className="min-h-full bg-[#0d3b2c] bg-[radial-gradient(ellipse_90%_45%_at_50%_0%,#1d6b4f_0%,transparent_70%)] px-3 pb-8 pt-5">
+              <div className="mb-4 text-center">
+                {logo}
+                <p className="mb-1 mt-1 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-200/90">
+                  <span aria-hidden="true" className="text-amber-300">✦</span>Merry Christmas<span aria-hidden="true" className="text-amber-300">✦</span>
+                </p>
+                <p className="text-xl font-bold text-[#fbe7b5]">{displayName}</p>
+                {supportPhone && <p className="mt-1 text-xs text-emerald-100/85">{supportPhone}</p>}
+              </div>
+              {announcementText && (
+                <p className="mb-4 rounded-lg border border-[#e8c77d] bg-[#fbf3e4] px-3 py-2 text-xs text-[#5c1220]">
+                  <Megaphone className="mr-1 inline h-3 w-3 text-[#b3122e]" />
+                  {announcementText}
+                </p>
+              )}
+              <AdventPlans plans={SAMPLE_PLANS} formatPrice={formatPrice} hideSpeed={hidePlanSpeed} onPay={pick} />
             </div>
           )}
 

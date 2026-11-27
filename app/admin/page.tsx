@@ -53,6 +53,8 @@ import {
   subscribeRoleAccessPolicies,
 } from "@/lib/rbac"
 import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
+import { DashboardKpiCards } from "@/components/admin/dashboard-kpi-cards"
+import { InsightCards } from "@/components/ai-assistant"
 import { PaymentTicker } from "@/components/ui/payment-ticker"
 import type {
   AuditLog,
@@ -736,147 +738,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
-        {/* Total Customers */}
-        <Card className={dashboardCardClass}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {quickStatsLoading ? (
-              <Skeleton className="h-12 w-28" />
-            ) : (
-              <>
-                <div className="text-[clamp(2.25rem,4vw,3rem)] font-bold leading-none tracking-normal text-foreground tabular-nums">
-                  {(quickStats?.total_customers ?? 0).toLocaleString()}
-                </div>
-                <p className="mt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">All PPPoE/Static users</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      <DashboardKpiCards
+        loading={quickStatsLoading}
+        data={quickStats ? {
+          totalCustomers: quickStats.total_customers ?? 0,
+          active: {
+            pppoe: quickStats.active_subscriptions?.pppoe ?? (activeSubscriptions.pppoe?.length || 0),
+            hotspot: quickStats.active_subscriptions?.hotspot ?? 0,
+            total: quickStats.active_subscriptions?.total ?? activeSubscriptionsCount,
+          },
+          expired: quickStats.expired_customers ?? 0,
+          online: quickStats.online_count ?? effectiveOnlineCount,
+        } : null}
+      />
 
-        {/* Active Subscriptions - FIXED: only count active (non-expired) hotspot subscribers */}
-        <Card className={dashboardCardClass}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            {quickStatsLoading ? (
-              <Skeleton className="h-12 w-28" />
-            ) : (
-              <>
-                <div className="text-[clamp(2.25rem,4vw,3rem)] font-bold tabular-nums tracking-normal text-green-600 dark:text-green-400 leading-none">
-                  {(quickStats?.active_subscriptions.total ?? activeSubscriptionsCount).toLocaleString()}
-                </div>
-                <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
-                  <TrendingUp className="w-3 h-3 text-emerald-500" />
-                  <span>Active PPPoE + Hotspot</span>
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Expired Customers - Clickable */}
-        <Card
-          className={`${dashboardCardClass} cursor-pointer hover:-translate-y-0.5`}
-          onClick={() => router.push('/admin/users?status=expired')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired</CardTitle>
-            <UserX className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            {quickStatsLoading ? (
-              <Skeleton className="h-12 w-28" />
-            ) : (
-              <>
-                <div className="text-[clamp(2.25rem,4vw,3rem)] font-bold tabular-nums tracking-normal text-red-600 dark:text-red-400 leading-none">
-                  {(quickStats?.expired_customers ?? 0).toLocaleString()}
-                </div>
-                <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
-                  <TrendingDown className="w-3 h-3 text-red-500" />
-                  <span>Requires renewal</span>
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Online / Active - FIXED: uses activeSubscriptionsCount for denominator */}
-        <Card
-          className={`${dashboardCardClass} cursor-pointer hover:-translate-y-0.5`}
-          onClick={() => router.push('/admin/users?tab=online-sessions')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tracking-[0.08em] uppercase">
-                Live
-              </span>
-            </span>
-          </CardHeader>
-          <CardContent>
-            {quickStatsLoading ? (
-              <Skeleton className="h-20 w-full" />
-            ) : (() => {
-              const onlineCount = quickStats?.online_count ?? effectiveOnlineCount
-              const activeCount = quickStats?.active_subscriptions.total ?? activeSubscriptionsCount
-              const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
-
-              return (
-                <div className="space-y-3 pt-1">
-                  {/* Big ratio number */}
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-semibold text-foreground leading-none">
-                      {onlineCount}
-                    </span>
-                    <span className="text-xl text-muted-foreground/40">/</span>
-                    <span className="text-xl font-medium leading-none text-muted-foreground">
-                      {activeCount}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
-                      <span>Online now</span>
-                      <span>{pct}% connected</span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-700"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex gap-3 pt-0.5">
-                    <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
-                      <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-                      PPPoE: {quickStats?.active_subscriptions.pppoe ?? (activeSubscriptions.pppoe?.length || 0)}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
-                      <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
-                      Hotspot: {quickStats?.active_subscriptions.hotspot ?? (activeSubscriptions.hotspot || []).filter(h => 
-                        h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
-                      ).length}
-                    </span>
-                  </div>
-                </div>
-              )
-            })()}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Proactive insights from the Netily Assistant (renders nothing until the AI backend is live) */}
+      <InsightCards limit={3} />
 
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className={`grid gap-4 md:grid-cols-2 ${canViewRevenueDashboard ? "lg:grid-cols-3" : "lg:grid-cols-2"} relative`}>

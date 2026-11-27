@@ -4,11 +4,13 @@ import { useEffect, useState, useMemo, useRef } from "react"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone, Wrench, ReceiptText, Key } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 import dynamic from "next/dynamic"
-import { getTheme, type ThemeStyles } from "./theme-engine"
+import { FESTIVE_TEMPLATE_IDS, getTheme, type ThemeStyles } from "./theme-engine"
 import { fetchWithRetry } from "./fetchWithRetry"
 import { getPaymentLocale, normalizePaymentPhone, isValidPaymentPhone, formatPaymentAmount, type PaymentLocale } from "@/lib/tenant-locale"
 import TvPayGuide from "./TvPayGuide"
 import AuroraBackdrop from "./AuroraBackdrop"
+import SnowBackdrop from "./SnowBackdrop"
+import AdventPlans from "./AdventPlans"
 import SpotlightPlans from "./SpotlightPlans"
 import BoardingPassPlans from "./BoardingPassPlans"
 import ChatPlans from "./ChatPlans"
@@ -121,7 +123,7 @@ interface PurchaseResponse {
 }
 
 /** Theme layouts that render their own plan component and ignore the Grid/List override */
-const SIGNATURE_LAYOUTS = new Set<ThemeStyles["layoutType"]>(["bubbles", "spotlight", "pass", "chat", "vending"])
+const SIGNATURE_LAYOUTS = new Set<ThemeStyles["layoutType"]>(["bubbles", "spotlight", "pass", "chat", "vending", "advent"])
 
 const PORTAL_FONT_FAMILIES: Record<string, string> = {
   outfit: 'var(--font-outfit), "Outfit", system-ui, sans-serif',
@@ -963,14 +965,20 @@ export default function HotspotClientView({
   const isPass = theme.layoutType === "pass"
   const isChat = theme.layoutType === "chat"
   const isVending = theme.layoutType === "vending"
+  const isAdvent = theme.layoutType === "advent"
   // Plans sit straight on the page (no card) for these layouts
-  const isOpenLayout = isBubbles || isSpotlight || isPass || isChat || isVending
+  const isOpenLayout = isBubbles || isSpotlight || isPass || isChat || isVending || isAdvent
   // These draw their own header (chat bar / machine marquee) or none at all (Bubbles)
   const ownHeader = isBubbles || isChat || isVending
   const isAurora = templateId === 19
+  // Christmas themes (23 Advent Calendar, 24 Silent Night): falling snow and a festive greeting
+  const isFestive = FESTIVE_TEMPLATE_IDS.includes(templateId)
+  const hasBackdrop = isAurora || isFestive
   // Visible keyboard focus for the plan cards of the newer themes (older themes keep browser defaults)
   const planFocusClass = isAurora
     ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+    : isFestive
+    ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1430]"
     : ""
   const displayName = branding?.company_name || portalConfig?.hotspot_name || "WiFi Hotspot"
   const welcomeTitle = branding?.welcome_title || ""
@@ -1875,7 +1883,8 @@ export default function HotspotClientView({
   return (
     <div className={isBubbles ? `${theme.pageBg} ${bubblesSans.className}` : `${theme.pageBg} flex items-center justify-center p-4`} style={isBubbles ? undefined : { fontFamily: portalFontFamily }}>
       {isAurora && <AuroraBackdrop />}
-      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : isOpenLayout ? `relative z-10 w-full max-w-md ${isPass ? "py-2" : ""}` : `${theme.cardClass} ${isAurora ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
+      {isFestive && <SnowBackdrop scenery={isAdvent ? "pine" : "night"} />}
+      <div className={isBubbles ? "mx-auto w-full max-w-[420px] px-[18px] pb-10" : isOpenLayout ? `relative z-10 w-full max-w-md ${isPass ? "py-2" : ""}` : `${theme.cardClass} ${hasBackdrop ? "relative z-10" : ""} max-w-md w-full overflow-hidden`}>
         {/* ── Header — adapts to headerStyle (Bubbles shows the name in its footer instead) ── */}
         {!ownHeader && (
         <div
@@ -1906,6 +1915,13 @@ export default function HotspotClientView({
               } mb-3 ${theme.headerText}`}
             />
           ) : null}
+          {isFestive && (
+            <p className={`mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-200/90 ${theme.headerStyle === "left-aligned" ? "" : "justify-center"}`}>
+              <span aria-hidden="true" className="text-amber-300">✦</span>
+              Merry Christmas
+              <span aria-hidden="true" className="text-amber-300">✦</span>
+            </p>
+          )}
           {isPass && (
             <p className="mb-1 flex items-center gap-2 font-[ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation_Mono',monospace] text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-300 motion-reduce:animate-none" aria-hidden="true" />
@@ -2142,15 +2158,15 @@ export default function HotspotClientView({
           )}
 
           {/* DEVICE TARGET TOGGLE */}
-          <div className={`mb-2 p-1.5 rounded-xl flex items-center ${isBubbles ? "bg-white/60" : isSpotlight ? "bg-white/10" : "bg-gray-100"} ${bo(11)}`}>
+          <div className={`mb-2 p-1.5 rounded-xl flex items-center ${isBubbles ? "bg-white/60" : isSpotlight || isFestive ? "bg-white/10" : "bg-gray-100"} ${bo(11)}`}>
             <button
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? `bg-white shadow-sm ${isFestive ? "text-[#7a0f21]" : "text-blue-600"}` : isFestive ? "text-white/75 hover:text-white" : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setTargetDevice('this')}
             >
               <Smartphone className="w-4 h-4" /> This Device
             </button>
             <button
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'tv' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'tv' ? `bg-white shadow-sm ${isFestive ? "text-[#7a0f21]" : "text-blue-600"}` : isFestive ? "text-white/75 hover:text-white" : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => {
                 setTargetDevice('tv')
                 // Bubbles puts the TV steps above the plans, so bring them into view
@@ -2275,6 +2291,14 @@ export default function HotspotClientView({
                 hideSpeed={portalConfig?.hide_plan_speed}
                 displayName={displayName}
                 logoUrl={logoError ? null : logoUrl}
+                onPay={selectPlanAndPay}
+              />
+            )}
+            {isAdvent && (
+              <AdventPlans
+                plans={paidPlans}
+                formatPrice={(p) => formatPaymentAmount(p.price, p.currency || paymentLocale.currency)}
+                hideSpeed={portalConfig?.hide_plan_speed}
                 onPay={selectPlanAndPay}
               />
             )}

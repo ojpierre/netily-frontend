@@ -2571,6 +2571,8 @@ export interface CompanySubscription {
   trial_ends_at: string | null
   trial_expired?: boolean
   trial_days_remaining?: number
+  /** True for perpetual workspaces (e.g. demo): hide countdowns/renew prompts. */
+  never_expires?: boolean
   current_period_start: string | null
   current_period_end: string | null
   cancelled_at: string | null

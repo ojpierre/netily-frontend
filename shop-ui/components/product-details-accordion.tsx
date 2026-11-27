@@ -1,59 +1,49 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Plus, Minus } from "lucide-react"
+import { ChevronDown } from "lucide-react"
+import { HEADING_FONT } from "@/shop-ui/lib/shop-helpers"
 
 interface AccordionItem {
   title: string
   content: string[]
 }
 
-interface ProductDetailsAccordionProps {
-  items: AccordionItem[]
-}
-
-export function ProductDetailsAccordion({ items }: ProductDetailsAccordionProps) {
-  const [openIndex, setOpenIndex] = useState<number | null>(0)
-
-  const toggle = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index)
-  }
-
+export function ProductDetailsAccordion({ items, defaultOpen = 0 }: { items: AccordionItem[]; defaultOpen?: number | null }) {
+  const [open, setOpen] = useState<number | null>(defaultOpen)
+  const visible = items.filter((i) => i.content.length > 0)
   return (
-    <div className="divide-y divide-muted">
-      {items.map((item, index) => (
-        <div key={index} className="py-4">
-          <button onClick={() => toggle(index)} className="flex items-center justify-between w-full text-left">
-            <span className="text-sm tracking-widest uppercase">{item.title}</span>
-            {openIndex === index ? (
-              <Minus className="w-4 h-4" strokeWidth={1} />
-            ) : (
-              <Plus className="w-4 h-4" strokeWidth={1} />
-            )}
-          </button>
-          <AnimatePresence>
-            {openIndex === index && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden"
+    <div className="divide-y divide-[#dce4e8] rounded-xl border border-[#dce4e8] bg-white">
+      {visible.map((item, i) => {
+        const isOpen = open === i
+        return (
+          <div key={item.title}>
+            <h3>
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                aria-expanded={isOpen}
+                aria-controls={`pd-panel-${i}`}
+                id={`pd-btn-${i}`}
+                className={`${HEADING_FONT} flex w-full items-center justify-between gap-4 px-4 py-3.5 text-left text-[15px] font-semibold text-[#17252d] outline-none hover:bg-[#f3f7f8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0874cf]`}
               >
-                <ul className="pt-4 space-y-2">
-                  {item.content.map((line, i) => (
-                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="w-1 h-1 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ))}
+                {item.title}
+                <ChevronDown className={`h-4 w-4 shrink-0 text-[#56656f] transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
+            </h3>
+            <div id={`pd-panel-${i}`} role="region" aria-labelledby={`pd-btn-${i}`} hidden={!isOpen}>
+              <ul className="space-y-2 px-4 pb-4 text-sm leading-6 text-[#56656f]">
+                {item.content.map((line) => (
+                  <li key={line} className="flex gap-2.5">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#0874cf]" aria-hidden="true" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -2713,7 +2713,7 @@ html:not(.dark) .public-site th {
 
 /* Shell base wash. isolation lets the z-index:-1 backdrop sit above the
    shell background but below every page element. */
-:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .netily-admin-shell {
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"], [data-theme="evergreen"], [data-theme="fairy-lights"]) .netily-admin-shell {
   isolation: isolate;
 }
 
@@ -2940,7 +2940,7 @@ html:not(.dark) .public-site th {
 }
 
 /* ── Spinners (every Loader2 / Spinner across the app) ─────────── */
-:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .lucide-loader-circle.animate-spin > * {
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"], [data-theme="evergreen"], [data-theme="fairy-lights"]) .lucide-loader-circle.animate-spin > * {
   visibility: hidden;
 }
 
@@ -3013,7 +3013,7 @@ html:not(.dark) .public-site th {
 }
 
 /* ── Skeletons: a themed sweep instead of a pulse ──────────────── */
-:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) [data-slot="skeleton"] {
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"], [data-theme="evergreen"], [data-theme="fairy-lights"]) [data-slot="skeleton"] {
   background-color: var(--muted);
   background-image: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--nm-sweep, var(--primary)) 24%, transparent) 50%, transparent 70%);
   background-size: 220% 100%;
@@ -3028,7 +3028,7 @@ html:not(.dark) .public-site th {
 }
 
 /* ── Header carrier line ───────────────────────────────────────── */
-:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .netily-admin-header::after {
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"], [data-theme="evergreen"], [data-theme="fairy-lights"]) .netily-admin-header::after {
   content: "";
   position: absolute;
   left: 1rem;
@@ -3068,7 +3068,7 @@ html:not(.dark) .public-site th {
 }
 
 /* ── Active menu item: a slow sheen across the pill ────────────── */
-:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) .nav-active-pill {
+:is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"], [data-theme="evergreen"], [data-theme="fairy-lights"]) .nav-active-pill {
   background-image: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.26) 50%, transparent 65%);
   background-size: 250% 100%;
   background-repeat: no-repeat;
@@ -3103,8 +3103,386 @@ html[data-motion="paused"] .netily-admin-header::after {
   .nm-packet {
     display: none;
   }
-  :is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"]) [data-slot="skeleton"] {
+  :is([data-theme="fibre-pulse"], [data-theme="airwave"], [data-theme="packet-flow"], [data-theme="evergreen"], [data-theme="fairy-lights"]) [data-slot="skeleton"] {
     animation: none;
     background-image: none;
   }
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   CHRISTMAS MOTION THEMES — Evergreen, Fairy Lights
+   Same contract as the motion themes above (background, spinner,
+   skeleton, header line, active menu sheen), dressed for the season.
+   Evergreen: snow falling over a pine treeline, a snowflake spinner and
+   a candy-cane header line. Fairy Lights: strings of twinkling bulbs, a
+   ring-of-bulbs spinner and a chasing light string under the header.
+   Chart colours are validated for colour-blind separation in both modes.
+   ════════════════════════════════════════════════════════════════ */
+
+[data-theme="evergreen"] {
+  --background: oklch(0.975 0.01 150);
+  --foreground: oklch(0.2 0.035 160);
+  --card: oklch(0.995 0.004 150);
+  --card-foreground: oklch(0.2 0.035 160);
+  --popover: oklch(0.995 0.004 150);
+  --popover-foreground: oklch(0.2 0.035 160);
+  --secondary: oklch(0.935 0.022 150);
+  --secondary-foreground: oklch(0.22 0.04 160);
+  --muted: oklch(0.925 0.018 150);
+  --muted-foreground: oklch(0.47 0.035 160);
+  --border: oklch(0.87 0.03 150);
+  --input: oklch(0.95 0.015 150);
+  --primary: oklch(0.45 0.1 158);
+  --primary-foreground: oklch(0.99 0.005 150);
+  --accent: oklch(0.83 0.12 85);
+  --accent-foreground: oklch(0.22 0.04 160);
+  --ring: oklch(0.45 0.1 158);
+  --chart-1: oklch(0.5 0.11 158);
+  --chart-2: oklch(0.67 0.14 72);
+  --chart-3: oklch(0.56 0.19 25);
+  --chart-4: oklch(0.6 0.12 240);
+  --chart-5: oklch(0.5 0.13 330);
+  --sidebar: oklch(0.2 0.04 160);
+  --sidebar-foreground: oklch(0.93 0.02 140);
+  --sidebar-primary: oklch(0.58 0.12 155);
+  --sidebar-primary-foreground: oklch(0.99 0.005 150);
+  --sidebar-accent: oklch(0.27 0.045 160);
+  --sidebar-accent-foreground: oklch(0.93 0.02 140);
+  --sidebar-border: oklch(0.32 0.045 160);
+  --sidebar-ring: oklch(0.58 0.12 155);
+  --nm-snow: oklch(0.62 0.05 175 / 0.55);
+}
+
+[data-theme="evergreen"].dark,
+.dark[data-theme="evergreen"],
+.dark [data-theme="evergreen"] {
+  --background: oklch(0.14 0.025 165);
+  --foreground: oklch(0.94 0.015 140);
+  --card: oklch(0.185 0.03 163);
+  --card-foreground: oklch(0.94 0.015 140);
+  --popover: oklch(0.185 0.03 163);
+  --popover-foreground: oklch(0.94 0.015 140);
+  --secondary: oklch(0.235 0.035 163);
+  --secondary-foreground: oklch(0.94 0.015 140);
+  --muted: oklch(0.27 0.03 163);
+  --muted-foreground: oklch(0.73 0.03 145);
+  --border: oklch(0.33 0.04 160);
+  --input: oklch(0.22 0.03 163);
+  --primary: oklch(0.58 0.13 155);
+  --primary-foreground: oklch(0.99 0.005 150);
+  --accent: oklch(0.84 0.13 85);
+  --accent-foreground: oklch(0.18 0.03 160);
+  --ring: oklch(0.62 0.13 155);
+  --chart-1: oklch(0.53 0.13 155);
+  --chart-2: oklch(0.665 0.13 80);
+  --chart-3: oklch(0.57 0.19 25);
+  --chart-4: oklch(0.66 0.1 235);
+  --chart-5: oklch(0.54 0.15 320);
+  --sidebar: oklch(0.11 0.022 165);
+  --sidebar-foreground: oklch(0.94 0.015 140);
+  --sidebar-primary: oklch(0.58 0.13 155);
+  --sidebar-primary-foreground: oklch(0.99 0.005 150);
+  --sidebar-accent: oklch(0.21 0.03 163);
+  --sidebar-accent-foreground: oklch(0.94 0.015 140);
+  --sidebar-border: oklch(0.28 0.035 163);
+  --sidebar-ring: oklch(0.58 0.13 155);
+  --nm-snow: oklch(1 0 0 / 0.9);
+}
+
+[data-theme="fairy-lights"] {
+  --background: oklch(0.975 0.012 75);
+  --foreground: oklch(0.21 0.03 30);
+  --card: oklch(0.995 0.006 75);
+  --card-foreground: oklch(0.21 0.03 30);
+  --popover: oklch(0.995 0.006 75);
+  --popover-foreground: oklch(0.21 0.03 30);
+  --secondary: oklch(0.94 0.022 70);
+  --secondary-foreground: oklch(0.23 0.04 30);
+  --muted: oklch(0.925 0.02 70);
+  --muted-foreground: oklch(0.47 0.035 40);
+  --border: oklch(0.88 0.03 65);
+  --input: oklch(0.955 0.018 70);
+  --primary: oklch(0.5 0.19 22);
+  --primary-foreground: oklch(0.99 0.006 75);
+  --accent: oklch(0.82 0.14 82);
+  --accent-foreground: oklch(0.22 0.04 30);
+  --ring: oklch(0.5 0.19 22);
+  --chart-1: oklch(0.52 0.19 22);
+  --chart-2: oklch(0.67 0.14 72);
+  --chart-3: oklch(0.5 0.11 158);
+  --chart-4: oklch(0.58 0.13 250);
+  --chart-5: oklch(0.52 0.14 330);
+  --sidebar: oklch(0.18 0.03 20);
+  --sidebar-foreground: oklch(0.93 0.02 70);
+  --sidebar-primary: oklch(0.6 0.2 22);
+  --sidebar-primary-foreground: oklch(0.99 0.006 75);
+  --sidebar-accent: oklch(0.26 0.035 20);
+  --sidebar-accent-foreground: oklch(0.93 0.02 70);
+  --sidebar-border: oklch(0.32 0.04 20);
+  --sidebar-ring: oklch(0.6 0.2 22);
+}
+
+[data-theme="fairy-lights"].dark,
+.dark[data-theme="fairy-lights"],
+.dark [data-theme="fairy-lights"] {
+  --background: oklch(0.15 0.025 285);
+  --foreground: oklch(0.95 0.015 80);
+  --card: oklch(0.195 0.03 285);
+  --card-foreground: oklch(0.95 0.015 80);
+  --popover: oklch(0.195 0.03 285);
+  --popover-foreground: oklch(0.95 0.015 80);
+  --secondary: oklch(0.245 0.035 285);
+  --secondary-foreground: oklch(0.95 0.015 80);
+  --muted: oklch(0.275 0.03 285);
+  --muted-foreground: oklch(0.75 0.03 70);
+  --border: oklch(0.34 0.04 285);
+  --input: oklch(0.23 0.03 285);
+  --primary: oklch(0.6 0.2 22);
+  --primary-foreground: oklch(0.99 0.006 75);
+  --accent: oklch(0.85 0.14 82);
+  --accent-foreground: oklch(0.2 0.03 285);
+  --ring: oklch(0.64 0.19 22);
+  --chart-1: oklch(0.59 0.19 22);
+  --chart-2: oklch(0.665 0.13 80);
+  --chart-3: oklch(0.53 0.13 155);
+  --chart-4: oklch(0.65 0.11 245);
+  --chart-5: oklch(0.54 0.15 320);
+  --sidebar: oklch(0.12 0.025 285);
+  --sidebar-foreground: oklch(0.95 0.015 80);
+  --sidebar-primary: oklch(0.6 0.2 22);
+  --sidebar-primary-foreground: oklch(0.99 0.006 75);
+  --sidebar-accent: oklch(0.22 0.03 285);
+  --sidebar-accent-foreground: oklch(0.95 0.015 80);
+  --sidebar-border: oklch(0.29 0.035 285);
+  --sidebar-ring: oklch(0.6 0.2 22);
+}
+
+/* Shell washes */
+[data-theme="evergreen"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 85% 4%, oklch(0.9 0.06 150 / 0.5), transparent 30rem),
+    radial-gradient(circle at 10% 0%, oklch(0.93 0.05 25 / 0.35), transparent 26rem),
+    linear-gradient(180deg, oklch(0.975 0.01 150), oklch(0.95 0.018 160));
+}
+.dark[data-theme="evergreen"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 85% 2%, oklch(0.42 0.09 160 / 0.4), transparent 34rem),
+    radial-gradient(circle at 12% 0%, oklch(0.45 0.13 25 / 0.14), transparent 28rem),
+    linear-gradient(180deg, oklch(0.13 0.025 165), oklch(0.16 0.03 160));
+}
+[data-theme="fairy-lights"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 82% 6%, oklch(0.9 0.09 82 / 0.4), transparent 28rem),
+    radial-gradient(circle at 15% 0%, oklch(0.92 0.06 22 / 0.35), transparent 26rem),
+    linear-gradient(170deg, oklch(0.975 0.012 75), oklch(0.948 0.022 65));
+}
+.dark[data-theme="fairy-lights"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 80% 0%, oklch(0.45 0.12 70 / 0.22), transparent 32rem),
+    radial-gradient(circle at 15% 2%, oklch(0.45 0.16 22 / 0.2), transparent 28rem),
+    linear-gradient(175deg, oklch(0.135 0.025 285), oklch(0.165 0.03 290));
+}
+
+.nm-backdrop[data-nm="evergreen"] { opacity: 0.85; }
+.dark .nm-backdrop[data-nm="evergreen"] { opacity: 1; }
+.nm-backdrop[data-nm="fairy-lights"] { opacity: 0.8; }
+.dark .nm-backdrop[data-nm="fairy-lights"] { opacity: 1; }
+
+/* Evergreen: three snow layers (each falls exactly one tile per cycle) over a pine line */
+.nm-snow-sway {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  animation: nm-snow-sway 11s ease-in-out infinite;
+}
+.nm-snow-sway + .nm-snow-sway { animation-duration: 15s; animation-delay: -5s; }
+.nm-snow {
+  --t: 200px;
+  position: absolute;
+  left: -40px;
+  right: -40px;
+  top: calc(var(--t) * -1);
+  bottom: 0;
+  background-size: var(--t) var(--t);
+  will-change: transform;
+  animation: nm-snow-fall var(--nm-dur, 16s) linear infinite;
+}
+.nm-snow-far {
+  --t: 160px;
+  --nm-dur: 26s;
+  opacity: 0.6;
+  background-image:
+    radial-gradient(circle at 18px 26px, var(--nm-snow) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 92px 70px, var(--nm-snow) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 136px 14px, var(--nm-snow) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 54px 128px, var(--nm-snow) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 146px 110px, var(--nm-snow) 0 1.1px, transparent 1.7px);
+}
+.nm-snow-mid {
+  --t: 240px;
+  --nm-dur: 18s;
+  opacity: 0.8;
+  background-image:
+    radial-gradient(circle at 30px 40px, var(--nm-snow) 0 1.8px, transparent 2.5px),
+    radial-gradient(circle at 168px 100px, var(--nm-snow) 0 1.6px, transparent 2.3px),
+    radial-gradient(circle at 100px 196px, var(--nm-snow) 0 2px, transparent 2.7px),
+    radial-gradient(circle at 214px 166px, var(--nm-snow) 0 1.5px, transparent 2.2px);
+}
+.nm-snow-near {
+  --t: 360px;
+  --nm-dur: 13s;
+  background-image:
+    radial-gradient(circle at 60px 80px, var(--nm-snow) 0 2.8px, transparent 3.8px),
+    radial-gradient(circle at 270px 220px, var(--nm-snow) 0 2.4px, transparent 3.4px),
+    radial-gradient(circle at 180px 330px, var(--nm-snow) 0 3.2px, transparent 4.2px);
+}
+.nm-backdrop--contained .nm-snow { animation-duration: calc(var(--nm-dur, 16s) * 0.6); }
+.nm-pines {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 24vh;
+  min-height: 140px;
+}
+.nm-backdrop--contained .nm-pines { height: 38%; min-height: 0; }
+.nm-pines-back { fill: color-mix(in oklab, var(--primary) 16%, transparent); }
+.nm-pines-front { fill: color-mix(in oklab, var(--primary) 26%, transparent); }
+.dark .nm-pines-back { fill: color-mix(in oklab, var(--primary) 22%, var(--background)); }
+.dark .nm-pines-front { fill: color-mix(in oklab, var(--primary) 34%, var(--background)); }
+.nm-pines-snow { fill: color-mix(in oklab, var(--foreground) 6%, var(--background)); }
+@keyframes nm-snow-fall {
+  to { transform: translate3d(0, var(--t), 0); }
+}
+@keyframes nm-snow-sway {
+  0%, 100% { transform: translate3d(-10px, 0, 0); }
+  50% { transform: translate3d(10px, 0, 0); }
+}
+
+/* Fairy Lights: draped wires with bulbs that twinkle out of step, and slow bokeh */
+.nm-lights {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.nm-light-wire {
+  fill: none;
+  stroke: color-mix(in oklab, var(--foreground) 38%, transparent);
+  stroke-width: 1.4;
+}
+.nm-bulb-glow {
+  opacity: 0.35;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nm-bulb-twinkle var(--nm-dur, 3s) ease-in-out var(--nm-delay, 0s) infinite;
+}
+.nm-bulb {
+  animation: nm-bulb-glint var(--nm-dur, 3s) ease-in-out var(--nm-delay, 0s) infinite;
+}
+.nm-bulb-cap {
+  fill: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+.nm-bokeh {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--accent) 55%, transparent), transparent 68%);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: nm-bokeh-rise var(--nm-dur, 18s) ease-in-out var(--nm-delay, 0s) infinite;
+}
+.nm-bokeh-red { background: radial-gradient(circle, color-mix(in oklab, var(--primary) 45%, transparent), transparent 68%); }
+/* Bokeh only reads as glow on a dark sky; on cream it looks like smudges */
+.nm-backdrop:not(.dark *) .nm-bokeh { display: none; }
+@keyframes nm-bulb-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 0.95; transform: scale(1.15); }
+}
+@keyframes nm-bulb-glint {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+@keyframes nm-bokeh-rise {
+  0% { opacity: 0; transform: translate3d(0, 30px, 0) scale(0.9); }
+  30%, 70% { opacity: 0.55; }
+  100% { opacity: 0; transform: translate3d(0, -60px, 0) scale(1.1); }
+}
+
+/* Spinners */
+/* Evergreen: a six-armed snowflake turning slowly */
+[data-theme="evergreen"] .lucide-loader-circle.animate-spin {
+  border-radius: 50%;
+  background: currentColor;
+  -webkit-mask:
+    radial-gradient(closest-side, #000 0 20%, transparent 23%),
+    radial-gradient(closest-side, transparent 58%, #000 60% 66%, transparent 68%),
+    repeating-conic-gradient(from -4deg, #000 0 8deg, transparent 8deg 60deg);
+  mask:
+    radial-gradient(closest-side, #000 0 20%, transparent 23%),
+    radial-gradient(closest-side, transparent 58%, #000 60% 66%, transparent 68%),
+    repeating-conic-gradient(from -4deg, #000 0 8deg, transparent 8deg 60deg);
+  animation: spin 1.8s linear infinite;
+}
+/* Fairy Lights: a ring of coloured bulbs chasing round */
+[data-theme="fairy-lights"] .lucide-loader-circle.animate-spin {
+  border-radius: 50%;
+  background:
+    radial-gradient(13% 13% at 88% 50%, oklch(0.62 0.22 25) 96%, transparent 100%),
+    radial-gradient(13% 13% at 76.9% 76.9%, oklch(0.82 0.15 85 / 0.9) 96%, transparent 100%),
+    radial-gradient(13% 13% at 50% 88%, oklch(0.64 0.16 150 / 0.8) 96%, transparent 100%),
+    radial-gradient(13% 13% at 23.1% 76.9%, oklch(0.66 0.15 245 / 0.7) 96%, transparent 100%),
+    radial-gradient(13% 13% at 12% 50%, oklch(0.62 0.22 25 / 0.55) 96%, transparent 100%),
+    radial-gradient(13% 13% at 23.1% 23.1%, oklch(0.82 0.15 85 / 0.42) 96%, transparent 100%),
+    radial-gradient(13% 13% at 50% 12%, oklch(0.64 0.16 150 / 0.32) 96%, transparent 100%),
+    radial-gradient(13% 13% at 76.9% 23.1%, oklch(0.66 0.15 245 / 0.24) 96%, transparent 100%);
+  animation: spin 0.9s steps(8) infinite;
+}
+
+/* Skeleton sweeps */
+[data-theme="evergreen"] [data-slot="skeleton"] { --nm-sweep: var(--accent); }
+[data-theme="fairy-lights"] [data-slot="skeleton"] { --nm-sweep: var(--accent); }
+
+/* Header lines */
+/* Evergreen: a slim candy-cane stripe marching along */
+[data-theme="evergreen"] .netily-admin-header::after {
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--chart-3) 0 9px, color-mix(in oklab, var(--card) 85%, white) 9px 18px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  opacity: 0.85;
+  animation: nm-cane-march 1.8s linear infinite;
+}
+@keyframes nm-cane-march {
+  to { background-position: 18px 0; }
+}
+/* Fairy Lights: a string of bulbs hanging off the header; colours chase one step at a time */
+[data-theme="fairy-lights"] .netily-admin-header::after {
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: -7px;
+  height: 12px;
+  background:
+    radial-gradient(circle at 9px 7px, oklch(0.62 0.22 25) 0 2.6px, oklch(0.62 0.22 25 / 0.3) 3.4px, transparent 6px),
+    radial-gradient(circle at 27px 7px, oklch(0.84 0.15 85) 0 2.6px, oklch(0.84 0.15 85 / 0.3) 3.4px, transparent 6px),
+    radial-gradient(circle at 45px 7px, oklch(0.64 0.16 150) 0 2.6px, oklch(0.64 0.16 150 / 0.3) 3.4px, transparent 6px),
+    radial-gradient(circle at 63px 7px, oklch(0.68 0.15 245) 0 2.6px, oklch(0.68 0.15 245 / 0.3) 3.4px, transparent 6px),
+    linear-gradient(color-mix(in oklab, var(--foreground) 35%, transparent), color-mix(in oklab, var(--foreground) 35%, transparent));
+  background-size: 72px 12px, 72px 12px, 72px 12px, 72px 12px, 100% 1px;
+  background-repeat: repeat-x, repeat-x, repeat-x, repeat-x, no-repeat;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 3px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  animation: nm-lights-chase 3.2s steps(4) infinite;
+}
+@keyframes nm-lights-chase {
+  to { background-position: 72px 0, 72px 0, 72px 0, 72px 0, 0 3px; }
+}
+
+/* Reduced motion: keep a still, readable picture (animations are stopped by the rules above) */
+@media (prefers-reduced-motion: reduce) {
+  .nm-snow-far { opacity: 0.45; }
+  .nm-bulb-glow { opacity: 0.6; }
+  .nm-bokeh { display: none; }
 }

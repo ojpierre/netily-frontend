@@ -1,63 +1,49 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion"
+import type { Product } from "@/shop-ui/lib/products"
+import { ProductArt } from "./product-art"
 
-interface ProductGalleryProps {
-  images: string[]
-  productName: string
-}
-
-export function ProductGallery({ images, productName }: ProductGalleryProps) {
-  const [activeIndex, setActiveIndex] = useState(0)
+/** Photos when the product has them, otherwise the category artwork. */
+export function ProductGallery({ product }: { product: Pick<Product, "name" | "brand" | "category" | "categorySlug" | "image" | "hoverImage"> }) {
+  const images = Array.from(new Set([product.image, product.hoverImage].filter(Boolean)))
+  const [active, setActive] = useState(0)
+  const current = images[Math.min(active, images.length - 1)] || ""
 
   return (
-    <div className="flex flex-col-reverse md:flex-row gap-4">
-      {/* Thumbnails - added lazy loading for non-active thumbnails */}
-      <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
-        {images.map((image, index) => (
-          <button
-            key={index}
-            onClick={() => setActiveIndex(index)}
-            className={`relative w-20 h-24 md:w-20 md:h-28 flex-shrink-0 overflow-hidden transition-all duration-300 ${
-              activeIndex === index ? "ring-1 ring-foreground" : "opacity-60 hover:opacity-100"
-            }`}
-          >
-            <Image
-              src={image || "/placeholder.svg"}
-              alt={`${productName} view ${index + 1}`}
-              fill
-              sizes="80px"
-              loading="lazy"
-              className="object-cover"
-            />
-          </button>
-        ))}
+    <div>
+      <div className="aspect-[4/3] overflow-hidden rounded-2xl border border-[#dce4e8] bg-white">
+        <ProductArt
+          key={current}
+          name={product.name}
+          brand={product.brand}
+          category={product.category}
+          categorySlug={product.categorySlug}
+          image={current}
+          variant="hero"
+          eager
+        />
       </div>
-
-      {/* Main Image - priority for first image, responsive sizes */}
-      <div className="relative flex-1 aspect-[3/4] bg-muted overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={images[activeIndex] || "/placeholder.svg"}
-              alt={productName}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              priority={activeIndex === 0}
-              className="object-cover"
-            />
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      {images.length > 1 && (
+        <ul className="mt-3 flex gap-3" aria-label="Product images">
+          {images.map((src, i) => (
+            <li key={src}>
+              <button
+                type="button"
+                onClick={() => setActive(i)}
+                aria-label={`Show image ${i + 1} of ${images.length}`}
+                aria-current={i === active}
+                className={`h-16 w-20 overflow-hidden rounded-lg border bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#0874cf] ${
+                  i === active ? "border-[#0874cf] ring-1 ring-[#0874cf]" : "border-[#dce4e8] hover:border-[#9db3bf]"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" loading="lazy" className="h-full w-full object-contain p-1" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

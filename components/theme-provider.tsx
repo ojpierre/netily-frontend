@@ -37,6 +37,8 @@ export type ColorTheme =
   | 'fibre-pulse'
   | 'airwave'
   | 'packet-flow'
+  | 'evergreen'
+  | 'fairy-lights'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
@@ -84,15 +86,21 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'fibre-pulse', label: 'Fibre Pulse', preview: 'linear-gradient(135deg,#0b1430,#2563eb,#22d3ee)' },
   { value: 'airwave', label: 'Airwave', preview: 'linear-gradient(135deg,#071c1a,#0d9488,#6ee7b7)' },
   { value: 'packet-flow', label: 'Packet Flow', preview: 'linear-gradient(135deg,#1c1210,#ea580c,#fbbf24)' },
+  { value: 'evergreen', label: 'Evergreen', preview: 'linear-gradient(135deg,#0f3d2e,#14764a,#cc3336)' },
+  { value: 'fairy-lights', label: 'Fairy Lights', preview: 'linear-gradient(135deg,#1a1630,#be2132,#e6ac3d)' },
 ]
 
-/** Themes with an animated background, spinner, skeleton and header line. */
+/**
+ * Themes with an animated background, spinner, skeleton and header line.
+ * Seasonal ones carry `season` and are shown in their own collection in Settings.
+ */
 export const MOTION_THEMES: {
   value: ColorTheme
   label: string
   idea: string
   description: string
   spinner: string
+  season?: 'christmas'
 }[] = [
   {
     value: 'fibre-pulse',
@@ -114,6 +122,22 @@ export const MOTION_THEMES: {
     idea: 'Data packets routing across a grid',
     description: 'Packets travel the lanes of a network grid as nodes blink.',
     spinner: 'Signal bars',
+  },
+  {
+    value: 'evergreen',
+    label: 'Evergreen',
+    idea: 'Snow falling over a pine forest',
+    description: 'Soft snow drifts down over a pine treeline. Pine green, cranberry and gold, with a candy-cane line under the header.',
+    spinner: 'Snowflake',
+    season: 'christmas',
+  },
+  {
+    value: 'fairy-lights',
+    label: 'Fairy Lights',
+    idea: 'Strings of Christmas lights',
+    description: 'Strings of bulbs twinkle across the top of the page, and a light string chases along the header. Glows best in dark mode.',
+    spinner: 'Ring of bulbs',
+    season: 'christmas',
   },
 ]
 

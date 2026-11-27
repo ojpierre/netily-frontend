@@ -1191,6 +1191,36 @@ export interface SubscriptionReminderRecipient {
   can_send: boolean
 }
 
+export class ShopApiError extends Error {
+  status: number
+  fieldErrors: Record<string, string[]>
+  constructor(message: string, status: number, fieldErrors: Record<string, string[]>) {
+    super(message)
+    this.name = "ShopApiError"
+    this.status = status
+    this.fieldErrors = fieldErrors
+  }
+  static async fromResponse(res: Response): Promise<ShopApiError> {
+    const body: any = await res.json().catch(() => null)
+    const fields: Record<string, string[]> = {}
+    let message = ""
+    if (Array.isArray(body)) {
+      message = body.map(String).join(" ")
+    } else if (body && typeof body === "object") {
+      if (typeof body.detail === "string") message = body.detail
+      for (const [key, value] of Object.entries(body)) {
+        if (key === "detail") continue
+        const list = Array.isArray(value) ? value.map(String) : typeof value === "string" ? [value] : []
+        if (!list.length) continue
+        if (key === "non_field_errors") message = message || list.join(" ")
+        else fields[key] = list
+      }
+    }
+    if (!message) message = Object.keys(fields).length ? "Please fix the highlighted fields." : `Request failed (${res.status})`
+    return new ShopApiError(message, res.status, fields)
+  }
+}
+
 export interface ShopSettings {
   store_name: string
   announcement_text: string
@@ -2268,6 +2298,57 @@ class SuperadminApiService {
   }
   async updateShopCategory(id: number, data: Record<string, unknown>): Promise<any> {
     return this.request(`/shop/admin/categories/${id}/`, { method: "PATCH", body: JSON.stringify(data) })
+  }
+  async deleteShopCategory(id: number): Promise<void> {
+    await this.shopRequest(`/shop/admin/categories/${id}/`, { method: "DELETE" })
+  }
+
+  /**
+   * Shop console request helper. Same auth and refresh behaviour as `request`, but failures
+   * throw a ShopApiError that keeps DRF field errors ({ field: ["message"] }) separate from
+   * the general message so forms can show them next to the right input.
+   */
+  async shopRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.getBaseUrl()}${endpoint}`
+    const send = () => {
+      const token = this.getToken()
+      const headers: Record<string, string> = { "Content-Type": "application/json", ...((options.headers as Record<string, string>) || {}) }
+      if (token) headers["Authorization"] = `Bearer ${token}`
+      return fetch(url, { ...options, headers })
+    }
+    let res = await send()
+    if (res.status === 401 && (await this.tryRefresh())) res = await send()
+    if (res.status === 401) throw new ShopApiError("Session expired. Please log in again.", 401, {})
+    if (!res.ok) throw await ShopApiError.fromResponse(res)
+    if (res.status === 204) return undefined as unknown as T
+    return res.json()
+  }
+
+  /** Upload a product, category or banner photo. Resolves with the public image URL. */
+  uploadShopImage(file: File, onProgress?: (percent: number) => void): Promise<{ url: string }> {
+    return new Promise((resolve, reject) => {
+      const send = (retried: boolean) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open("POST", `${this.getBaseUrl()}/shop/admin/uploads/`)
+        const token = this.getToken()
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`)
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100))
+        }
+        xhr.onerror = () => reject(new ShopApiError("Could not reach the server. Check your connection and try again.", 0, {}))
+        xhr.onload = async () => {
+          if (xhr.status === 401 && !retried && (await this.tryRefresh())) return send(true)
+          let body: any = {}
+          try { body = JSON.parse(xhr.responseText) } catch { /* not JSON */ }
+          if (xhr.status >= 200 && xhr.status < 300 && body.url) return resolve({ url: String(body.url) })
+          reject(new ShopApiError(body.detail || (xhr.status === 413 ? "Images must be 5 MB or smaller." : "Upload failed. Please try again."), xhr.status, {}))
+        }
+        const form = new FormData()
+        form.append("file", file)
+        xhr.send(form)
+      }
+      send(false)
+    })
   }
 }
 

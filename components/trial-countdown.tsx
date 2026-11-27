@@ -120,6 +120,7 @@ export function TrialCountdown() {
     const loadSubscription = async () => {
       try {
         const subscription = await adminApi.getCurrentSubscription()
+        if (subscription?.never_expires) return // perpetual workspace: no countdown
         if (subscription) {
           setSubscriptionStatus(subscription.status)
           // Safe access to plan name with fallbacks
@@ -247,6 +248,7 @@ export function TrialCountdownCompact() {
     const loadSubscription = async () => {
       try {
         const subscription = await adminApi.getCurrentSubscription()
+        if (subscription?.never_expires) return // perpetual workspace: no countdown
         if (subscription) {
           setSubscriptionStatus(subscription.status)
           setPlanName(subscription.plan_name || subscription.plan?.name || "Netily Plan")

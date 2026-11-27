@@ -1,51 +1,24 @@
 "use client"
 
-import Link from "next/link"
-import Image from "next/image"
-import { motion } from "framer-motion"
 import type { Product } from "@/shop-ui/lib/products"
-import { formatShopMoney } from "@/shop-ui/lib/currency"
+import { HEADING_FONT } from "@/shop-ui/lib/shop-helpers"
+import { ProductCard } from "./product-card"
 
-interface RelatedProductsProps {
-  products: Product[]
-}
-
-export function RelatedProducts({ products }: RelatedProductsProps) {
+export function RelatedProducts({ products, title = "You may also need" }: { products: Product[]; title?: string }) {
+  if (!products.length) return null
   return (
-    <section className="py-16 md:py-24 border-t border-muted">
-      <div className="max-w-7xl mx-auto px-6">
-        <h2 className="font-serif text-2xl md:text-3xl mb-10 text-center">You May Also Like</h2>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-          {products.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-            >
-              <Link href={`/shop/product/${product.id}`} className="group block">
-                <div className="relative aspect-[3/4] overflow-hidden bg-muted mb-4">
-                  <Image
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    loading="lazy"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif text-sm md:text-base group-hover:underline underline-offset-4">
-                    {product.name}
-                  </h3>
-                  <p className="text-xs md:text-sm text-muted-foreground">{formatShopMoney(product.price, product.currency)}</p>
-                </div>
-              </Link>
-            </motion.div>
+    <section className="border-t border-[#dce4e8] bg-[#f3f7f8]" aria-labelledby="related-heading">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+        <h2 id="related-heading" className={`${HEADING_FONT} text-2xl font-semibold tracking-tight text-[#17252d]`}>
+          {title}
+        </h2>
+        <ul className="mt-6 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
+          {products.slice(0, 4).map((p) => (
+            <li key={p.id} className="min-w-0">
+              <ProductCard product={p} />
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   )

@@ -82,6 +82,7 @@ import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
+import { AssistantLauncher } from "@/components/ai-assistant"
 import { AdminOnboardingTour } from "@/components/admin-onboarding-tour"
 import { WhatsNewPopup } from "@/components/whats-new-popup"
 import { AdminAnniversaryBar, AdminAnniversaryConfetti } from "@/components/admin-anniversary"
@@ -1861,6 +1862,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <SessionInactivityGuard onLogout={logout} areaLabel="tenant dashboard" />
           )}
           <NetilySupportChat />
+          {user && !isPublicPage && <AssistantLauncher />}
           <AdminOnboardingTour user={user} country={country} disabled={isDemoMode || isPublicPage || loading || localeLoading} />
           <WhatsNewPopup user={user} disabled={isDemoMode || isPublicPage || loading || pathname === "/admin/whats-new"} />
         <AdminAnniversaryConfetti user={user} disabled={isDemoMode || isPublicPage || loading} />

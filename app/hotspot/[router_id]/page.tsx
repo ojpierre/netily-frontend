@@ -1,5 +1,6 @@
 import HotspotClientView from "./HotspotClientView"
 import type { CaptivePortalResponse } from "./HotspotClientView"
+import { PORTAL_THEME_NAMES } from "./theme-engine"
 
 async function fetchCaptivePortalServerSide(
   routerId: string,
@@ -21,8 +22,8 @@ async function fetchCaptivePortalServerSide(
   }
 }
 
-/** Highest captive portal theme id (see theme-engine.ts) */
-const MAX_TEMPLATE_ID = 22
+/** Highest captive portal theme id, read from the theme registry so new themes are previewable */
+const MAX_TEMPLATE_ID = Math.max(...Object.keys(PORTAL_THEME_NAMES).map(Number))
 
 export default async function HotspotPage({
   params,

@@ -1,129 +1,340 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Image from "next/image"
+import { useMemo, useRef } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { AnimatePresence, motion } from "framer-motion"
-import { ArrowRight, BadgeCheck, Cable, CheckCircle2, ChevronLeft, ChevronRight, CreditCard, Headphones, PackageCheck, RadioTower, Router, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, Wifi, Wrench } from "lucide-react"
-import { defaultOfferSlides, type Product } from "@/shop-ui/lib/products"
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  Headphones,
+  Smartphone,
+  Truck,
+} from "lucide-react"
+import type { Product } from "@/shop-ui/lib/products"
 import { useShopCatalog } from "@/shop-ui/lib/use-shop-catalog"
+import { featuredCategories } from "@/shop-ui/lib/featured-catalog"
 import { formatShopMoney } from "@/shop-ui/lib/currency"
+import {
+  brandHref,
+  categoryHref,
+  countByBrand,
+  HEADING_FONT,
+  isOnSale,
+  productInCategory,
+  saveAmount,
+} from "@/shop-ui/lib/shop-helpers"
+import { useShopSettings } from "@/shop-ui/lib/use-shop-settings"
+import { HeroSection } from "./hero-section"
+import { CategoryGrid } from "./category-grid"
+import { ProductCard, ProductCardSkeleton } from "./product-card"
+import { ProductArt } from "./product-art"
+import { ShopFaq } from "./shop-faq"
 
-function ProductTile({ product }: { product: Product }) {
-  const onSale = Boolean(product.compareAtPrice && product.compareAtPrice > product.price)
+const trust = [
+  { icon: Smartphone, title: "Pay with M-Pesa", copy: "Approve one prompt on your phone." },
+  { icon: Truck, title: "Delivery across Kenya", copy: "We confirm dispatch once payment clears." },
+  { icon: BadgeCheck, title: "Genuine brands", copy: "MikroTik, Ubiquiti, TP-Link, VSOL and more." },
+  { icon: Headphones, title: "ISP engineers on WhatsApp", copy: "Get your parts list checked before you buy." },
+]
+
+interface Project {
+  id: string
+  title: string
+  copy: string
+  href: string
+  ids: string[]
+  fallbackCat: string
+}
+
+const projects: Project[] = [
+  {
+    id: "hotspot",
+    title: "Start a WiFi hotspot business",
+    copy: "A router to run the hotspot, an outdoor access point to cover the estate, and PoE power to the mast.",
+    href: categoryHref("outdoor-wireless"),
+    ids: ["mikrotik-hex-s-rb760igs", "ruijie-reyee-rg-rap52-od", "ruijie-reyee-rg-poe-at30"],
+    fallbackCat: "outdoor-wireless",
+  },
+  {
+    id: "ftth",
+    title: "Roll out fibre (FTTH)",
+    copy: "An OLT at the hub, ONTs at the customer, a splicer for the joins, plus cable and connectors for the run.",
+    href: categoryHref("fiber-optics-olt"),
+    ids: ["vsol-v1600gs-r-gpon-olt", "zte-f660v9-xpon-ont", "signal-fire-ai-5-pro-fusion-splicer"],
+    fallbackCat: "fiber-optics-olt",
+  },
+  {
+    id: "office",
+    title: "Office and home Wi-Fi",
+    copy: "Access points and routers that give every room a steady signal, without a tangle of extenders.",
+    href: categoryHref("wireless-access-points"),
+    ids: ["ruijie-reyee-rg-rap2260g", "ruijie-reyee-rg-ew1200", "ruijie-reyee-rg-es206gs-p"],
+    fallbackCat: "wireless-access-points",
+  },
+  {
+    id: "blackout",
+    title: "Keep the internet on during blackouts",
+    copy: "A battery to carry your router through an outage, and Starlink where fibre and mobile coverage run thin.",
+    href: categoryHref("power-protection"),
+    ids: ["starlink-mini", "felicity-hope1000-portable-power-station", "redsun-1kwh-power-backup"],
+    fallbackCat: "power-protection",
+  },
+]
+
+function SectionHeader({ eyebrow, title, copy, href, cta }: { eyebrow?: string; title: string; copy?: string; href?: string; cta?: string }) {
   return (
-    <Link href={`/shop/product/${product.id}`} className="group min-w-0 overflow-hidden rounded-lg border border-border bg-white text-[#0b1f33] transition duration-300 hover:-translate-y-1 hover:border-[#1b5eff]/50 hover:shadow-[0_18px_45px_rgba(17,45,96,0.12)]">
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#f2f5f9]">
-        <Image src={product.image || "/placeholder.svg"} alt={product.name} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-contain p-4 transition duration-500 group-hover:scale-[1.06]" />
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          {product.inStock === false ? <span className="rounded-md bg-white px-2.5 py-1 text-[10px] font-semibold text-red-600 shadow-sm">Out of stock</span> : <span className="rounded-md bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 shadow-sm">Ready to order</span>}
-          {onSale && <span className="rounded-md bg-[#1b5eff] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">Sale</span>}
-        </div>
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="max-w-2xl">
+        {eyebrow && <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0874cf]">{eyebrow}</p>}
+        <h2 className={`${HEADING_FONT} mt-1.5 text-2xl font-semibold tracking-tight text-[#17252d] sm:text-3xl`}>{title}</h2>
+        {copy && <p className="mt-2 text-[15px] leading-7 text-[#56656f]">{copy}</p>}
       </div>
-      <div className="p-4">
-        <p className="text-[10px] font-semibold uppercase text-[#1b5eff]">{product.brand || product.category}</p>
-        <h3 className="mt-1 line-clamp-2 min-h-12 text-base font-semibold leading-6">{product.name}</h3>
-        <div className="mt-4 flex items-center justify-between border-t border-border pt-3"><span><span className="block text-base font-semibold">{formatShopMoney(product.price, product.currency)}</span>{onSale && <span className="text-xs text-muted-foreground line-through">{formatShopMoney(product.compareAtPrice!, product.currency)}</span>}</span><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#eef4ff] text-[#1b5eff] transition group-hover:bg-[#1b5eff] group-hover:text-white"><ArrowRight className="h-4 w-4" /></span></div>
-      </div>
-    </Link>
+      {href && cta && (
+        <Link href={href} className="inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-[#0874cf] outline-none hover:text-[#075faa] focus-visible:ring-2 focus-visible:ring-[#0874cf]">
+          {cta}
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      )}
+    </div>
   )
 }
 
-const buildJourneys = [
-  { icon: RadioTower, kicker: "Starting or expanding a WISP", title: "Build a link that stays up when customers need it most.", copy: "Backhaul radios, routers, PoE switching, and clean power for the next tower or relay site.", image: "/shop-assets/products/wireless_dish.jpg", href: "/shop/catalog?q=wireless%20backhaul%20router%20power" },
-  { icon: Cable, kicker: "Rolling out fibre", title: "Plan the whole fibre run, not just the first box.", copy: "OLT and ONT equipment, drop cable, optics, splicing tools, and the spares field teams reach for.", image: "/shop-assets/products/fusion_splicer.jpg", href: "/shop/catalog?q=fiber%20gpon%20olt%20splicer" },
-  { icon: Router, kicker: "Upgrading the network core", title: "Give growing subscriber traffic somewhere to breathe.", copy: "MikroTik routing, switching, racks, and accessories sized for PPPoE, hotspot, and branch aggregation.", image: "/shop-assets/products/mikrotik_router.jpg", href: "/shop/catalog?q=mikrotik%20router%20switch%20rack" },
-]
-
 export function ShopStorefront() {
-  const router = useRouter()
-  const { products, categories, settings, loading, error } = useShopCatalog()
-  const [slide, setSlide] = useState(0)
-  const [query, setQuery] = useState("")
-  const offers = useMemo(() => settings ? [{
-    id: "managed-storefront-campaign",
-    eyebrow: settings.hero_eyebrow,
-    title: settings.hero_title,
-    description: settings.hero_description,
-    image: settings.hero_image,
-    ctaLabel: settings.hero_primary_label,
-    href: settings.hero_primary_href,
-    badge: settings.store_name,
-  }, ...defaultOfferSlides.slice(1)] : defaultOfferSlides, [settings])
-  const supportHref = settings?.whatsapp_number
-    ? `https://wa.me/${settings.whatsapp_number.replace(/\D/g, "")}`
-    : "https://wa.me/254100034307"
+  const { products, categories, loading } = useShopCatalog()
+  const settings = useShopSettings()
+  const railRef = useRef<HTMLUListElement>(null)
 
-  useEffect(() => {
-    if (offers.length < 2) return
-    const timer = window.setInterval(() => setSlide((value) => (value + 1) % offers.length), 6500)
-    return () => window.clearInterval(timer)
-  }, [offers.length])
+  const cats = categories.length ? categories : featuredCategories
+  const counts = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const c of cats) out[c.slug] = products.length ? products.filter((p) => productInCategory(p, c)).length : c.product_count ?? 0
+    return out
+  }, [cats, products])
 
-  const active = offers[slide]
+  const brands = useMemo(() => countByBrand(products), [products])
+  const namedBrands = brands.filter((b) => b.brand.toLowerCase() !== "generic")
   const featured = useMemo(() => {
-    const selected = products.filter((item) => item.isFeatured)
-    return (selected.length ? selected : products).slice(0, 4)
+    const f = products.filter((p) => p.isFeatured)
+    return (f.length >= 4 ? f : products).slice(0, 8)
   }, [products])
-  const categoryTiles = useMemo(() => categories.slice(0, 10).map((category) => ({
-    ...category,
-    image: category.image || products.find((item) => item.category === category.name)?.image || "/placeholder.svg",
-    count: category.product_count ?? products.filter((item) => item.category === category.name).length,
-  })), [categories, products])
-  const brands = useMemo(() => Array.from(new Set(products.map((item) => item.brand).filter(Boolean))).slice(0, 8) as string[], [products])
-  const saleProducts = useMemo(() => products.filter((item) => item.compareAtPrice && item.compareAtPrice > item.price).slice(0, 4), [products])
-  const trendingProducts = useMemo(() => {
-    const selected = products.filter((item) => item.isTrending)
-    return (selected.length ? selected : products.filter((item) => item.inStock !== false)).slice(0, 4)
-  }, [products])
+  const deals = useMemo(() => products.filter(isOnSale).sort((a, b) => saveAmount(b) - saveAmount(a)).slice(0, 12), [products])
 
-  function searchCatalog(event: React.FormEvent) {
-    event.preventDefault()
-    const value = query.trim()
-    router.push(value ? `/shop/catalog?q=${encodeURIComponent(value)}` : "/shop/catalog")
+  const projectCards = useMemo(
+    () =>
+      projects.map((pr) => {
+        const byId = pr.ids.map((id) => products.find((p) => p.id === id)).filter(Boolean) as Product[]
+        if (byId.length >= 3) return { ...pr, items: byId }
+        const cat = cats.find((c) => c.slug === pr.fallbackCat)
+        const extra = cat ? products.filter((p) => productInCategory(p, cat) && !byId.includes(p)) : []
+        return { ...pr, items: [...byId, ...extra].slice(0, 3) }
+      }),
+    [products, cats],
+  )
+
+  function scrollRail(dir: 1 | -1) {
+    const el = railRef.current
+    if (el) el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.8), behavior: "smooth" })
   }
 
   return (
-    <>
-      {settings?.announcement_text && <div className="mt-16 bg-[#1b5eff] px-6 py-2.5 text-center text-xs font-semibold text-white lg:mt-[104px]">{settings.announcement_text}</div>}
-      <section className={`relative min-h-[390px] overflow-hidden bg-[#06183b] text-white lg:min-h-[430px] ${settings?.announcement_text ? "" : "mt-16 lg:mt-[104px]"}`}>
-        <AnimatePresence mode="wait" initial={false}><motion.div key={active.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.55 }} className="absolute inset-0"><Image src={active.image} alt="" fill priority sizes="100vw" className="object-cover object-center" /><div className="absolute inset-0 bg-gradient-to-r from-[#06183b] via-[#06183b]/88 to-[#06183b]/15" /></motion.div></AnimatePresence>
-        <div className="relative mx-auto flex min-h-[390px] max-w-7xl items-center px-6 py-14 lg:min-h-[430px] lg:px-8"><motion.div key={`${active.id}-copy`} initial={false} animate={{ opacity: 1, y: 0 }} className="max-w-2xl"><p className="flex items-center gap-2 text-xs font-semibold uppercase text-[#a8c5ff]"><Sparkles className="h-4 w-4" />{active.eyebrow}</p><h1 className="mt-3 max-w-xl text-4xl font-semibold leading-tight md:text-5xl">{active.title}</h1><p className="mt-4 max-w-xl text-sm leading-6 text-white/75 md:text-base">{active.description}</p><form onSubmit={searchCatalog} className="mt-6 flex max-w-xl overflow-hidden rounded-lg border border-white/25 bg-white shadow-xl"><Search className="ml-4 mt-3.5 h-5 w-5 shrink-0 text-[#1b5eff]" /><input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search shop" placeholder="Search routers, fibre, access points, CCTV..." className="h-12 min-w-0 flex-1 bg-transparent px-3 text-sm text-[#0b1f33] outline-none placeholder:text-slate-500" /><button className="bg-[#1b5eff] px-5 text-sm font-semibold text-white">Search</button></form><div className="mt-5 flex flex-wrap gap-3"><Link href={active.href} className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#1b5eff] px-6 text-sm font-semibold text-white transition hover:bg-[#104bd7]">{active.ctaLabel}<ArrowRight className="h-4 w-4" /></Link><a href={settings?.hero_secondary_href || supportHref} className="inline-flex h-12 items-center rounded-lg border border-white/35 bg-black/10 px-6 text-sm font-semibold backdrop-blur-sm transition hover:bg-white hover:text-[#06183b]">{settings?.hero_secondary_label || "Ask before you buy"}</a></div></motion.div></div>
-        <div className="absolute bottom-5 left-6 right-6 flex items-center justify-end gap-2 lg:right-12"><button onClick={() => setSlide((slide - 1 + offers.length) % offers.length)} aria-label="Previous offer" className="grid h-10 w-10 place-items-center rounded-lg border border-white/25 bg-black/25 backdrop-blur-sm"><ChevronLeft className="h-5 w-5" /></button><span className="min-w-14 text-center text-xs font-semibold">{slide + 1} / {offers.length}</span><button onClick={() => setSlide((slide + 1) % offers.length)} aria-label="Next offer" className="grid h-10 w-10 place-items-center rounded-lg border border-white/25 bg-black/25 backdrop-blur-sm"><ChevronRight className="h-5 w-5" /></button></div>
+    <div className="bg-white pt-[96px] text-[#17252d] lg:pt-[104px]">
+      <HeroSection settings={settings} products={products} stats={{ products: products.length, categories: cats.length, brands: namedBrands.length }} />
+
+      {/* Trust strip */}
+      <section aria-label="Why buy here" className="border-b border-[#dce4e8] bg-white">
+        <ul className="mx-auto grid max-w-7xl grid-cols-1 gap-x-8 gap-y-5 px-4 py-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+          {trust.map(({ icon: Icon, title, copy }) => (
+            <li key={title} className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#eaf4fc] text-[#0874cf]">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">{title}</span>
+                <span className="block text-[13px] leading-5 text-[#56656f]">{copy}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section className="border-b border-border bg-white"><div className="mx-auto grid max-w-7xl grid-cols-2 px-6 lg:grid-cols-4 lg:px-8">{[
-        [PackageCheck, "Stock checked", "Confirmed before dispatch"], [ShieldCheck, "Clear warranty", "Coverage shown per item"], [Headphones, "Real buying help", "Ask about compatibility"], [BadgeCheck, settings?.allow_checkout === false ? "Checkout paused" : "M-Pesa checkout", settings?.allow_checkout === false ? (settings.checkout_notice || "Contact support to order") : "Fast STK Push payment"],
-      ].map(([Icon, title, copy]) => { const Component = Icon as typeof ShieldCheck; return <div key={String(title)} className="flex min-h-32 min-w-0 flex-col items-start gap-2 border-r border-border px-3 py-5 last:border-r-0 sm:px-5 lg:min-h-28 lg:flex-row lg:items-center lg:gap-4 lg:px-5 lg:first:pl-0 lg:last:pr-0"><Component className="h-8 w-8 shrink-0 text-[#1b5eff]" /><div className="min-w-0"><p className="text-sm font-semibold leading-5">{String(title)}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{String(copy)}</p></div></div> })}</div></section>
+      {/* Categories */}
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8" aria-labelledby="cat-heading">
+        <div id="cat-heading">
+          <SectionHeader eyebrow="Shop by category" title="Everything a network needs, in eight aisles" href="/shop/catalog" cta="View all products" />
+        </div>
+        <CategoryGrid categories={cats} counts={counts} />
+      </section>
 
-      <section className="bg-[#f5f8ff] py-14 md:py-16"><div className="mx-auto max-w-7xl px-6 lg:px-8"><SectionTitle eyebrow="Start with the job" title="What are you building next?" copy="Choose the job in front of you. We will take you to the hardware that belongs together." /><div className="grid gap-5 lg:grid-cols-3">{buildJourneys.map((journey, index) => { const Icon = journey.icon; return <motion.div key={journey.title} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-80px" }} transition={{ delay: index * 0.08 }}><Link href={journey.href} className="group block h-full overflow-hidden rounded-lg border border-[#cfdaee] bg-white shadow-[0_12px_35px_rgba(26,57,110,0.07)]"><div className="relative aspect-[16/10] overflow-hidden bg-[#eaf0f8]"><Image src={journey.image} alt="" fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover transition duration-700 group-hover:scale-105" /><span className="absolute left-4 top-4 grid h-14 w-14 place-items-center rounded-lg bg-white text-[#1b5eff] shadow-lg"><Icon className="h-7 w-7" /></span></div><div className="p-6"><p className="text-xs font-semibold uppercase text-[#1b5eff]">{journey.kicker}</p><h3 className="mt-2 text-xl font-semibold leading-7">{journey.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{journey.copy}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#1b5eff]">See the right equipment<ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div></Link></motion.div> })}</div></div></section>
+      {/* Featured */}
+      <section className="border-y border-[#dce4e8] bg-[#f3f7f8]" aria-labelledby="featured-heading">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8">
+          <div id="featured-heading">
+            <SectionHeader
+              eyebrow="Featured"
+              title="What ISPs and installers buy most"
+              copy="Routers, radios and OLTs that go into live networks every week."
+              href="/shop/catalog"
+              cta="Shop all"
+            />
+          </div>
+          <ul className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <li key={i}>
+                    <ProductCardSkeleton />
+                  </li>
+                ))
+              : featured.map((p, i) => (
+                  <li key={p.id} className={i >= 4 ? "hidden min-w-0 sm:block" : "min-w-0"}>
+                    <ProductCard product={p} priority={i < 4} />
+                  </li>
+                ))}
+          </ul>
+        </div>
+      </section>
 
-      <section className="bg-background py-14 md:py-16"><div className="mx-auto max-w-7xl px-6 lg:px-8"><SectionTitle eyebrow="Shop by category" title="What are you building?" copy="Start with the equipment family, then narrow by brand, price, and availability." href="/shop/catalog" />{categoryTiles.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">{categoryTiles.map((category) => <div key={category.slug} className="group overflow-hidden rounded-lg border border-border bg-white transition hover:border-[#1b5eff]/50 hover:shadow-lg"><Link href={`/shop/catalog?cat=${encodeURIComponent(category.name)}`} className="block"><div className="relative aspect-[16/10] bg-[#f2f5f9]"><Image src={category.image} alt="" fill sizes="(max-width: 640px) 50vw, 20vw" className="object-contain p-4 transition group-hover:scale-105" /><span className="absolute right-3 top-3 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-[#12336e] shadow">{category.count}</span></div><div className="p-4"><p className="text-base font-semibold leading-5">{category.name}</p>{category.description && <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{category.description}</p>}<span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#1b5eff]">Browse category<ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span></div></Link>{category.featured_brands?.length ? <div className="flex flex-wrap gap-1.5 border-t border-border px-4 py-3">{category.featured_brands.slice(0, 4).map((brand) => <Link key={brand} href={`/shop/catalog?cat=${encodeURIComponent(category.name)}&brand=${encodeURIComponent(brand)}`} className="rounded-md bg-[#eef4ff] px-2 py-1 text-[10px] font-medium text-[#12336e] hover:bg-[#dbe8ff]">{brand}</Link>)}</div> : null}</div>)}</div> : loading ? <CategorySkeleton /> : <StoreError message={error || "Categories are not available right now."} />}</div></section>
+      {/* Deals */}
+      {deals.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8" aria-labelledby="deals-heading">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div id="deals-heading" className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#168564]">Deals</p>
+              <h2 className={`${HEADING_FONT} mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl`}>Priced below the usual</h2>
+              <p className="mt-2 text-[15px] leading-7 text-[#56656f]">
+                {deals.length} {deals.length === 1 ? "item" : "items"} with a lower price than before. The saving is shown on each one.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => scrollRail(-1)}
+                aria-label="Scroll deals left"
+                className="hidden h-10 w-10 place-items-center rounded-lg border border-[#dce4e8] bg-white outline-none hover:border-[#0874cf] hover:text-[#0874cf] focus-visible:ring-2 focus-visible:ring-[#0874cf] sm:grid"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollRail(1)}
+                aria-label="Scroll deals right"
+                className="hidden h-10 w-10 place-items-center rounded-lg border border-[#dce4e8] bg-white outline-none hover:border-[#0874cf] hover:text-[#0874cf] focus-visible:ring-2 focus-visible:ring-[#0874cf] sm:grid"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <Link href="/shop/catalog?sale=1" className="ml-2 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0874cf] hover:text-[#075faa]">
+                See all deals
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+          <ul ref={railRef} className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0 [scrollbar-width:thin]" tabIndex={0} aria-label="Deals">
+            {deals.map((p) => (
+              <li key={p.id} className="shrink-0 snap-start">
+                <div className="relative">
+                  <ProductCard product={p} rail />
+                  <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-white/95 px-2 py-1 text-[11px] font-semibold tabular-nums text-[#168564] shadow-sm">
+                    Save {formatShopMoney(saveAmount(p), p.currency)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <section className="border-y border-border bg-[#071a3d] py-14 text-white md:py-16"><div className="mx-auto max-w-7xl px-6 lg:px-8"><SectionTitle eyebrow="Popular with operators" title="Equipment people are looking at now" href="/shop/catalog" dark />{loading ? <StoreSkeleton /> : error ? <StoreError message={error} /> : <div className="grid grid-cols-2 gap-4 md:grid-cols-4">{featured.map((product) => <ProductTile key={product.id} product={product} />)}</div>}</div></section>
+      {/* Projects */}
+      <section className="border-y border-[#dce4e8] bg-[#f3f7f8]" aria-labelledby="projects-heading">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8">
+          <div id="projects-heading">
+            <SectionHeader eyebrow="Shop by project" title="Start with the job, not the part number" copy="Four common builds, with the equipment that goes into each." />
+          </div>
+          <ul className="grid gap-4 md:grid-cols-2">
+            {projectCards.map((pr) => (
+              <li key={pr.id} className="flex flex-col rounded-xl border border-[#dce4e8] bg-white p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className={`${HEADING_FONT} text-lg font-semibold`}>{pr.title}</h3>
+                    <p className="mt-1.5 text-sm leading-6 text-[#56656f]">{pr.copy}</p>
+                  </div>
+                </div>
+                <ul className="mt-5 grid grid-cols-3 gap-3">
+                  {pr.items.map((p) => (
+                    <li key={p.id} className="min-w-0">
+                      <Link
+                        href={`/shop/product/${p.id}`}
+                        className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#0874cf]"
+                      >
+                        <div className="aspect-[4/3] overflow-hidden rounded-lg border border-[#eef2f4]">
+                          <ProductArt name={p.name} brand={p.brand} category={p.category} categorySlug={p.categorySlug} image={p.image} variant="glyph" showLabel={false} />
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-xs font-medium leading-4 text-[#17252d] group-hover:text-[#0874cf]">{p.name}</p>
+                        <p className="mt-0.5 text-xs tabular-nums text-[#56656f]">{formatShopMoney(p.price, p.currency)}</p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <Link href={pr.href} className="mt-5 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-[#0874cf] outline-none hover:text-[#075faa] focus-visible:ring-2 focus-visible:ring-[#0874cf]">
+                  Shop this project
+                  <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-      {saleProducts.length > 0 && <section className="bg-[#f5f8ff] py-14 md:py-16"><div className="mx-auto max-w-7xl px-6 lg:px-8"><SectionTitle eyebrow="Current offers" title="On sale now" copy="Clear original pricing, live availability, and no mystery discount codes." href="/shop/catalog?onSale=true" /><div className="grid grid-cols-2 gap-4 md:grid-cols-4">{saleProducts.map((product) => <ProductTile key={product.id} product={product} />)}</div></div></section>}
+      {/* Brands */}
+      {namedBrands.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8" aria-labelledby="brands-heading">
+          <div id="brands-heading">
+            <SectionHeader eyebrow="Shop by brand" title="The names your engineers already trust" />
+          </div>
+          <ul className="flex flex-wrap gap-2.5">
+            {namedBrands.map((b) => (
+              <li key={b.brand}>
+                <Link
+                  href={brandHref(b.brand)}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#dce4e8] bg-white px-4 py-2 text-sm font-medium text-[#17252d] outline-none transition hover:border-[#0874cf] hover:text-[#0874cf] focus-visible:ring-2 focus-visible:ring-[#0874cf]"
+                >
+                  {b.brand}
+                  <span className="rounded-full bg-[#f3f7f8] px-2 py-0.5 text-xs tabular-nums text-[#56656f]">{b.count}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <section className="bg-white py-14 md:py-16"><div className="mx-auto max-w-7xl px-6 lg:px-8"><SectionTitle eyebrow="Trending in Kenya" title="Popular network gear right now" copy="Frequently requested equipment for ISP upgrades, Wi-Fi rollouts, and field installations." href="/shop/catalog?sort=newest" /><div className="grid grid-cols-2 gap-4 md:grid-cols-4">{trendingProducts.map((product) => <ProductTile key={product.id} product={product} />)}</div></div></section>
+      {/* Cross-sell */}
+      <section className="px-4 sm:px-6 lg:px-8" aria-label="Internetily ISP billing">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl bg-[#17252d] px-6 py-10 text-white sm:px-10 md:py-12">
+          <div className="grid items-center gap-6 md:grid-cols-[1.4fr_1fr]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7cc4f5]">For ISP owners</p>
+              <h2 className={`${HEADING_FONT} mt-2 text-2xl font-semibold tracking-tight sm:text-3xl`}>Running an ISP? Bill it with Internetily.</h2>
+              <p className="mt-3 max-w-xl text-[15px] leading-7 text-white/75">
+                M-Pesa payments, MikroTik integration, and hotspot and PPPoE billing in one place. From KSh 500 a month, with a 2-day free trial.
+              </p>
+            </div>
+            <div className="md:justify-self-end">
+              <a
+                href="https://netily.co.ke/"
+                className="inline-flex h-12 items-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-[#17252d] outline-none transition hover:bg-[#eaf4fc] focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#17252d]"
+              >
+                Try Internetily free for 2 days
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <section className="bg-white py-14 md:py-20"><div className="mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8"><div className="relative min-h-[360px] overflow-hidden rounded-lg bg-[#eaf0f8] md:min-h-[470px]"><Image src="/shop-assets/shop_hero.png" alt="Network equipment prepared for installation" fill sizes="(max-width: 1024px) 100vw, 52vw" className="object-cover" /><div className="absolute bottom-5 left-5 right-5 rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur"><p className="text-sm font-semibold">Buying for a real installation?</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Send the topology, expected users, and equipment you already own. We will help spot mismatches before dispatch.</p></div></div><div><p className="text-xs font-semibold uppercase text-[#1b5eff]">Less guesswork in the field</p><h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">A cart should make sense when the installer opens it.</h2><p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">Network purchases are connected decisions. The right router still needs the right power, optics, cabling, mounting, and capacity. Ask us to check the combination before you pay.</p><div className="mt-7 grid gap-4 sm:grid-cols-2">{[
-        [Wrench, "Compatibility check", "Confirm ports, optics, power, and RouterOS fit."], [Wifi, "Capacity check", "Match hardware to users, traffic, and growth."], [ShoppingBag, "One sensible order", "Group the main equipment, tools, and spares."], [Search, "Hard-to-find gear", "Tell us what is missing from the catalog."],
-      ].map(([Icon, title, copy]) => { const Component = Icon as typeof Wrench; return <div key={String(title)} className="flex gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#eef4ff] text-[#1b5eff]"><Component className="h-6 w-6" /></span><div><p className="text-sm font-semibold">{String(title)}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{String(copy)}</p></div></div> })}</div><div className="mt-8 flex flex-wrap gap-3"><a href={supportHref} className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#1b5eff] px-6 text-sm font-semibold text-white">Ask on WhatsApp<ArrowRight className="h-4 w-4" /></a><Link href="/shop/catalog" className="inline-flex h-12 items-center rounded-lg border border-border px-6 text-sm font-semibold">Browse everything</Link></div></div></div></section>
-
-      <section className="border-y border-border bg-[#f5f8ff] py-14"><div className="mx-auto max-w-7xl px-6 lg:px-8"><SectionTitle eyebrow="New here?" title="Ordering is straightforward" copy="Know what happens before you commit to an order." /><div className="grid gap-4 md:grid-cols-3">{[[Search, "1", "Find the right equipment", "Search or browse by deployment, category, and brand. Ask us to verify compatibility."], [CreditCard, "2", "Pay securely", "Confirm the order and approve the M-Pesa prompt. Your price and delivery details stay visible."], [Truck, "3", "Track delivery", "Keep the order reference, follow progress, and receive the equipment with clear support contacts."]].map(([Icon, number, title, copy]) => { const Component = Icon as typeof Search; return <div key={String(number)} className="rounded-lg border border-[#cfdaee] bg-white p-6"><div className="flex items-center justify-between"><span className="grid h-11 w-11 place-items-center rounded-lg bg-[#eef4ff] text-[#1b5eff]"><Component className="h-5 w-5" /></span><span className="text-3xl font-semibold text-[#d6e2f7]">{String(number)}</span></div><h3 className="mt-5 text-lg font-semibold">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{String(copy)}</p></div> })}</div><div className="mt-6 flex flex-wrap gap-3"><Link href="/shop/catalog" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#1b5eff] px-5 text-sm font-semibold text-white">Start shopping<ArrowRight className="h-4 w-4" /></Link><Link href="/shop/track" className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-white px-5 text-sm font-semibold"><CheckCircle2 className="h-4 w-4 text-[#1b5eff]" />Track an order</Link></div></div></section>
-
-      <section className="bg-[#1b5eff] text-white"><div className="mx-auto grid max-w-7xl items-center gap-6 px-6 py-11 md:grid-cols-[1fr_auto] lg:px-8"><div><p className="text-xs font-semibold uppercase text-white/70">Hardware meets operations</p><h2 className="mt-2 max-w-2xl text-2xl font-semibold md:text-3xl">Run the subscribers, billing, routers, and payments behind your network.</h2></div><Link href="/" className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-[#12336e]">Explore Internetily<ArrowRight className="h-4 w-4" /></Link></div></section>
-
-      {brands.length > 0 && <section className="bg-background py-10"><div className="mx-auto max-w-7xl px-6 lg:px-8"><p className="mb-5 text-center text-xs font-semibold uppercase text-muted-foreground">Find familiar network brands</p><div className="flex flex-wrap justify-center gap-3">{brands.map((brand) => <Link key={brand} href={`/shop/catalog?q=${encodeURIComponent(brand)}`} className="rounded-lg border border-border bg-white px-6 py-3 text-sm font-semibold transition hover:border-[#1b5eff]/50 hover:text-[#1b5eff]">{brand}</Link>)}</div></div></section>}
-    </>
+      {/* FAQ */}
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8" aria-label="Frequently asked questions">
+        <ShopFaq />
+      </section>
+    </div>
   )
 }
-
-function SectionTitle({ eyebrow, title, copy, href, dark = false }: { eyebrow: string; title: string; copy?: string; href?: string; dark?: boolean }) {
-  return <div className="mb-7 flex items-end justify-between gap-5"><div><p className={`text-xs font-semibold uppercase ${dark ? "text-[#a8c5ff]" : "text-[#1b5eff]"}`}>{eyebrow}</p><h2 className="mt-1 max-w-2xl text-2xl font-semibold md:text-3xl">{title}</h2>{copy && <p className={`mt-2 max-w-2xl text-sm leading-6 ${dark ? "text-white/65" : "text-muted-foreground"}`}>{copy}</p>}</div>{href && <Link href={href} className={`hidden items-center gap-1 text-sm font-semibold sm:flex ${dark ? "text-white" : "text-[#1b5eff]"}`}>View all<ArrowRight className="h-4 w-4" /></Link>}</div>
-}
-
-function StoreSkeleton() { return <div className="grid grid-cols-2 gap-4 md:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="aspect-[3/4] animate-pulse rounded-lg bg-white/10" />)}</div> }
-function CategorySkeleton() { return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-40 animate-pulse rounded-lg bg-muted" />)}</div> }
-function StoreError({ message }: { message: string }) { return <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">{message}</div> }

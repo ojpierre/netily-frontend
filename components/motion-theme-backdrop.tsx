@@ -1,11 +1,12 @@
 "use client"
 
-import type { CSSProperties } from "react"
+import { useId, type CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 import { useColorTheme, type ColorTheme } from "@/components/theme-provider"
+import { lightStrings, pineRow } from "@/lib/festive-art"
 
 /*
- * Ambient background for the three motion themes. Purely decorative:
+ * Ambient background for the motion themes (including the Christmas ones). Purely decorative:
  * fixed behind the admin shell, aria-hidden, no pointer events, and only
  * transform / opacity / stroke-dashoffset animations so it stays cheap.
  * Styling and reduced-motion / paused handling live in globals.css (.nm-*).
@@ -135,10 +136,108 @@ function PacketBackdrop() {
   )
 }
 
+// ── Christmas ────────────────────────────────────────────────────
+
+const BACK_PINES = pineRow(16, 240, 60, 110, 5)
+const FRONT_PINES = pineRow(10, 240, 85, 150, 13)
+
+function EvergreenBackdrop() {
+  return (
+    <>
+      <div className="nm-snow-sway">
+        <div className="nm-snow nm-snow-far" />
+      </div>
+      <svg className="nm-pines" viewBox="0 0 1000 240" preserveAspectRatio="xMidYMax slice">
+        <path className="nm-pines-back" d={BACK_PINES} />
+        <path className="nm-pines-front" d={FRONT_PINES} />
+        <path className="nm-pines-snow" d="M0 228 C 180 216 330 236 520 224 S 850 214 1000 226 V240 H0Z" />
+      </svg>
+      <div className="nm-snow-sway">
+        <div className="nm-snow nm-snow-mid" />
+        <div className="nm-snow nm-snow-near" />
+      </div>
+    </>
+  )
+}
+
+// Classic bulb colours: red, gold, green, blue
+const BULB_TONES = ["oklch(0.62 0.22 25)", "oklch(0.84 0.15 85)", "oklch(0.64 0.16 150)", "oklch(0.68 0.15 245)"]
+
+// Hung from the top edge: the loops dip just below the floating header, so the lowest
+// bulbs show in the gap above the page content instead of hiding behind cards.
+const LIGHT_STRINGS = lightStrings([
+  { anchors: [-80, 560, 1180, 1520], y: -14, sag: 104, perSpan: 13 },
+  { anchors: [-80, 260, 880, 1520], y: -24, sag: 110, perSpan: 12 },
+])
+
+const BOKEH = [
+  { x: "72%", y: "38%", size: 120, dur: 19, delay: -2, red: false },
+  { x: "88%", y: "62%", size: 90, dur: 23, delay: -9, red: true },
+  { x: "56%", y: "74%", size: 150, dur: 27, delay: -14, red: false },
+  { x: "30%", y: "56%", size: 80, dur: 21, delay: -6, red: true },
+  { x: "18%", y: "82%", size: 130, dur: 25, delay: -17, red: false },
+]
+
+function FairyLightsBackdrop() {
+  // Unique gradient ids: the backdrop can render more than once (Settings previews + the shell)
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "")
+  return (
+    <>
+      {BOKEH.map((b, i) => (
+        <span
+          key={i}
+          className={cn("nm-bokeh", b.red && "nm-bokeh-red")}
+          style={{ left: b.x, top: b.y, width: b.size, height: b.size, "--nm-dur": `${b.dur}s`, "--nm-delay": `${b.delay}s` } as Vars}
+        />
+      ))}
+      <svg className="nm-lights" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMin slice">
+        <defs>
+          {BULB_TONES.map((tone, i) => (
+            <radialGradient key={i} id={`${uid}-glow-${i}`}>
+              <stop offset="0%" stopColor={tone} stopOpacity={0.9} />
+              <stop offset="45%" stopColor={tone} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={tone} stopOpacity={0} />
+            </radialGradient>
+          ))}
+        </defs>
+        {LIGHT_STRINGS.map((string, s) => (
+          <g key={s}>
+            <path className="nm-light-wire" d={string.d} />
+            {string.bulbs.map((bulb, i) => (
+              <g key={i} transform={`translate(${bulb.x} ${bulb.y}) rotate(${bulb.angle})`}>
+                <circle
+                  className="nm-bulb-glow"
+                  cx={0}
+                  cy={10}
+                  r={16}
+                  fill={`url(#${uid}-glow-${bulb.tone})`}
+                  style={{ "--nm-dur": `${bulb.dur}s`, "--nm-delay": `${bulb.delay}s` } as Vars}
+                />
+                <rect className="nm-bulb-cap" x={-2.6} y={0.5} width={5.2} height={4} rx={1} />
+                <ellipse
+                  className="nm-bulb"
+                  cx={0}
+                  cy={10}
+                  rx={4.2}
+                  ry={6.4}
+                  fill={BULB_TONES[bulb.tone]}
+                  style={{ "--nm-dur": `${bulb.dur}s`, "--nm-delay": `${bulb.delay}s` } as Vars}
+                />
+              </g>
+            ))}
+          </g>
+        ))}
+      </svg>
+    </>
+  )
+}
+
 const BACKDROPS: Partial<Record<ColorTheme, () => React.JSX.Element>> = {
   "fibre-pulse": FibreBackdrop,
   airwave: AirwaveBackdrop,
   "packet-flow": PacketBackdrop,
+  evergreen: EvergreenBackdrop,
+  "fairy-lights": FairyLightsBackdrop,
 }
 
 /** Renders the moving background when a motion theme is active, otherwise nothing. */

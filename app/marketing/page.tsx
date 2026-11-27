@@ -64,7 +64,7 @@ const ways = [
 const pillars = [
   {
     icon: Palette, title: "A login page that sells", lead: "Your WiFi login is the most-viewed page in your business. Make it work.",
-    points: ["22 themes, from clean Classic to Bubbles, Chat and Wi-Fi Vending", "Your logo, name, support number and a promo banner", "Live preview of the real portal before you save", "Happy-hour packages that only sell on the days and hours you choose"],
+    points: ["24 themes, from clean Classic to Bubbles, Wi-Fi Vending and two Christmas themes", "Your logo, name, support number and a promo banner", "Live preview of the real portal before you save", "Happy-hour packages that only sell on the days and hours you choose"],
   },
   {
     icon: Clapperboard, title: "Sponsored WiFi", lead: "Let local businesses pay for your customers' internet.",

@@ -4,6 +4,7 @@ import { academyCourses } from "@/lib/academy-data"
 import { blogPosts } from "@/lib/blog-data"
 import { caseStudies } from "@/lib/case-studies"
 import { publicAlternativePages } from "@/lib/alternatives-data"
+import { featuredCatalog, featuredCategories } from "@/shop-ui/lib/featured-catalog"
 
 const BASE = "https://netily.co.ke"
 const solutionSlugs = [
@@ -93,6 +94,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/shop/policies/warranty`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.45 },
     { url: `${BASE}/shop/policies/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.4 },
   ]
+  // Starter range; matches the slugs imported by `manage.py import_shop_catalog`.
+  const shopCategoryEntries: MetadataRoute.Sitemap = featuredCategories.map((category) => ({ url: `${BASE}/shop/catalog?cat=${category.slug}`, changeFrequency: "weekly" as const, priority: 0.7 }))
+  const shopProductEntries: MetadataRoute.Sitemap = featuredCatalog.map((product) => ({ url: `${BASE}/shop/product/${product.id}`, changeFrequency: "weekly" as const, priority: 0.66 }))
 
   return [
     ...marketingPaths.map((path) => ({
@@ -154,6 +158,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...caseStudyEntries,
     ...academyEntries,
     ...shopEntries,
+    ...shopCategoryEntries,
+    ...shopProductEntries,
     {
       url: `${BASE}/affiliate`,
       lastModified: new Date(),

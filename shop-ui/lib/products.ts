@@ -15,6 +15,8 @@ export interface Product {
   specsSheet?: Record<string, string>
   image: string
   hoverImage: string
+  /** One-line pitch for cards and meta descriptions. */
+  summary?: string
   description: string
   longDescription: string
   materials: string[]
@@ -48,7 +50,8 @@ export function normalizeProduct(raw: any): Product {
     specsSheet: specs,
     image: raw.image || "",
     hoverImage: raw.hoverImage || raw.image || "",
-    description: long.length > 160 ? `${long.slice(0, 157)}...` : long,
+    summary: raw.summary || "",
+    description: raw.summary || (long.length > 160 ? `${long.slice(0, 157)}...` : long),
     longDescription: long,
     materials: arr<string>(raw.materials),
     care: arr<string>(raw.care),
@@ -74,36 +77,36 @@ export interface ShopOfferSlide {
   badge?: string
 }
 
-// Static for now. The backend has no offers model.
+// Static for now. The backend has no offers model. Hrefs use category slugs.
 export const defaultOfferSlides: ShopOfferSlide[] = [
   {
     id: "fiber-rollout-offer",
-    eyebrow: "FTTH rollout bundle",
-    title: "GPON OLTs, ONTs, drop cable, and test tools in one clean order.",
-    description: "Build your next estate fiber rollout with verified hardware, dispatch support, and ISP-friendly recommendations.",
+    eyebrow: "FTTH rollout",
+    title: "OLTs, ONTs, cable and a splicer, in one order.",
+    description: "Everything for a GPON estate rollout: the OLT at the hub, ONTs for customers, ADSS cable, connectors and splicing tools.",
     image: "/shop-assets/shop_hero.png",
-    ctaLabel: "Shop Fiber Gear",
-    href: "/shop/catalog?cat=Fibre+%26+Optics",
-    badge: "Fiber offers",
+    ctaLabel: "Shop fibre gear",
+    href: "/shop/catalog?cat=fiber-optics-olt",
+    badge: "Fibre",
   },
   {
-    id: "tower-upgrade-offer",
-    eyebrow: "Tower and backhaul",
-    title: "Upgrade tower PoE, backhaul radios, and rack power before peak demand.",
-    description: "A practical bundle for WISPs adding sectors, repeaters, tower switches, and clean power protection.",
+    id: "wisp-offer",
+    eyebrow: "Outdoor wireless",
+    title: "Radios and access points for your next mast.",
+    description: "NanoStation and LiteBeam links, outdoor access points and PoE power for WISPs adding sectors and customers.",
     image: "/shop-assets/hero_bg.png",
-    ctaLabel: "Browse Backhaul",
-    href: "/shop/catalog?cat=Wireless+%26+Backhaul",
-    badge: "WISP ready",
+    ctaLabel: "Shop outdoor wireless",
+    href: "/shop/catalog?cat=outdoor-wireless",
+    badge: "WISP",
   },
   {
     id: "network-core-offer",
-    eyebrow: "Core network refresh",
-    title: "RouterOS edge routers and PoE switching for serious subscriber growth.",
-    description: "Choose MikroTik and carrier-grade switching for PPPoE, hotspot, CGNAT, and branch aggregation workloads.",
+    eyebrow: "Routers and gateways",
+    title: "MikroTik routers from a hEX S to a CCR2116.",
+    description: "RouterOS routers sized for PPPoE, hotspot and VLAN loads, from small offices to ISPs with thousands of subscribers.",
     image: "/shop-assets/products/mikrotik_router.jpg",
-    ctaLabel: "View Core Deals",
-    href: "/shop/catalog?cat=Routers+%26+Gateways",
-    badge: "Core deals",
+    ctaLabel: "Shop routers",
+    href: "/shop/catalog?cat=routers-gateways",
+    badge: "Routers",
   },
 ]

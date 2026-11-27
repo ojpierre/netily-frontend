@@ -30,6 +30,8 @@ import {
   Plane,
   MessageCircle,
   Store,
+  Gift,
+  Snowflake,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -332,6 +334,30 @@ const TEMPLATES: TemplateOption[] = [
       card: "bg-[#e8473d]",
       accent: "bg-amber-300",
       text: "text-[#b8261f]",
+    },
+  },
+  {
+    id: 23,
+    name: "Advent Calendar",
+    description: "Christmas: every plan is a numbered door on a festive calendar. Customers tap a door, it swings open to show the price, then they tap Get. Gentle snow falls behind",
+    icon: <Gift className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#0d3b2c]",
+      card: "bg-[#a5162f]",
+      accent: "bg-[#f6d98b]",
+      text: "text-[#fbe7b5]",
+    },
+  },
+  {
+    id: 24,
+    name: "Silent Night",
+    description: "Christmas: midnight blue and candle gold under falling snow, a glowing moon and a pine treeline. Works with Grid or List plans",
+    icon: <Snowflake className="w-5 h-5" />,
+    preview: {
+      bg: "bg-gradient-to-b from-[#050a1c] to-[#13254d]",
+      card: "bg-[#0a1430] border border-amber-200/20",
+      accent: "bg-amber-300",
+      text: "text-amber-100",
     },
   },
 ]
@@ -660,7 +686,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                     }`}
                   >
                     {/* Mini Preview */}
-                    {SIGNATURE_TEMPLATE_IDS.includes(tpl.id) ? (
+                    {SIGNATURE_TEMPLATE_IDS.includes(tpl.id) || tpl.id === 24 ? (
                       <SignatureThumb id={tpl.id} />
                     ) : (
                     <div className={`${tpl.preview.bg} p-3 aspect-[4/3] flex flex-col items-center justify-center gap-1.5`}>
@@ -680,6 +706,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       <div className="flex items-center justify-center gap-1.5">
                         {templateId === tpl.id && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
                         <span className="text-xs font-medium">{tpl.name}</span>
+                        {(tpl.id === 23 || tpl.id === 24) && (
+                          <span className="rounded-full bg-[#a5162f] px-1.5 py-px text-[9px] font-semibold text-white">Xmas</span>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -1191,8 +1220,46 @@ function PortalPreview({
   )
 }
 
-/** Tiny drawings of the three signature layouts for the template picker. */
+const THUMB_SNOW = "[background-image:radial-gradient(circle_at_8px_10px,#fff_0_1px,transparent_1.6px),radial-gradient(circle_at_26px_30px,#fff_0_0.8px,transparent_1.4px),radial-gradient(circle_at_40px_8px,#fff_0_1.2px,transparent_1.8px)] [background-size:46px_40px]"
+
+/** Tiny drawings of the signature layouts (and the Christmas themes) for the template picker. */
 function SignatureThumb({ id }: { id: number }) {
+  if (id === 23) {
+    const doors = ["bg-[#fbf3e4]", "bg-[#14513d]", "bg-[#f6d98b]", "bg-[#5e0b19]", "bg-[#fbf3e4]"]
+    return (
+      <div className={`relative aspect-[4/3] bg-[#0d3b2c] p-2 ${THUMB_SNOW}`}>
+        <div className="mx-auto mb-1 h-1 w-1/2 rounded-full bg-[#fbe7b5]/70" />
+        <div className="rounded-md bg-[#a5162f] p-1 ring-1 ring-[#f6d98b]/50">
+          <div className="grid grid-cols-3 gap-0.5">
+            {doors.map((c, i) => (
+              <div key={i} className={`h-3.5 rounded-[2px] ${c} ${i === 0 ? "relative col-span-2" : ""}`}>
+                {i === 0 && <span className="absolute inset-y-0 left-1/2 w-0.5 bg-[#d11f3b]" />}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mx-auto mt-1 h-2 w-4/5 rounded bg-[#f6d98b]" />
+      </div>
+    )
+  }
+  if (id === 24) {
+    return (
+      <div className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-b from-[#050a1c] to-[#13254d] p-2 ${THUMB_SNOW}`}>
+        <div className="absolute -right-3 -top-3 h-10 w-10 rounded-full bg-[radial-gradient(circle,rgba(255,244,214,0.95)_0_18%,rgba(255,236,190,0.2)_22%,transparent_65%)]" />
+        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-4 w-full" aria-hidden="true">
+          <path d="M0 20 L6 8 L12 20 L18 5 L24 20 L31 10 L38 20 L46 4 L54 20 L61 9 L68 20 L76 6 L84 20 L91 9 L100 20Z" fill="#0b1631" />
+        </svg>
+        <div className="relative mx-auto w-4/5 rounded-md border border-amber-200/30 bg-[#0a1430]/90 p-1">
+          <div className="mx-auto mb-1 h-1 w-1/2 rounded bg-amber-200" />
+          <div className="grid grid-cols-2 gap-0.5">
+            <div className="h-2.5 rounded-sm border border-amber-300 bg-amber-300/15" />
+            <div className="h-2.5 rounded-sm border border-white/15" />
+          </div>
+          <div className="mt-1 h-1.5 rounded-sm bg-amber-300" />
+        </div>
+      </div>
+    )
+  }
   if (id === 18) {
     const fills = ["bg-[#7a1f5c] ring-1 ring-[#7a1f5c] ring-offset-1 ring-offset-[#fdeef1]", "bg-[#fedcc1]", "bg-[#e4d3f5]", "bg-[#d4e6ce]"]
     return (
@@ -1607,6 +1674,26 @@ function getTemplateStyles(id: number): TemplateStyles {
         inputStyles: "border-lime-400/40 bg-black/40 text-lime-100",
         ctaStyles: "bg-lime-300 text-[#02130a] font-bold shadow-[0_0_16px_rgba(132,204,22,0.35)]",
         footer: "text-lime-500/40",
+      }
+    case 24: // Silent Night
+      return {
+        containerBg: "bg-gradient-to-b from-[#050a1c] via-[#0a1634] to-[#13254d]",
+        cardBg: "bg-[#0a1430]/90 border border-amber-200/20",
+        headerBg: "bg-gradient-to-b from-[#16306a]/70 to-transparent border-b border-amber-200/15",
+        headerIcon: "text-amber-200",
+        headerText: "text-amber-100",
+        headerSubtext: "text-slate-300",
+        announcementBg: "bg-amber-200/10 border border-amber-200/25",
+        announcementIcon: "text-amber-300",
+        announcementText: "text-amber-50",
+        planSelected: "border-amber-300 bg-amber-300/10 text-white",
+        planNormal: "border-white/10 bg-white/[0.04] text-white",
+        planTitle: "text-white",
+        planSub: "text-slate-400",
+        planPrice: "text-amber-300",
+        inputStyles: "border-white/15 bg-white/[0.06] text-white",
+        ctaStyles: "bg-gradient-to-r from-amber-300 to-amber-200 text-[#0a1430] font-bold",
+        footer: "text-slate-500",
       }
     default: // Classic (1)
       return {
